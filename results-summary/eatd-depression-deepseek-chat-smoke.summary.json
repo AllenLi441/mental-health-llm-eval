@@ -1,0 +1,41 @@
+{
+  "task": "eatd-depression",
+  "description": "EATD depression detection (binary, text-only, validation split, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 2,
+  "correct": 1,
+  "accuracy": 0.5,
+  "wilson95": [
+    0.09452865480086611,
+    0.905471345199134
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 1311,
+  "macroF1": 0.3333333333333333,
+  "weightedF1": 0.3333333333333333,
+  "topConfusion": [
+    {
+      "pair": "depressed -> non-depressed",
+      "count": 1
+    }
+  ],
+  "positiveF1": 0,
+  "comparisons": [
+    {
+      "method": "paper BiLSTM text-only (trained on train split)",
+      "metric": "F1 (depressed)",
+      "value": 0.65
+    },
+    {
+      "method": "paper GRU audio-only",
+      "metric": "F1",
+      "value": 0.66
+    },
+    {
+      "method": "paper multimodal fusion (SOTA in paper)",
+      "metric": "F1",
+      "value": 0.71
+    }
+  ]
+}

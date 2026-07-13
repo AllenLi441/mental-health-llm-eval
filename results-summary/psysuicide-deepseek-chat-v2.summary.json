@@ -1,0 +1,71 @@
+{
+  "task": "psysuicide",
+  "description": "PsySUICIDE fine-grained suicide-risk classification (11-class, Chinese, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 500,
+  "correct": 362,
+  "accuracy": 0.724,
+  "wilson95": [
+    0.6832216523131053,
+    0.76136251858505
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 42527,
+  "macroF1": 0.3638914202882591,
+  "weightedF1": 0.7533411758153689,
+  "topConfusion": [
+    {
+      "pair": "与自杀/自伤/攻击行为无关 -> 被动自杀意图",
+      "count": 31
+    },
+    {
+      "pair": "与自杀/自伤/攻击行为无关 -> 关于自杀的探索",
+      "count": 27
+    },
+    {
+      "pair": "被动自杀意图 -> 主动自杀意图",
+      "count": 27
+    },
+    {
+      "pair": "与自杀/自伤/攻击行为无关 -> 用户攻击行为",
+      "count": 8
+    },
+    {
+      "pair": "与自杀/自伤/攻击行为无关 -> 主动自杀意图",
+      "count": 5
+    },
+    {
+      "pair": "与自杀/自伤/攻击行为无关 -> 他人攻击行为",
+      "count": 5
+    },
+    {
+      "pair": "他人攻击行为 -> 用户攻击行为",
+      "count": 4
+    },
+    {
+      "pair": "主动自杀意图 -> 被动自杀意图",
+      "count": 4
+    },
+    {
+      "pair": "主动自杀意图 -> 关于自杀的探索",
+      "count": 3
+    },
+    {
+      "pair": "自杀计划 -> 主动自杀意图",
+      "count": 3
+    }
+  ],
+  "comparisons": [
+    {
+      "method": "PsyGUARD 论文微调基线（Chinese-RoBERTa 系）",
+      "metric": "weighted F1",
+      "value": "见论文 Table（微调设定，非零样本）"
+    },
+    {
+      "method": "majority class（与自杀无关，~72%）",
+      "metric": "accuracy",
+      "value": 72.4
+    }
+  ]
+}

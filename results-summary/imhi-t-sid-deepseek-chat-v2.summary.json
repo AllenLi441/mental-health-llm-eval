@@ -1,0 +1,76 @@
+{
+  "task": "imhi-t-sid",
+  "description": "IMHI t-sid (4-class, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 500,
+  "correct": 388,
+  "accuracy": 0.776,
+  "wilson95": [
+    0.737429591400892,
+    0.8103616191700493
+  ],
+  "invalid": 1,
+  "errors": 0,
+  "elapsedMs": 44477,
+  "macroF1": 0.5746902380849241,
+  "weightedF1": 0.7440348242630737,
+  "topConfusion": [
+    {
+      "pair": "depression -> no mental disorders",
+      "count": 61
+    },
+    {
+      "pair": "ptsd -> no mental disorders",
+      "count": 18
+    },
+    {
+      "pair": "no mental disorders -> ptsd",
+      "count": 9
+    },
+    {
+      "pair": "suicide or self-harm tendency -> depression",
+      "count": 6
+    },
+    {
+      "pair": "no mental disorders -> suicide or self-harm tendency",
+      "count": 5
+    },
+    {
+      "pair": "no mental disorders -> depression",
+      "count": 4
+    },
+    {
+      "pair": "suicide or self-harm tendency -> no mental disorders",
+      "count": 3
+    },
+    {
+      "pair": "depression -> suicide or self-harm tendency",
+      "count": 2
+    },
+    {
+      "pair": "ptsd -> depression",
+      "count": 2
+    },
+    {
+      "pair": "suicide or self-harm tendency -> ptsd",
+      "count": 1
+    }
+  ],
+  "comparisons": [
+    {
+      "method": "ChatGPT zero-shot (paper Table 2)",
+      "metric": "weighted F1",
+      "value": 33.3
+    },
+    {
+      "method": "best fine-tuned discriminative (MentalRoBERTa)",
+      "metric": "weighted F1",
+      "value": 89.01
+    },
+    {
+      "method": "MentaLLaMA-chat-13B (paper)",
+      "metric": "weighted F1",
+      "value": 75.31
+    }
+  ]
+}

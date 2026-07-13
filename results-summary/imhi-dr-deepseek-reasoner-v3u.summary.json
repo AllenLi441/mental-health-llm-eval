@@ -1,0 +1,50 @@
+{
+  "task": "imhi-dr",
+  "description": "IMHI DR (binary, zero-shot)",
+  "model": "deepseek-reasoner",
+  "api_models": [
+    "deepseek-v4-flash"
+  ],
+  "fingerprints": [
+    "fp_8b330d02d0_prod0820_fp8_kvcache_20260402"
+  ],
+  "n": 405,
+  "correct": 320,
+  "accuracy": 0.7901234567901234,
+  "wilson95": [
+    0.7478296362412176,
+    0.8269651008892506
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 107565,
+  "macroF1": 0.7668330612770166,
+  "weightedF1": 0.8048619102007615,
+  "topConfusion": [
+    {
+      "pair": "yes -> no",
+      "count": 83
+    },
+    {
+      "pair": "no -> yes",
+      "count": 2
+    }
+  ],
+  "comparisons": [
+    {
+      "method": "ChatGPT zero-shot (paper Table 2)",
+      "metric": "weighted F1",
+      "value": 82.41
+    },
+    {
+      "method": "best fine-tuned discriminative (RoBERTa)",
+      "metric": "weighted F1",
+      "value": 95.11
+    },
+    {
+      "method": "MentaLLaMA-chat-13B (paper)",
+      "metric": "weighted F1",
+      "value": 85.68
+    }
+  ]
+}

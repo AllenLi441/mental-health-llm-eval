@@ -1,0 +1,76 @@
+{
+  "task": "imhi-swmh",
+  "description": "IMHI swmh (5-class, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 500,
+  "correct": 331,
+  "accuracy": 0.662,
+  "wilson95": [
+    0.6194419387868491,
+    0.7020876848091383
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 42254,
+  "macroF1": 0.6519717637193365,
+  "weightedF1": 0.6469281851893502,
+  "topConfusion": [
+    {
+      "pair": "depression -> suicide",
+      "count": 40
+    },
+    {
+      "pair": "no mental disorders -> depression",
+      "count": 33
+    },
+    {
+      "pair": "suicide -> depression",
+      "count": 23
+    },
+    {
+      "pair": "no mental disorders -> anxiety",
+      "count": 19
+    },
+    {
+      "pair": "depression -> anxiety",
+      "count": 12
+    },
+    {
+      "pair": "anxiety -> depression",
+      "count": 8
+    },
+    {
+      "pair": "bipolar disorder -> depression",
+      "count": 6
+    },
+    {
+      "pair": "depression -> bipolar disorder",
+      "count": 5
+    },
+    {
+      "pair": "bipolar disorder -> anxiety",
+      "count": 5
+    },
+    {
+      "pair": "no mental disorders -> suicide",
+      "count": 4
+    }
+  ],
+  "comparisons": [
+    {
+      "method": "ChatGPT zero-shot (paper Table 2)",
+      "metric": "weighted F1",
+      "value": 49.32
+    },
+    {
+      "method": "best fine-tuned discriminative (MentalRoBERTa)",
+      "metric": "weighted F1",
+      "value": 72.16
+    },
+    {
+      "method": "MentaLLaMA-chat-13B (paper)",
+      "metric": "weighted F1",
+      "value": 71.7
+    }
+  ]
+}

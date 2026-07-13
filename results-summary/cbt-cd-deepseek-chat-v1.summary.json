@@ -1,0 +1,66 @@
+{
+  "task": "cbt-cd",
+  "description": "CBT-Bench cognitive distortion classification (10-class, top-1 hit)",
+  "model": "deepseek-chat",
+  "n": 146,
+  "correct": 85,
+  "accuracy": 0.5821917808219178,
+  "wilson95": [
+    0.5010865952596069,
+    0.6590825433507657
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 13502,
+  "macroF1": 0.11214018857854473,
+  "weightedF1": 0.1350604671490391,
+  "topConfusion": [
+    {
+      "pair": "all-or-nothing thinking -> fortune-telling",
+      "count": 10
+    },
+    {
+      "pair": "all-or-nothing thinking -> overgeneralization",
+      "count": 8
+    },
+    {
+      "pair": "all-or-nothing thinking -> personalization",
+      "count": 7
+    },
+    {
+      "pair": "all-or-nothing thinking -> labeling",
+      "count": 4
+    },
+    {
+      "pair": "should statements -> all-or-nothing thinking",
+      "count": 3
+    },
+    {
+      "pair": "should statements -> labeling",
+      "count": 3
+    },
+    {
+      "pair": "overgeneralization -> fortune-telling",
+      "count": 3
+    },
+    {
+      "pair": "all-or-nothing thinking -> magnification",
+      "count": 2
+    },
+    {
+      "pair": "all-or-nothing thinking -> mind reading",
+      "count": 2
+    },
+    {
+      "pair": "overgeneralization -> personalization",
+      "count": 2
+    }
+  ],
+  "comparisons": [
+    {
+      "method": "协议说明",
+      "metric": "note",
+      "value": "多标签金标 → 采用 top-1 命中率；论文 Table 报告微调/零样本模型的 multi-label F1，口径不同，跑分后如需对表可加严格集合匹配"
+    }
+  ]
+}

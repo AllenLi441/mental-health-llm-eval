@@ -1,0 +1,50 @@
+{
+  "task": "imhi-dreaddit",
+  "description": "IMHI dreaddit (binary, zero-shot)",
+  "model": "deepseek-chat",
+  "api_models": [
+    "deepseek-v4-flash"
+  ],
+  "fingerprints": [
+    "fp_8b330d02d0_prod0820_fp8_kvcache_20260402"
+  ],
+  "n": 414,
+  "correct": 330,
+  "accuracy": 0.7971014492753623,
+  "wilson95": [
+    0.7557124570402581,
+    0.833027390787244
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 35233,
+  "macroF1": 0.7924465240641712,
+  "weightedF1": 0.7930471595752926,
+  "topConfusion": [
+    {
+      "pair": "no -> yes",
+      "count": 69
+    },
+    {
+      "pair": "yes -> no",
+      "count": 15
+    }
+  ],
+  "comparisons": [
+    {
+      "method": "ChatGPT zero-shot (paper Table 2)",
+      "metric": "weighted F1",
+      "value": 71.79
+    },
+    {
+      "method": "best fine-tuned discriminative (MentalRoBERTa)",
+      "metric": "weighted F1",
+      "value": 81.76
+    },
+    {
+      "method": "MentaLLaMA-chat-13B (paper)",
+      "metric": "weighted F1",
+      "value": 75.79
+    }
+  ]
+}

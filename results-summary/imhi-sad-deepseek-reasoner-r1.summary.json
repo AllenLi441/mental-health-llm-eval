@@ -1,0 +1,82 @@
+{
+  "task": "imhi-sad",
+  "description": "IMHI SAD (9-class, zero-shot)",
+  "model": "deepseek-reasoner",
+  "api_models": [
+    "deepseek-v4-flash"
+  ],
+  "fingerprints": [
+    "fp_8b330d02d0_prod0820_fp8_kvcache_20260402"
+  ],
+  "n": 500,
+  "correct": 306,
+  "accuracy": 0.612,
+  "wilson95": [
+    0.5685873695673256,
+    0.653704715881752
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 106202,
+  "macroF1": 0.5752037527456412,
+  "weightedF1": 0.5967159314723172,
+  "topConfusion": [
+    {
+      "pair": "everyday decision making -> work",
+      "count": 13
+    },
+    {
+      "pair": "emotional turmoil -> other causes",
+      "count": 10
+    },
+    {
+      "pair": "other causes -> work",
+      "count": 10
+    },
+    {
+      "pair": "emotional turmoil -> social relationships",
+      "count": 8
+    },
+    {
+      "pair": "everyday decision making -> other causes",
+      "count": 8
+    },
+    {
+      "pair": "health issues -> other causes",
+      "count": 7
+    },
+    {
+      "pair": "other causes -> emotional turmoil",
+      "count": 7
+    },
+    {
+      "pair": "emotional turmoil -> health issues",
+      "count": 6
+    },
+    {
+      "pair": "family issues -> health issues",
+      "count": 6
+    },
+    {
+      "pair": "other causes -> everyday decision making",
+      "count": 6
+    }
+  ],
+  "comparisons": [
+    {
+      "method": "ChatGPT zero-shot (paper Table 2)",
+      "metric": "weighted F1",
+      "value": 54.05
+    },
+    {
+      "method": "best fine-tuned discriminative (MentalRoBERTa)",
+      "metric": "weighted F1",
+      "value": 68.44
+    },
+    {
+      "method": "MentaLLaMA-chat-13B (paper)",
+      "metric": "weighted F1",
+      "value": 63.62
+    }
+  ]
+}

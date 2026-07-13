@@ -1,0 +1,60 @@
+{
+  "task": "cpsyexam",
+  "description": "CPsyExam MCQ answering (KG+CA, single+multiple choice, zero-shot)",
+  "model": "deepseek-reasoner",
+  "api_models": [
+    "deepseek-v4-flash"
+  ],
+  "fingerprints": [
+    "fp_8b330d02d0_prod0820_fp8_kvcache_20260402"
+  ],
+  "n": 600,
+  "correct": 497,
+  "accuracy": 0.8283333333333334,
+  "wilson95": [
+    0.7960946647607413,
+    0.8563943323537339
+  ],
+  "invalid": 8,
+  "errors": 0,
+  "elapsedMs": 207176,
+  "groups": {
+    "KG-SCQ": {
+      "n": 347,
+      "correct": 316,
+      "accuracy": 0.9106628242074928
+    },
+    "CA-SCQ": {
+      "n": 102,
+      "correct": 83,
+      "accuracy": 0.8137254901960784
+    },
+    "KG-MAQ": {
+      "n": 124,
+      "correct": 82,
+      "accuracy": 0.6612903225806451
+    },
+    "CA-MAQ": {
+      "n": 27,
+      "correct": 16,
+      "accuracy": 0.5925925925925926
+    }
+  },
+  "comparisons": [
+    {
+      "method": "GPT-4 (paper Table 2, zero-shot)",
+      "metric": "acc KG-SCQ/KG-MAQ/CA-SCQ/CA-MAQ",
+      "value": "76.56 / 10.76 / 60.33 / 13.00 (Avg. 67.43 incl. few-shot)"
+    },
+    {
+      "method": "ChatGLM-Turbo (paper)",
+      "metric": "Avg.",
+      "value": 64.58
+    },
+    {
+      "method": "ChatGPT (paper, zero-shot)",
+      "metric": "acc KG-SCQ/KG-MAQ/CA-SCQ/CA-MAQ",
+      "value": "57.43 / 11.14 / 47.33 / 9.00 (Avg. 51.15)"
+    }
+  ]
+}

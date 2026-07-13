@@ -1,0 +1,88 @@
+{
+  "task": "EU",
+  "n": 400,
+  "invalid": 7,
+  "combined": {
+    "correct": 254,
+    "total": 400,
+    "accuracy": 0.635,
+    "categories": {
+      "complex_emotions": {
+        "correct": 75,
+        "total": 98,
+        "accuracy": 0.7653061224489796
+      },
+      "personal_beliefs_and_experiences": {
+        "correct": 66,
+        "total": 112,
+        "accuracy": 0.5892857142857143
+      },
+      "emotional_cues": {
+        "correct": 42,
+        "total": 56,
+        "accuracy": 0.75
+      },
+      "perspective_taking": {
+        "correct": 71,
+        "total": 134,
+        "accuracy": 0.5298507462686567
+      }
+    }
+  },
+  "by_language": {
+    "en": {
+      "correct": 137,
+      "total": 200,
+      "accuracy": 0.685,
+      "categories": {
+        "complex_emotions": {
+          "correct": 38,
+          "total": 49,
+          "accuracy": 0.7755102040816326
+        },
+        "personal_beliefs_and_experiences": {
+          "correct": 38,
+          "total": 56,
+          "accuracy": 0.6785714285714286
+        },
+        "emotional_cues": {
+          "correct": 21,
+          "total": 28,
+          "accuracy": 0.75
+        },
+        "perspective_taking": {
+          "correct": 40,
+          "total": 67,
+          "accuracy": 0.5970149253731343
+        }
+      }
+    },
+    "zh": {
+      "correct": 117,
+      "total": 200,
+      "accuracy": 0.585,
+      "categories": {
+        "complex_emotions": {
+          "correct": 37,
+          "total": 49,
+          "accuracy": 0.7551020408163265
+        },
+        "personal_beliefs_and_experiences": {
+          "correct": 28,
+          "total": 56,
+          "accuracy": 0.5
+        },
+        "emotional_cues": {
+          "correct": 21,
+          "total": 28,
+          "accuracy": 0.75
+        },
+        "perspective_taking": {
+          "correct": 31,
+          "total": 67,
+          "accuracy": 0.4626865671641791
+        }
+      }
+    }
+  }
+}

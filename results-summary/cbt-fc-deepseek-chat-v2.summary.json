@@ -1,0 +1,66 @@
+{
+  "task": "cbt-fc",
+  "description": "CBT-Bench fine-grained core belief classification (19-class, top-1 hit)",
+  "model": "deepseek-chat",
+  "n": 112,
+  "correct": 78,
+  "accuracy": 0.6964285714285714,
+  "wilson95": [
+    0.605929294234967,
+    0.7738997136516643
+  ],
+  "invalid": 1,
+  "errors": 0,
+  "elapsedMs": 9902,
+  "macroF1": 0.0956288471501453,
+  "weightedF1": 0.135843208756857,
+  "topConfusion": [
+    {
+      "pair": "I am helpless -> I am powerless, weak, vulnerable",
+      "count": 3
+    },
+    {
+      "pair": "I am a victim -> I am powerless, weak, vulnerable",
+      "count": 2
+    },
+    {
+      "pair": "I am a victim -> I am unlovable",
+      "count": 2
+    },
+    {
+      "pair": "I am incompetent -> I am worthless, waste",
+      "count": 2
+    },
+    {
+      "pair": "I am powerless, weak, vulnerable -> I am helpless",
+      "count": 2
+    },
+    {
+      "pair": "I am powerless, weak, vulnerable -> I am out of control",
+      "count": 2
+    },
+    {
+      "pair": "I am incompetent -> I am defective",
+      "count": 2
+    },
+    {
+      "pair": "I am helpless -> I am defective",
+      "count": 2
+    },
+    {
+      "pair": "I am helpless -> I am a victim",
+      "count": 1
+    },
+    {
+      "pair": "I am bound to be rejected -> I am undesirable, unwanted",
+      "count": 1
+    }
+  ],
+  "comparisons": [
+    {
+      "method": "协议说明",
+      "metric": "note",
+      "value": "多标签金标 → 采用 top-1 命中率；论文 Table 报告微调/零样本模型的 multi-label F1，口径不同，跑分后如需对表可加严格集合匹配"
+    }
+  ]
+}

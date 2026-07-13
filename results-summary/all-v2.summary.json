@@ -1,0 +1,1103 @@
+[
+ {
+  "task": "cbt-cd",
+  "description": "CBT-Bench cognitive distortion classification (10-class, top-1 hit)",
+  "model": "deepseek-chat",
+  "n": 146,
+  "correct": 85,
+  "accuracy": 0.5821917808219178,
+  "wilson95": [
+   0.5010865952596069,
+   0.6590825433507657
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 11447,
+  "macroF1": 0.11214018857854473,
+  "weightedF1": 0.1350604671490391,
+  "topConfusion": [
+   {
+    "pair": "all-or-nothing thinking -> fortune-telling",
+    "count": 10
+   },
+   {
+    "pair": "all-or-nothing thinking -> overgeneralization",
+    "count": 8
+   },
+   {
+    "pair": "all-or-nothing thinking -> personalization",
+    "count": 7
+   },
+   {
+    "pair": "all-or-nothing thinking -> labeling",
+    "count": 4
+   },
+   {
+    "pair": "should statements -> all-or-nothing thinking",
+    "count": 3
+   },
+   {
+    "pair": "should statements -> labeling",
+    "count": 3
+   },
+   {
+    "pair": "overgeneralization -> fortune-telling",
+    "count": 3
+   },
+   {
+    "pair": "all-or-nothing thinking -> magnification",
+    "count": 2
+   },
+   {
+    "pair": "all-or-nothing thinking -> mind reading",
+    "count": 2
+   },
+   {
+    "pair": "overgeneralization -> personalization",
+    "count": 2
+   }
+  ],
+  "comparisons": [
+   {
+    "method": "协议说明",
+    "metric": "note",
+    "value": "多标签金标 → 采用 top-1 命中率；论文 Table 报告微调/零样本模型的 multi-label F1，口径不同，跑分后如需对表可加严格集合匹配"
+   }
+  ]
+ },
+ {
+  "task": "cbt-fc",
+  "description": "CBT-Bench fine-grained core belief classification (19-class, top-1 hit)",
+  "model": "deepseek-chat",
+  "n": 112,
+  "correct": 78,
+  "accuracy": 0.6964285714285714,
+  "wilson95": [
+   0.605929294234967,
+   0.7738997136516643
+  ],
+  "invalid": 1,
+  "errors": 0,
+  "elapsedMs": 9902,
+  "macroF1": 0.0956288471501453,
+  "weightedF1": 0.135843208756857,
+  "topConfusion": [
+   {
+    "pair": "I am helpless -> I am powerless, weak, vulnerable",
+    "count": 3
+   },
+   {
+    "pair": "I am a victim -> I am powerless, weak, vulnerable",
+    "count": 2
+   },
+   {
+    "pair": "I am a victim -> I am unlovable",
+    "count": 2
+   },
+   {
+    "pair": "I am incompetent -> I am worthless, waste",
+    "count": 2
+   },
+   {
+    "pair": "I am powerless, weak, vulnerable -> I am helpless",
+    "count": 2
+   },
+   {
+    "pair": "I am powerless, weak, vulnerable -> I am out of control",
+    "count": 2
+   },
+   {
+    "pair": "I am incompetent -> I am defective",
+    "count": 2
+   },
+   {
+    "pair": "I am helpless -> I am defective",
+    "count": 2
+   },
+   {
+    "pair": "I am helpless -> I am a victim",
+    "count": 1
+   },
+   {
+    "pair": "I am bound to be rejected -> I am undesirable, unwanted",
+    "count": 1
+   }
+  ],
+  "comparisons": [
+   {
+    "method": "协议说明",
+    "metric": "note",
+    "value": "多标签金标 → 采用 top-1 命中率；论文 Table 报告微调/零样本模型的 multi-label F1，口径不同，跑分后如需对表可加严格集合匹配"
+   }
+  ]
+ },
+ {
+  "task": "cbt-pc",
+  "description": "CBT-Bench primary core belief classification (3-class, top-1 hit)",
+  "model": "deepseek-chat",
+  "n": 184,
+  "correct": 164,
+  "accuracy": 0.8913043478260869,
+  "wilson95": [
+   0.8380757898182399,
+   0.928527561090185
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 14260,
+  "macroF1": 0.32168953213729334,
+  "weightedF1": 0.6707164113556068,
+  "topConfusion": [
+   {
+    "pair": "helpless -> worthless",
+    "count": 11
+   },
+   {
+    "pair": "unlovable -> helpless",
+    "count": 6
+   },
+   {
+    "pair": "helpless -> unlovable",
+    "count": 2
+   },
+   {
+    "pair": "worthless -> helpless",
+    "count": 1
+   }
+  ],
+  "comparisons": [
+   {
+    "method": "协议说明",
+    "metric": "note",
+    "value": "多标签金标 → 采用 top-1 命中率；论文 Table 报告微调/零样本模型的 multi-label F1，口径不同，跑分后如需对表可加严格集合匹配"
+   }
+  ]
+ },
+ {
+  "task": "cpsyexam",
+  "description": "CPsyExam MCQ answering (KG+CA, single+multiple choice, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 3902,
+  "correct": 3243,
+  "accuracy": 0.8311122501281394,
+  "wilson95": [
+   0.8190323472472568,
+   0.8425408204920596
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 299922,
+  "groups": {
+   "CA-SCQ": {
+    "n": 600,
+    "correct": 478,
+    "accuracy": 0.7966666666666666
+   },
+   "CA-MAQ": {
+    "n": 200,
+    "correct": 125,
+    "accuracy": 0.625
+   },
+   "KG-SCQ": {
+    "n": 2321,
+    "correct": 2083,
+    "accuracy": 0.8974579922447221
+   },
+   "KG-MAQ": {
+    "n": 781,
+    "correct": 557,
+    "accuracy": 0.7131882202304738
+   }
+  },
+  "comparisons": [
+   {
+    "method": "GPT-4 (paper Table 2, zero-shot)",
+    "metric": "acc KG-SCQ/KG-MAQ/CA-SCQ/CA-MAQ",
+    "value": "76.56 / 10.76 / 60.33 / 13.00 (Avg. 67.43 incl. few-shot)"
+   },
+   {
+    "method": "ChatGLM-Turbo (paper)",
+    "metric": "Avg.",
+    "value": 64.58
+   },
+   {
+    "method": "ChatGPT (paper, zero-shot)",
+    "metric": "acc KG-SCQ/KG-MAQ/CA-SCQ/CA-MAQ",
+    "value": "57.43 / 11.14 / 47.33 / 9.00 (Avg. 51.15)"
+   }
+  ]
+ },
+ {
+  "task": "eatd-depression",
+  "description": "EATD depression detection (binary, text-only, validation split, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 79,
+  "correct": 66,
+  "accuracy": 0.8354430379746836,
+  "wilson95": [
+   0.7385413250068678,
+   0.9012338604072236
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 6685,
+  "macroF1": 0.6911278195488721,
+  "weightedF1": 0.8434605501094508,
+  "topConfusion": [
+   {
+    "pair": "non-depressed -> depressed",
+    "count": 8
+   },
+   {
+    "pair": "depressed -> non-depressed",
+    "count": 5
+   }
+  ],
+  "positiveF1": 0.48,
+  "comparisons": [
+   {
+    "method": "paper BiLSTM text-only (trained on train split)",
+    "metric": "F1 (depressed)",
+    "value": 0.65
+   },
+   {
+    "method": "paper GRU audio-only",
+    "metric": "F1",
+    "value": 0.66
+   },
+   {
+    "method": "paper multimodal fusion (SOTA in paper)",
+    "metric": "F1",
+    "value": 0.71
+   }
+  ]
+ },
+ {
+  "task": "emobench-ea",
+  "description": "EmoBench Emotional Application (MCQ, en+zh, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 400,
+  "correct": 286,
+  "accuracy": 0.715,
+  "wilson95": [
+   0.6688796049741063,
+   0.757029959568031
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 29934,
+  "macroF1": 0.7068395550504688,
+  "weightedF1": 0.7147303875091958,
+  "topConfusion": [
+   {
+    "pair": "D -> C",
+    "count": 18
+   },
+   {
+    "pair": "C -> B",
+    "count": 18
+   },
+   {
+    "pair": "B -> C",
+    "count": 17
+   },
+   {
+    "pair": "A -> C",
+    "count": 10
+   },
+   {
+    "pair": "C -> D",
+    "count": 9
+   },
+   {
+    "pair": "C -> A",
+    "count": 8
+   },
+   {
+    "pair": "B -> A",
+    "count": 8
+   },
+   {
+    "pair": "B -> D",
+    "count": 8
+   },
+   {
+    "pair": "D -> B",
+    "count": 7
+   },
+   {
+    "pair": "D -> A",
+    "count": 6
+   }
+  ],
+  "groups": {
+   "en": {
+    "n": 200,
+    "correct": 140,
+    "accuracy": 0.7
+   },
+   "zh": {
+    "n": 200,
+    "correct": 146,
+    "accuracy": 0.73
+   }
+  },
+  "comparisons": [
+   {
+    "method": "GPT-4 (paper, zero-shot)",
+    "metric": "accuracy en/zh",
+    "value": "75.50 / 73.75"
+   },
+   {
+    "method": "ChatGLM3-66B (paper, best open-source)",
+    "metric": "accuracy en/zh",
+    "value": "65.50 / 59.12"
+   },
+   {
+    "method": "human average (paper Fig. 5)",
+    "metric": "note",
+    "value": "above all LLMs"
+   }
+  ]
+ },
+ {
+  "task": "emobench-eu",
+  "description": "EmoBench Emotional Understanding (emotion + cause both correct, en+zh, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 400,
+  "correct": 157,
+  "accuracy": 0.3925,
+  "wilson95": [
+   0.34588569643429457,
+   0.4411595212946368
+  ],
+  "invalid": 5,
+  "errors": 0,
+  "elapsedMs": 29337,
+  "groups": {
+   "en": {
+    "n": 200,
+    "correct": 83,
+    "accuracy": 0.415
+   },
+   "zh": {
+    "n": 200,
+    "correct": 74,
+    "accuracy": 0.37
+   }
+  },
+  "comparisons": [
+   {
+    "method": "GPT-4 (paper, zero-shot, emotion+cause both correct)",
+    "metric": "accuracy en/zh",
+    "value": "59.75 / 54.12"
+   },
+   {
+    "method": "ChatGLM3-66B (paper)",
+    "metric": "accuracy en/zh",
+    "value": "47.45 / 42.86"
+   }
+  ]
+ },
+ {
+  "task": "imhi-cams",
+  "description": "IMHI CAMS (6-class, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 500,
+  "correct": 220,
+  "accuracy": 0.44,
+  "wilson95": [
+   0.3971110206093619,
+   0.48380393361434654
+  ],
+  "invalid": 22,
+  "errors": 0,
+  "elapsedMs": 93295,
+  "macroF1": 0.36260988983260406,
+  "weightedF1": 0.4307963282160755,
+  "topConfusion": [
+   {
+    "pair": "relationship -> alienation",
+    "count": 59
+   },
+   {
+    "pair": "none -> alienation",
+    "count": 27
+   },
+   {
+    "pair": "alienation -> none",
+    "count": 23
+   },
+   {
+    "pair": "alienation -> relationship",
+    "count": 23
+   },
+   {
+    "pair": "jobs and career -> alienation",
+    "count": 19
+   },
+   {
+    "pair": "medication -> none",
+    "count": 17
+   },
+   {
+    "pair": "none -> relationship",
+    "count": 13
+   },
+   {
+    "pair": "medication -> alienation",
+    "count": 12
+   },
+   {
+    "pair": "bias or abuse -> alienation",
+    "count": 9
+   },
+   {
+    "pair": "relationship -> none",
+    "count": 7
+   }
+  ],
+  "comparisons": [
+   {
+    "method": "ChatGPT zero-shot (paper Table 2)",
+    "metric": "weighted F1",
+    "value": 33.85
+   },
+   {
+    "method": "best fine-tuned discriminative (MentalRoBERTa)",
+    "metric": "weighted F1",
+    "value": 47.62
+   },
+   {
+    "method": "MentaLLaMA-chat-13B (paper)",
+    "metric": "weighted F1",
+    "value": 45.52
+   }
+  ]
+ },
+ {
+  "task": "imhi-dr",
+  "description": "IMHI DR (binary, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 405,
+  "correct": 356,
+  "accuracy": 0.8790123456790123,
+  "wilson95": [
+   0.8436394516944338,
+   0.9072626091526034
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 34225,
+  "macroF1": 0.8492307692307692,
+  "weightedF1": 0.8838104885512292,
+  "topConfusion": [
+   {
+    "pair": "yes -> no",
+    "count": 39
+   },
+   {
+    "pair": "no -> yes",
+    "count": 10
+   }
+  ],
+  "comparisons": [
+   {
+    "method": "ChatGPT zero-shot (paper Table 2)",
+    "metric": "weighted F1",
+    "value": 82.41
+   },
+   {
+    "method": "best fine-tuned discriminative (RoBERTa)",
+    "metric": "weighted F1",
+    "value": 95.11
+   },
+   {
+    "method": "MentaLLaMA-chat-13B (paper)",
+    "metric": "weighted F1",
+    "value": 85.68
+   }
+  ]
+ },
+ {
+  "task": "imhi-dreaddit",
+  "description": "IMHI dreaddit (binary, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 414,
+  "correct": 269,
+  "accuracy": 0.6497584541062802,
+  "wilson95": [
+   0.602619408637804,
+   0.6941437666898799
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 30355,
+  "macroF1": 0.5960160166896599,
+  "weightedF1": 0.5988632981421961,
+  "topConfusion": [
+   {
+    "pair": "no -> yes",
+    "count": 144
+   },
+   {
+    "pair": "yes -> no",
+    "count": 1
+   }
+  ],
+  "comparisons": [
+   {
+    "method": "ChatGPT zero-shot (paper Table 2)",
+    "metric": "weighted F1",
+    "value": 71.79
+   },
+   {
+    "method": "best fine-tuned discriminative (MentalRoBERTa)",
+    "metric": "weighted F1",
+    "value": 81.76
+   },
+   {
+    "method": "MentaLLaMA-chat-13B (paper)",
+    "metric": "weighted F1",
+    "value": 75.79
+   }
+  ]
+ },
+ {
+  "task": "imhi-irf",
+  "description": "IMHI Irf (binary, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 500,
+  "correct": 365,
+  "accuracy": 0.73,
+  "wilson95": [
+   0.6894405695613621,
+   0.7670521059144223
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 37498,
+  "macroF1": 0.6309842061240221,
+  "weightedF1": 0.6883292604923491,
+  "topConfusion": [
+   {
+    "pair": "no -> yes",
+    "count": 122
+   },
+   {
+    "pair": "yes -> no",
+    "count": 13
+   }
+  ],
+  "comparisons": [
+   {
+    "method": "ChatGPT zero-shot (paper Table 2)",
+    "metric": "weighted F1",
+    "value": 41.33
+   },
+   {
+    "method": "best fine-tuned discriminative (MentalBERT)",
+    "metric": "weighted F1",
+    "value": 76.73
+   },
+   {
+    "method": "MentaLLaMA-chat-13B (paper)",
+    "metric": "weighted F1",
+    "value": 76.49
+   }
+  ]
+ },
+ {
+  "task": "imhi-loneliness",
+  "description": "IMHI loneliness (binary, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 500,
+  "correct": 408,
+  "accuracy": 0.816,
+  "wilson95": [
+   0.7796701866722183,
+   0.8475110544162506
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 37886,
+  "macroF1": 0.7319347319347319,
+  "weightedF1": 0.8178013986013986,
+  "topConfusion": [
+   {
+    "pair": "yes -> no",
+    "count": 49
+   },
+   {
+    "pair": "no -> yes",
+    "count": 43
+   }
+  ],
+  "comparisons": [
+   {
+    "method": "ChatGPT zero-shot (paper Table 2)",
+    "metric": "weighted F1",
+    "value": 58.4
+   },
+   {
+    "method": "best fine-tuned discriminative (MentalRoBERTa)",
+    "metric": "weighted F1",
+    "value": 85.33
+   },
+   {
+    "method": "MentaLLaMA-chat-13B (paper)",
+    "metric": "weighted F1",
+    "value": 85.1
+   }
+  ]
+ },
+ {
+  "task": "imhi-multiwd",
+  "description": "IMHI MultiWD (binary, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 500,
+  "correct": 287,
+  "accuracy": 0.574,
+  "wilson95": [
+   0.5302533678298272,
+   0.616618188627599
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 36819,
+  "macroF1": 0.5713923510638725,
+  "weightedF1": 0.5617641088381714,
+  "topConfusion": [
+   {
+    "pair": "no -> yes",
+    "count": 198
+   },
+   {
+    "pair": "yes -> no",
+    "count": 15
+   }
+  ],
+  "comparisons": [
+   {
+    "method": "ChatGPT zero-shot (paper Table 2)",
+    "metric": "weighted F1",
+    "value": 62.72
+   },
+   {
+    "method": "best fine-tuned discriminative (BERT)",
+    "metric": "weighted F1",
+    "value": 76.69
+   },
+   {
+    "method": "MentaLLaMA-chat-13B (paper)",
+    "metric": "weighted F1",
+    "value": 75.11
+   }
+  ]
+ },
+ {
+  "task": "imhi-sad",
+  "description": "IMHI SAD (9-class, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 500,
+  "correct": 273,
+  "accuracy": 0.546,
+  "wilson95": [
+   0.5021734817218154,
+   0.5891250533733416
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 42172,
+  "macroF1": 0.5255901851464201,
+  "weightedF1": 0.5515226535564723,
+  "topConfusion": [
+   {
+    "pair": "school -> other causes",
+    "count": 16
+   },
+   {
+    "pair": "everyday decision making -> work",
+    "count": 14
+   },
+   {
+    "pair": "emotional turmoil -> other causes",
+    "count": 14
+   },
+   {
+    "pair": "other causes -> emotional turmoil",
+    "count": 13
+   },
+   {
+    "pair": "other causes -> work",
+    "count": 12
+   },
+   {
+    "pair": "work -> other causes",
+    "count": 10
+   },
+   {
+    "pair": "everyday decision making -> other causes",
+    "count": 9
+   },
+   {
+    "pair": "health issues -> other causes",
+    "count": 9
+   },
+   {
+    "pair": "social relationships -> other causes",
+    "count": 8
+   },
+   {
+    "pair": "social relationships -> emotional turmoil",
+    "count": 7
+   }
+  ],
+  "comparisons": [
+   {
+    "method": "ChatGPT zero-shot (paper Table 2)",
+    "metric": "weighted F1",
+    "value": 54.05
+   },
+   {
+    "method": "best fine-tuned discriminative (MentalRoBERTa)",
+    "metric": "weighted F1",
+    "value": 68.44
+   },
+   {
+    "method": "MentaLLaMA-chat-13B (paper)",
+    "metric": "weighted F1",
+    "value": 63.62
+   }
+  ]
+ },
+ {
+  "task": "imhi-swmh",
+  "description": "IMHI swmh (5-class, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 500,
+  "correct": 331,
+  "accuracy": 0.662,
+  "wilson95": [
+   0.6194419387868491,
+   0.7020876848091383
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 42254,
+  "macroF1": 0.6519717637193365,
+  "weightedF1": 0.6469281851893502,
+  "topConfusion": [
+   {
+    "pair": "depression -> suicide",
+    "count": 40
+   },
+   {
+    "pair": "no mental disorders -> depression",
+    "count": 33
+   },
+   {
+    "pair": "suicide -> depression",
+    "count": 23
+   },
+   {
+    "pair": "no mental disorders -> anxiety",
+    "count": 19
+   },
+   {
+    "pair": "depression -> anxiety",
+    "count": 12
+   },
+   {
+    "pair": "anxiety -> depression",
+    "count": 8
+   },
+   {
+    "pair": "bipolar disorder -> depression",
+    "count": 6
+   },
+   {
+    "pair": "depression -> bipolar disorder",
+    "count": 5
+   },
+   {
+    "pair": "bipolar disorder -> anxiety",
+    "count": 5
+   },
+   {
+    "pair": "no mental disorders -> suicide",
+    "count": 4
+   }
+  ],
+  "comparisons": [
+   {
+    "method": "ChatGPT zero-shot (paper Table 2)",
+    "metric": "weighted F1",
+    "value": 49.32
+   },
+   {
+    "method": "best fine-tuned discriminative (MentalRoBERTa)",
+    "metric": "weighted F1",
+    "value": 72.16
+   },
+   {
+    "method": "MentaLLaMA-chat-13B (paper)",
+    "metric": "weighted F1",
+    "value": 71.7
+   }
+  ]
+ },
+ {
+  "task": "imhi-t-sid",
+  "description": "IMHI t-sid (4-class, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 500,
+  "correct": 388,
+  "accuracy": 0.776,
+  "wilson95": [
+   0.737429591400892,
+   0.8103616191700493
+  ],
+  "invalid": 1,
+  "errors": 0,
+  "elapsedMs": 44477,
+  "macroF1": 0.5746902380849241,
+  "weightedF1": 0.7440348242630737,
+  "topConfusion": [
+   {
+    "pair": "depression -> no mental disorders",
+    "count": 61
+   },
+   {
+    "pair": "ptsd -> no mental disorders",
+    "count": 18
+   },
+   {
+    "pair": "no mental disorders -> ptsd",
+    "count": 9
+   },
+   {
+    "pair": "suicide or self-harm tendency -> depression",
+    "count": 6
+   },
+   {
+    "pair": "no mental disorders -> suicide or self-harm tendency",
+    "count": 5
+   },
+   {
+    "pair": "no mental disorders -> depression",
+    "count": 4
+   },
+   {
+    "pair": "suicide or self-harm tendency -> no mental disorders",
+    "count": 3
+   },
+   {
+    "pair": "depression -> suicide or self-harm tendency",
+    "count": 2
+   },
+   {
+    "pair": "ptsd -> depression",
+    "count": 2
+   },
+   {
+    "pair": "suicide or self-harm tendency -> ptsd",
+    "count": 1
+   }
+  ],
+  "comparisons": [
+   {
+    "method": "ChatGPT zero-shot (paper Table 2)",
+    "metric": "weighted F1",
+    "value": 33.3
+   },
+   {
+    "method": "best fine-tuned discriminative (MentalRoBERTa)",
+    "metric": "weighted F1",
+    "value": 89.01
+   },
+   {
+    "method": "MentaLLaMA-chat-13B (paper)",
+    "metric": "weighted F1",
+    "value": 75.31
+   }
+  ]
+ },
+ {
+  "task": "mdd5k-diagnosis",
+  "description": "MDD-5k coarse diagnosis classification (5-class, Chinese, zero-shot; protocol defined by this module)",
+  "model": "deepseek-chat",
+  "n": 400,
+  "correct": 229,
+  "accuracy": 0.5725,
+  "wilson95": [
+   0.523554401562919,
+   0.6200662655501273
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 32114,
+  "macroF1": 0.40505115126897306,
+  "weightedF1": 0.5162045496857378,
+  "topConfusion": [
+   {
+    "pair": "焦虑抑郁混合 -> 抑郁障碍",
+    "count": 44
+   },
+   {
+    "pair": "其他精神障碍 -> 抑郁障碍",
+    "count": 34
+   },
+   {
+    "pair": "其他精神障碍 -> 焦虑障碍",
+    "count": 24
+   },
+   {
+    "pair": "其他精神障碍 -> 双相障碍",
+    "count": 17
+   },
+   {
+    "pair": "抑郁障碍 -> 焦虑抑郁混合",
+    "count": 17
+   },
+   {
+    "pair": "焦虑障碍 -> 焦虑抑郁混合",
+    "count": 8
+   },
+   {
+    "pair": "焦虑抑郁混合 -> 焦虑障碍",
+    "count": 7
+   },
+   {
+    "pair": "其他精神障碍 -> 焦虑抑郁混合",
+    "count": 7
+   },
+   {
+    "pair": "焦虑障碍 -> 抑郁障碍",
+    "count": 3
+   },
+   {
+    "pair": "抑郁障碍 -> 焦虑障碍",
+    "count": 3
+   }
+  ],
+  "comparisons": [
+   {
+    "method": "协议说明",
+    "metric": "note",
+    "value": "数据集 2025 年发布、无统一诊断分类榜单；本 5 类协议由本模块定义（由 ICD 编码归并），数字用于横向比较模型，不与论文直接对表"
+   }
+  ]
+ },
+ {
+  "task": "mentalmanip",
+  "description": "MentalManip manipulation detection (binary, consensus subset, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 500,
+  "correct": 389,
+  "accuracy": 0.778,
+  "wilson95": [
+   0.7395294756647782,
+   0.8122312364320395
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 41032,
+  "macroF1": 0.7078562968811686,
+  "weightedF1": 0.7714150809317015,
+  "topConfusion": [
+   {
+    "pair": "no -> yes",
+    "count": 67
+   },
+   {
+    "pair": "yes -> no",
+    "count": 44
+   }
+  ],
+  "positiveF1": 0.851006711409396,
+  "comparisons": [
+   {
+    "method": "GPT-4 zero-shot（论文 Table，binary detection）",
+    "metric": "accuracy/F1",
+    "value": "论文含 GPT-4/Llama 基线，本地 PDF 可对表"
+   },
+   {
+    "method": "majority class (manipulative, 69.2%)",
+    "metric": "accuracy",
+    "value": 69.2
+   }
+  ]
+ },
+ {
+  "task": "psysuicide",
+  "description": "PsySUICIDE fine-grained suicide-risk classification (11-class, Chinese, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 500,
+  "correct": 362,
+  "accuracy": 0.724,
+  "wilson95": [
+   0.6832216523131053,
+   0.76136251858505
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 42527,
+  "macroF1": 0.3638914202882591,
+  "weightedF1": 0.7533411758153689,
+  "topConfusion": [
+   {
+    "pair": "与自杀/自伤/攻击行为无关 -> 被动自杀意图",
+    "count": 31
+   },
+   {
+    "pair": "与自杀/自伤/攻击行为无关 -> 关于自杀的探索",
+    "count": 27
+   },
+   {
+    "pair": "被动自杀意图 -> 主动自杀意图",
+    "count": 27
+   },
+   {
+    "pair": "与自杀/自伤/攻击行为无关 -> 用户攻击行为",
+    "count": 8
+   },
+   {
+    "pair": "与自杀/自伤/攻击行为无关 -> 主动自杀意图",
+    "count": 5
+   },
+   {
+    "pair": "与自杀/自伤/攻击行为无关 -> 他人攻击行为",
+    "count": 5
+   },
+   {
+    "pair": "他人攻击行为 -> 用户攻击行为",
+    "count": 4
+   },
+   {
+    "pair": "主动自杀意图 -> 被动自杀意图",
+    "count": 4
+   },
+   {
+    "pair": "主动自杀意图 -> 关于自杀的探索",
+    "count": 3
+   },
+   {
+    "pair": "自杀计划 -> 主动自杀意图",
+    "count": 3
+   }
+  ],
+  "comparisons": [
+   {
+    "method": "PsyGUARD 论文微调基线（Chinese-RoBERTa 系）",
+    "metric": "weighted F1",
+    "value": "见论文 Table（微调设定，非零样本）"
+   },
+   {
+    "method": "majority class（与自杀无关，~72%）",
+    "metric": "accuracy",
+    "value": 72.4
+   }
+  ]
+ }
+]

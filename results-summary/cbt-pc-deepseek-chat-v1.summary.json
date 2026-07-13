@@ -1,0 +1,42 @@
+{
+  "task": "cbt-pc",
+  "description": "CBT-Bench primary core belief classification (3-class, top-1 hit)",
+  "model": "deepseek-chat",
+  "n": 184,
+  "correct": 164,
+  "accuracy": 0.8913043478260869,
+  "wilson95": [
+    0.8380757898182399,
+    0.928527561090185
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 17336,
+  "macroF1": 0.32168953213729334,
+  "weightedF1": 0.6707164113556068,
+  "topConfusion": [
+    {
+      "pair": "helpless -> worthless",
+      "count": 11
+    },
+    {
+      "pair": "unlovable -> helpless",
+      "count": 6
+    },
+    {
+      "pair": "helpless -> unlovable",
+      "count": 2
+    },
+    {
+      "pair": "worthless -> helpless",
+      "count": 1
+    }
+  ],
+  "comparisons": [
+    {
+      "method": "协议说明",
+      "metric": "note",
+      "value": "多标签金标 → 采用 top-1 命中率；论文 Table 报告微调/零样本模型的 multi-label F1，口径不同，跑分后如需对表可加严格集合匹配"
+    }
+  ]
+}

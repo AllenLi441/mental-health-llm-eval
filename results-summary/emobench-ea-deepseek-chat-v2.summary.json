@@ -1,0 +1,88 @@
+{
+  "task": "emobench-ea",
+  "description": "EmoBench Emotional Application (MCQ, en+zh, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 400,
+  "correct": 286,
+  "accuracy": 0.715,
+  "wilson95": [
+    0.6688796049741063,
+    0.757029959568031
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 29934,
+  "macroF1": 0.7068395550504688,
+  "weightedF1": 0.7147303875091958,
+  "topConfusion": [
+    {
+      "pair": "D -> C",
+      "count": 18
+    },
+    {
+      "pair": "C -> B",
+      "count": 18
+    },
+    {
+      "pair": "B -> C",
+      "count": 17
+    },
+    {
+      "pair": "A -> C",
+      "count": 10
+    },
+    {
+      "pair": "C -> D",
+      "count": 9
+    },
+    {
+      "pair": "C -> A",
+      "count": 8
+    },
+    {
+      "pair": "B -> A",
+      "count": 8
+    },
+    {
+      "pair": "B -> D",
+      "count": 8
+    },
+    {
+      "pair": "D -> B",
+      "count": 7
+    },
+    {
+      "pair": "D -> A",
+      "count": 6
+    }
+  ],
+  "groups": {
+    "en": {
+      "n": 200,
+      "correct": 140,
+      "accuracy": 0.7
+    },
+    "zh": {
+      "n": 200,
+      "correct": 146,
+      "accuracy": 0.73
+    }
+  },
+  "comparisons": [
+    {
+      "method": "GPT-4 (paper, zero-shot)",
+      "metric": "accuracy en/zh",
+      "value": "75.50 / 73.75"
+    },
+    {
+      "method": "ChatGLM3-66B (paper, best open-source)",
+      "metric": "accuracy en/zh",
+      "value": "65.50 / 59.12"
+    },
+    {
+      "method": "human average (paper Fig. 5)",
+      "metric": "note",
+      "value": "above all LLMs"
+    }
+  ]
+}

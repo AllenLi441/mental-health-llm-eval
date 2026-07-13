@@ -1,0 +1,76 @@
+{
+  "task": "imhi-sad",
+  "description": "IMHI SAD (9-class, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 500,
+  "correct": 273,
+  "accuracy": 0.546,
+  "wilson95": [
+    0.5021734817218154,
+    0.5891250533733416
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 42172,
+  "macroF1": 0.5255901851464201,
+  "weightedF1": 0.5515226535564723,
+  "topConfusion": [
+    {
+      "pair": "school -> other causes",
+      "count": 16
+    },
+    {
+      "pair": "everyday decision making -> work",
+      "count": 14
+    },
+    {
+      "pair": "emotional turmoil -> other causes",
+      "count": 14
+    },
+    {
+      "pair": "other causes -> emotional turmoil",
+      "count": 13
+    },
+    {
+      "pair": "other causes -> work",
+      "count": 12
+    },
+    {
+      "pair": "work -> other causes",
+      "count": 10
+    },
+    {
+      "pair": "everyday decision making -> other causes",
+      "count": 9
+    },
+    {
+      "pair": "health issues -> other causes",
+      "count": 9
+    },
+    {
+      "pair": "social relationships -> other causes",
+      "count": 8
+    },
+    {
+      "pair": "social relationships -> emotional turmoil",
+      "count": 7
+    }
+  ],
+  "comparisons": [
+    {
+      "method": "ChatGPT zero-shot (paper Table 2)",
+      "metric": "weighted F1",
+      "value": 54.05
+    },
+    {
+      "method": "best fine-tuned discriminative (MentalRoBERTa)",
+      "metric": "weighted F1",
+      "value": 68.44
+    },
+    {
+      "method": "MentaLLaMA-chat-13B (paper)",
+      "metric": "weighted F1",
+      "value": 63.62
+    }
+  ]
+}

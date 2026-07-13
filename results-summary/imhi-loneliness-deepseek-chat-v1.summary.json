@@ -1,0 +1,44 @@
+{
+  "task": "imhi-loneliness",
+  "description": "IMHI loneliness (binary, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 500,
+  "correct": 408,
+  "accuracy": 0.816,
+  "wilson95": [
+    0.7796701866722183,
+    0.8475110544162506
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 46271,
+  "macroF1": 0.7319347319347319,
+  "weightedF1": 0.8178013986013986,
+  "topConfusion": [
+    {
+      "pair": "yes -> no",
+      "count": 49
+    },
+    {
+      "pair": "no -> yes",
+      "count": 43
+    }
+  ],
+  "comparisons": [
+    {
+      "method": "ChatGPT zero-shot (paper Table 2)",
+      "metric": "weighted F1",
+      "value": 58.4
+    },
+    {
+      "method": "best fine-tuned discriminative (MentalRoBERTa)",
+      "metric": "weighted F1",
+      "value": 85.33
+    },
+    {
+      "method": "MentaLLaMA-chat-13B (paper)",
+      "metric": "weighted F1",
+      "value": 85.1
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "task": "cpsyexam",
+  "description": "CPsyExam MCQ answering (KG+CA, single+multiple choice, zero-shot)",
+  "model": "moonshot-v1-8k",
+  "n": 20,
+  "correct": 13,
+  "accuracy": 0.65,
+  "wilson95": [
+    0.43285051021946475,
+    0.8188104521320554
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 5696,
+  "groups": {
+    "CA-SCQ": {
+      "n": 8,
+      "correct": 6,
+      "accuracy": 0.75
+    },
+    "KG-SCQ": {
+      "n": 8,
+      "correct": 6,
+      "accuracy": 0.75
+    },
+    "CA-MAQ": {
+      "n": 1,
+      "correct": 0,
+      "accuracy": 0
+    },
+    "KG-MAQ": {
+      "n": 3,
+      "correct": 1,
+      "accuracy": 0.3333333333333333
+    }
+  },
+  "comparisons": [
+    {
+      "method": "GPT-4 (paper Table 2, zero-shot)",
+      "metric": "acc KG-SCQ/KG-MAQ/CA-SCQ/CA-MAQ",
+      "value": "76.56 / 10.76 / 60.33 / 13.00 (Avg. 67.43 incl. few-shot)"
+    },
+    {
+      "method": "ChatGLM-Turbo (paper)",
+      "metric": "Avg.",
+      "value": 64.58
+    },
+    {
+      "method": "ChatGPT (paper, zero-shot)",
+      "metric": "acc KG-SCQ/KG-MAQ/CA-SCQ/CA-MAQ",
+      "value": "57.43 / 11.14 / 47.33 / 9.00 (Avg. 51.15)"
+    }
+  ]
+}

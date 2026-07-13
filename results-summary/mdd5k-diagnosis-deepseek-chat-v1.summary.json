@@ -1,0 +1,66 @@
+{
+  "task": "mdd5k-diagnosis",
+  "description": "MDD-5k coarse diagnosis classification (5-class, Chinese, zero-shot; protocol defined by this module)",
+  "model": "deepseek-chat",
+  "n": 400,
+  "correct": 229,
+  "accuracy": 0.5725,
+  "wilson95": [
+    0.523554401562919,
+    0.6200662655501273
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 38387,
+  "macroF1": 0.40559494074725866,
+  "weightedF1": 0.5161376382263799,
+  "topConfusion": [
+    {
+      "pair": "焦虑抑郁混合 -> 抑郁障碍",
+      "count": 44
+    },
+    {
+      "pair": "其他精神障碍 -> 抑郁障碍",
+      "count": 34
+    },
+    {
+      "pair": "其他精神障碍 -> 焦虑障碍",
+      "count": 24
+    },
+    {
+      "pair": "抑郁障碍 -> 焦虑抑郁混合",
+      "count": 18
+    },
+    {
+      "pair": "其他精神障碍 -> 双相障碍",
+      "count": 17
+    },
+    {
+      "pair": "焦虑障碍 -> 焦虑抑郁混合",
+      "count": 8
+    },
+    {
+      "pair": "焦虑抑郁混合 -> 焦虑障碍",
+      "count": 7
+    },
+    {
+      "pair": "其他精神障碍 -> 焦虑抑郁混合",
+      "count": 7
+    },
+    {
+      "pair": "焦虑障碍 -> 抑郁障碍",
+      "count": 3
+    },
+    {
+      "pair": "焦虑抑郁混合 -> 双相障碍",
+      "count": 3
+    }
+  ],
+  "comparisons": [
+    {
+      "method": "协议说明",
+      "metric": "note",
+      "value": "数据集 2025 年发布、无统一诊断分类榜单；本 5 类协议由本模块定义（由 ICD 编码归并），数字用于横向比较模型，不与论文直接对表"
+    }
+  ]
+}

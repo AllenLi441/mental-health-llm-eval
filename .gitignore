@@ -1,0 +1,7 @@
+.env
+*.env
+results/
+*.jsonl
+node_modules/
+.omc/
+__pycache__/

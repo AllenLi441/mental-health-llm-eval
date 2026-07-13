@@ -1,0 +1,39 @@
+{
+  "task": "emobench-eu",
+  "description": "EmoBench Emotional Understanding (emotion + cause both correct, en+zh, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 400,
+  "correct": 157,
+  "accuracy": 0.3925,
+  "wilson95": [
+    0.34588569643429457,
+    0.4411595212946368
+  ],
+  "invalid": 5,
+  "errors": 0,
+  "elapsedMs": 29337,
+  "groups": {
+    "en": {
+      "n": 200,
+      "correct": 83,
+      "accuracy": 0.415
+    },
+    "zh": {
+      "n": 200,
+      "correct": 74,
+      "accuracy": 0.37
+    }
+  },
+  "comparisons": [
+    {
+      "method": "GPT-4 (paper, zero-shot, emotion+cause both correct)",
+      "metric": "accuracy en/zh",
+      "value": "59.75 / 54.12"
+    },
+    {
+      "method": "ChatGLM3-66B (paper)",
+      "metric": "accuracy en/zh",
+      "value": "47.45 / 42.86"
+    }
+  ]
+}

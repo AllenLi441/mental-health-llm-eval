@@ -1,0 +1,40 @@
+{
+  "task": "mentalmanip",
+  "description": "MentalManip manipulation detection (binary, consensus subset, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 500,
+  "correct": 389,
+  "accuracy": 0.778,
+  "wilson95": [
+    0.7395294756647782,
+    0.8122312364320395
+  ],
+  "invalid": 0,
+  "errors": 0,
+  "elapsedMs": 47739,
+  "macroF1": 0.7078562968811686,
+  "weightedF1": 0.7714150809317015,
+  "topConfusion": [
+    {
+      "pair": "no -> yes",
+      "count": 67
+    },
+    {
+      "pair": "yes -> no",
+      "count": 44
+    }
+  ],
+  "positiveF1": 0.851006711409396,
+  "comparisons": [
+    {
+      "method": "GPT-4 zero-shot（论文 Table，binary detection）",
+      "metric": "accuracy/F1",
+      "value": "论文含 GPT-4/Llama 基线，本地 PDF 可对表"
+    },
+    {
+      "method": "majority class (manipulative, 69.2%)",
+      "metric": "accuracy",
+      "value": 69.2
+    }
+  ]
+}

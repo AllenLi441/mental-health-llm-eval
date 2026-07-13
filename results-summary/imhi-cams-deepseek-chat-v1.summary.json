@@ -1,0 +1,76 @@
+{
+  "task": "imhi-cams",
+  "description": "IMHI CAMS (6-class, zero-shot)",
+  "model": "deepseek-chat",
+  "n": 500,
+  "correct": 220,
+  "accuracy": 0.44,
+  "wilson95": [
+    0.3971110206093619,
+    0.48380393361434654
+  ],
+  "invalid": 22,
+  "errors": 0,
+  "elapsedMs": 51339,
+  "macroF1": 0.36260988983260406,
+  "weightedF1": 0.4307963282160755,
+  "topConfusion": [
+    {
+      "pair": "relationship -> alienation",
+      "count": 59
+    },
+    {
+      "pair": "none -> alienation",
+      "count": 27
+    },
+    {
+      "pair": "alienation -> none",
+      "count": 23
+    },
+    {
+      "pair": "alienation -> relationship",
+      "count": 23
+    },
+    {
+      "pair": "jobs and career -> alienation",
+      "count": 19
+    },
+    {
+      "pair": "medication -> none",
+      "count": 17
+    },
+    {
+      "pair": "none -> relationship",
+      "count": 13
+    },
+    {
+      "pair": "medication -> alienation",
+      "count": 12
+    },
+    {
+      "pair": "bias or abuse -> alienation",
+      "count": 9
+    },
+    {
+      "pair": "relationship -> none",
+      "count": 7
+    }
+  ],
+  "comparisons": [
+    {
+      "method": "ChatGPT zero-shot (paper Table 2)",
+      "metric": "weighted F1",
+      "value": 33.85
+    },
+    {
+      "method": "best fine-tuned discriminative (MentalRoBERTa)",
+      "metric": "weighted F1",
+      "value": 47.62
+    },
+    {
+      "method": "MentaLLaMA-chat-13B (paper)",
+      "metric": "weighted F1",
+      "value": 45.52
+    }
+  ]
+}
