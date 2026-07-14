@@ -1,0 +1,281 @@
+{
+  "_spec": "单一数字源。本文件收录全部论文对照基线值。所有文档(scratch/paper.html、scratch/scoreboard.html、reports/*.md、README.md、静室_大白话全解.md)引用对照值时必须与本文件一致,禁止手抄新数;如需新增基线,先在此登记再引用。scope 取值:zero-shot=论文零样本列;few-shot-mixed=论文报告均值含少样本;derived-mean=由论文分项我们计算(如 en/zh 均值、按题量加权);fine-tuned=任务微调判别式;domain-llm=领域微调 LLM;majority-class=多数类基线。",
+  "generated": "2026-07-13",
+  "source_of_truth": "datasets/eval-suite/tasks/*.mjs 的 comparisons 字段 + 各论文 PDF 页码级核验",
+  "baselines": [
+    {
+      "id": "cpsyexam-gpt4-avg",
+      "dataset": "CPsyExam",
+      "method": "GPT-4",
+      "value": 67.43,
+      "metric": "acc,4 分组均值(KG/CA × 单选/多选)",
+      "scope": "few-shot-mixed",
+      "source": "CPsyExam (COLING 2025) Table 2",
+      "notes": "论文 Avg. 67.43 含少样本列;文档引用此值必须标注「含少样本」。严格零样本口径见 cpsyexam-gpt4-zeroshot-weighted。"
+    },
+    {
+      "id": "cpsyexam-gpt4-zeroshot-groups",
+      "dataset": "CPsyExam",
+      "method": "GPT-4",
+      "value": "76.56 / 10.76 / 60.33 / 13.00",
+      "metric": "acc KG-SCQ / KG-MAQ / CA-SCQ / CA-MAQ",
+      "scope": "zero-shot",
+      "source": "CPsyExam (COLING 2025) Table 2",
+      "notes": "论文零样本分组列。"
+    },
+    {
+      "id": "cpsyexam-gpt4-zeroshot-weighted",
+      "dataset": "CPsyExam",
+      "method": "GPT-4",
+      "value": 57.6,
+      "metric": "acc,按各组题量加权(zero-shot)",
+      "scope": "derived-mean",
+      "source": "CPsyExam Table 2 零样本分组列,按各组题量加权(我们计算)",
+      "notes": "严格零样本口径;由 76.56/10.76/60.33/13.00 推算。凡引用「严格零样本」处用此值。"
+    },
+    {
+      "id": "cpsyexam-chatgpt-avg",
+      "dataset": "CPsyExam",
+      "method": "ChatGPT",
+      "value": 51.15,
+      "metric": "acc,4 分组均值",
+      "scope": "zero-shot",
+      "source": "CPsyExam (COLING 2025) Table 2",
+      "notes": "分组 57.43/11.14/47.33/9.00。"
+    },
+    {
+      "id": "cpsyexam-chatglm-turbo-avg",
+      "dataset": "CPsyExam",
+      "method": "ChatGLM-Turbo",
+      "value": 64.58,
+      "metric": "acc Avg.",
+      "scope": "unspecified",
+      "source": "CPsyExam (COLING 2025) Table 2",
+      "notes": "论文报告均值;论文未细分零/少样本。"
+    },
+    {
+      "id": "emobench-eu-gpt4-mean",
+      "dataset": "EmoBench-EU",
+      "method": "GPT-4",
+      "value": 56.9,
+      "metric": "accuracy,en/zh 均值(emotion+cause 都对才算)",
+      "scope": "derived-mean",
+      "source": "EmoBench (ACL 2024) Table 1/2",
+      "notes": "论文 en 59.75 / zh 54.12;56.9 = 二者均值(我们计算)。文档引用须注「论文 en/zh 之均值,我们计算」。"
+    },
+    {
+      "id": "emobench-eu-gpt4-langs",
+      "dataset": "EmoBench-EU",
+      "method": "GPT-4",
+      "value": "59.75 / 54.12",
+      "metric": "accuracy en/zh",
+      "scope": "zero-shot",
+      "source": "EmoBench (ACL 2024) Table 1/2",
+      "notes": "论文分语言零样本值。"
+    },
+    {
+      "id": "emobench-ea-gpt4-mean",
+      "dataset": "EmoBench-EA",
+      "method": "GPT-4",
+      "value": 74.6,
+      "metric": "accuracy,en/zh 均值",
+      "scope": "derived-mean",
+      "source": "EmoBench (ACL 2024) Table 1/2",
+      "notes": "论文 en 75.50 / zh 73.75;74.6 = 均值(我们计算)。"
+    },
+    {
+      "id": "emobench-ea-gpt4-langs",
+      "dataset": "EmoBench-EA",
+      "method": "GPT-4",
+      "value": "75.50 / 73.75",
+      "metric": "accuracy en/zh",
+      "scope": "zero-shot",
+      "source": "EmoBench (ACL 2024) Table 1/2",
+      "notes": "论文分语言零样本值。"
+    },
+    {
+      "id": "emobench-eu-chatglm3-66b",
+      "dataset": "EmoBench-EU",
+      "method": "ChatGLM3-66B",
+      "value": "47.45 / 42.86",
+      "metric": "accuracy en/zh",
+      "scope": "zero-shot",
+      "source": "EmoBench (ACL 2024)",
+      "notes": "论文最强开源对照。"
+    },
+    {
+      "id": "emobench-ea-chatglm3-66b",
+      "dataset": "EmoBench-EA",
+      "method": "ChatGLM3-66B",
+      "value": "65.50 / 59.12",
+      "metric": "accuracy en/zh",
+      "scope": "zero-shot",
+      "source": "EmoBench (ACL 2024)",
+      "notes": "论文最强开源对照。"
+    },
+    {
+      "id": "mentalmanip-gpt4turbo",
+      "dataset": "MentalManip",
+      "method": "GPT-4-Turbo",
+      "value": 65.7,
+      "metric": "accuracy(binary manipulation detection)",
+      "scope": "zero-shot",
+      "source": "MentalManip (ACL 2024) Table 5",
+      "notes": "ACC 第 3 列 .657;与正文「GPT-4 accuracy≈0.653」互证。"
+    },
+    {
+      "id": "mentalmanip-majority",
+      "dataset": "MentalManip",
+      "method": "majority class(manipulative)",
+      "value": 69.2,
+      "metric": "accuracy",
+      "scope": "majority-class",
+      "source": "MentalManip (ACL 2024)",
+      "notes": "多数类基线。"
+    },
+    {
+      "id": "mentalmanip-roberta-base",
+      "dataset": "MentalManip",
+      "method": "RoBERTa-base(fine-tuned)",
+      "value": 76.8,
+      "metric": "accuracy",
+      "scope": "fine-tuned",
+      "source": "MentalManip (ACL 2024)",
+      "notes": "微调判别式;本次 chat 档约与其打平。"
+    },
+    {
+      "id": "psysuicide-roberta-large-macrof1",
+      "dataset": "PsySUICIDE",
+      "method": "RoBERTa-large(fine-tuned)",
+      "value": 69.8,
+      "metric": "macro-F1(11 类)",
+      "scope": "fine-tuned",
+      "source": "PsyGUARD (EMNLP 2024) Table 4",
+      "notes": "细粒度自杀分诊微调 SOTA。"
+    },
+    {
+      "id": "psysuicide-roberta-large-acc",
+      "dataset": "PsySUICIDE",
+      "method": "RoBERTa-large(fine-tuned)",
+      "value": 92.8,
+      "metric": "accuracy",
+      "scope": "fine-tuned",
+      "source": "PsyGUARD (EMNLP 2024) Table 4",
+      "notes": ""
+    },
+    {
+      "id": "psysuicide-gpt4-preview-acc",
+      "dataset": "PsySUICIDE",
+      "method": "GPT-4-preview",
+      "value": 82.7,
+      "metric": "accuracy",
+      "scope": "zero-shot",
+      "source": "PsyGUARD (EMNLP 2024)",
+      "notes": "整体 acc 对照;本次思考档 80.2 略低。"
+    },
+    {
+      "id": "psysuicide-majority",
+      "dataset": "PsySUICIDE",
+      "method": "majority class(与自杀无关)",
+      "value": 71.4,
+      "metric": "accuracy",
+      "scope": "majority-class",
+      "source": "eval-suite tasks/psysuicide.mjs(≈72%)",
+      "notes": "71.4% = 500 抽样金标『与自杀/自伤/攻击行为无关』实占比(2026-07-13 逐条 jsonl 重算裁决;此前 tasks 文件写 72.4 系与 chat 档 acc 巧合同值的混记,已修)。"
+    },
+    {
+      "id": "imhi-weighted-f1",
+      "dataset": "IMHI (MentaLLaMA)",
+      "method": "多方对照(见 subtasks)",
+      "value": "见 subtasks",
+      "metric": "weighted F1",
+      "scope": "zero-shot(ChatGPT/MentaLLaMA) + fine-tuned(判别式)",
+      "source": "MentaLLaMA / IMHI (WWW 2024) Table 2",
+      "notes": "chatgpt_zs=ChatGPT 零样本;mentallama13b=MentaLLaMA-chat-13B(domain-llm);best_finetuned=各子任务最强微调判别式(fine-tuned)。9 子任务。",
+      "subtasks": {
+        "DR": {
+          "chatgpt_zs": 82.41,
+          "mentallama13b": 85.68,
+          "best_finetuned": {
+            "name": "RoBERTa",
+            "value": 95.11
+          }
+        },
+        "dreaddit": {
+          "chatgpt_zs": 71.79,
+          "mentallama13b": 75.79,
+          "best_finetuned": {
+            "name": "MentalRoBERTa",
+            "value": 81.76
+          }
+        },
+        "loneliness": {
+          "chatgpt_zs": 58.4,
+          "mentallama13b": 85.1,
+          "best_finetuned": {
+            "name": "MentalRoBERTa",
+            "value": 85.33
+          }
+        },
+        "Irf": {
+          "chatgpt_zs": 41.33,
+          "mentallama13b": 76.49,
+          "best_finetuned": {
+            "name": "MentalBERT",
+            "value": 76.73
+          }
+        },
+        "MultiWD": {
+          "chatgpt_zs": 62.72,
+          "mentallama13b": 75.11,
+          "best_finetuned": {
+            "name": "BERT",
+            "value": 76.69
+          }
+        },
+        "SAD": {
+          "chatgpt_zs": 54.05,
+          "mentallama13b": 63.62,
+          "best_finetuned": {
+            "name": "MentalRoBERTa",
+            "value": 68.44
+          }
+        },
+        "CAMS": {
+          "chatgpt_zs": 33.85,
+          "mentallama13b": 45.52,
+          "best_finetuned": {
+            "name": "MentalRoBERTa",
+            "value": 47.62
+          }
+        },
+        "swmh": {
+          "chatgpt_zs": 49.32,
+          "mentallama13b": 71.7,
+          "best_finetuned": {
+            "name": "MentalRoBERTa",
+            "value": 72.16
+          }
+        },
+        "t-sid": {
+          "chatgpt_zs": 33.3,
+          "mentallama13b": 75.31,
+          "best_finetuned": {
+            "name": "MentalRoBERTa",
+            "value": 89.01
+          }
+        }
+      }
+    },
+    {
+      "id": "eatd-text-baselines",
+      "dataset": "EATD",
+      "method": "论文文本基线",
+      "value": "BiLSTM F1 0.65;多模态融合 0.71",
+      "metric": "F1",
+      "scope": "fine-tuned",
+      "source": "EATD 论文(text-only / multimodal fusion)",
+      "notes": "见 eval-suite tasks/eatd.mjs 头注。"
+    }
+  ]
+}

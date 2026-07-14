@@ -28,7 +28,7 @@ weighted/macro-F1 + 逐类精度 + 混淆对。
 | cbt-cd / pc / fc | CBT-Bench | 146/184/112（全量） | top-1 命中率（金标多标签） | 论文用 multi-label F1，口径不同 |
 | mentalmanip | MentalManip con | 2,915（抽 500） | acc / F1 | 多数类 69.2%；GPT-4 基线见 PDF |
 | imhi-dr 等 9 个 | IMHI test | 405~10,861（各抽 500） | weighted-F1 / acc | ChatGPT-ZS / 最强微调 / MentaLLaMA-13B 已写入各任务 comparisons |
-| cpsyexam | CPsyExam test | 3,902（全量） | acc（KG/CA × 单选/多选分组） | GPT-4 零样本 76.56/10.76/60.33/13.00 |
+| cpsyexam | CPsyExam test | 3,902（全量） | acc（KG/CA × 单选/多选分组） | GPT-4 零样本 76.56/10.76/60.33/13.00（67.43 为论文含少样本均值,严格零样本加权 57.6） |
 | eatd-depression | EATD validation | 79（全量） | F1(抑郁) / acc | 论文文本 BiLSTM F1 0.65，融合 0.71 |
 
 注意口径：我们是**零样本 LLM**，与「微调」参照比较时要注明设定差异；MDD-5k 和 CBT-Bench

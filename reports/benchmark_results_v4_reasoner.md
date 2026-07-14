@@ -22,18 +22,18 @@
 
 | 任务 | 我们(配置) | 最强可比对照 | 结论 |
 |---|---|---|---|
-| **CPsyExam** (n=3902) | **83.1%** (chat) | GPT-4 零样本 67.4 | ✅ **超 GPT-4 +15.7**〔MCQ,多选题口径优势见注〕 |
+| **CPsyExam** (n=3902) | **83.1%** (chat) | GPT-4 67.4(含少样本;严格零样本加权 57.6) | ✅ **超 GPT-4 +15.7**〔MCQ,多选题口径优势见注〕 |
 | **EmoBench-EU** (官方协议) | **63.5** (reasoner) | GPT-4 56.9 | ✅ **超 GPT-4 +6.6**(chat 57.8 亦微超) |
 | **IMHI-Dreaddit** | **82.8 wF1** (reasoner) | 微调 MentalRoBERTa 81.8 | ✅✅ **超微调 SOTA**(零样本罕见;chat 仅 59.9,思考 +22.9,已核验 invalid=0) |
 | **IMHI-DR** | **88.4 wF1** (chat) | MentaLLaMA-13B 85.7 | ✅ 超领域 LLM(仍输微调 RoBERTa 95.1) |
 | **MentalManip** (con) | **77.8% acc** (chat) | GPT-4-Turbo 零样本 65.7 | ✅ **超 GPT-4-Turbo 零样本 +12**,约平微调 RoBERTa-base 76.8 |
 | EmoBench-EA | 72.5 (reasoner) | GPT-4 74.6 | 🟡 差 2.1,未过 |
 | IMHI 其余 7 项 | — | MentaLLaMA-13B | 🟡 差 1–7 分未过;且**全部输微调判别式** |
-| **PsySUICIDE**(11 类) | 80.2% acc / **45.3 macro-F1** (reasoner) | 微调 RoBERTa-large **92.8 acc / 69.8 macro-F1** | ❌ **大幅落后微调基线**;仅超多数类 72.4;细粒度少数类塌陷 |
+| **PsySUICIDE**(11 类) | 80.2% acc / **45.3 macro-F1** (reasoner) | 微调 RoBERTa-large **92.8 acc / 69.8 macro-F1** | ❌ **大幅落后微调基线**;仅超多数类 71.4(样本金标实占比);细粒度少数类塌陷 |
 | EATD | 83.5 (chat) | 多模态融合 71(F1 口径不同) | ⚠ 口径不可比,不计胜负 |
 | CBT-cd/fc/pc | — | 多标签 F1 vs 我们 top-1 | ⚠ 口径不可比 |
 
-**注 CPsyExam**:多选题(MAQ)零样本对所有模型都难;我们的优势主要在单选(SCQ)。论文引用的 GPT-4 均值 67.4 含少样本列,严格零样本加权均值更低,差距不缩小。
+**注 CPsyExam**:多选题(MAQ)零样本对所有模型都难;我们的优势主要在单选(SCQ)。论文引用的 GPT-4 均值 67.4 含少样本列,严格零样本加权均值 57.6 更低,差距不缩小。
 
 ## 3. 关键机制发现:思考档的加分与反噬
 

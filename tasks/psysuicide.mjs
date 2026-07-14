@@ -50,5 +50,5 @@ export const parse = makeLabelParser(LABELS);
 
 export const comparisons = [
   { method: 'PsyGUARD 论文微调基线（Chinese-RoBERTa 系）', metric: 'weighted F1', value: '见论文 Table（微调设定，非零样本）' },
-  { method: 'majority class（与自杀无关，~72%）', metric: 'accuracy', value: 72.4 },
+  { method: 'majority class（与自杀无关，71.4%——样本金标实占比）', metric: 'accuracy', value: 71.4 },
 ];

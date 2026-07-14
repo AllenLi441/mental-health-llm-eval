@@ -26,8 +26,8 @@
 3. **统一协议下,IMHI 9 项:8/9 胜 ChatGPT 零样本(DR 现略低),仅 dreaddit 胜 MentaLLaMA-13B,0/9 明确胜微调判别式 SOTA。**
 
 ## 全基准里真正稳健、经得起统一协议/复现的胜项
-- ✓ **CPsyExam 83.1% > GPT-4 零样本 67.4**(n=3902,非 prompt 脆弱)
-- ✓ **EmoBench-EU 63.5 > GPT-4 56.9**(官方协议 harness)
+- ✓ **CPsyExam 83.1% > GPT-4 67.4(含少样本;严格零样本加权 57.6)**(n=3902,非 prompt 脆弱)
+- ✓ **EmoBench-EU 63.5 > GPT-4 56.9**(官方协议 harness;56.9 为论文 en/zh 分数均值,我们计算)
 - ✓ **MentalManip 77.8% > GPT-4-Turbo 零样本 65.7**
 - ~ **dreaddit 81.1 ≈ 微调 81.8**(平手,胜 ChatGPT-ZS + MentaLLaMA-13B)
 - ✗ 其余 IMHI 与 PsySUICIDE 细粒度均低于微调 SOTA(零样本对微调的正常差距)
@@ -40,7 +40,7 @@
 
 | 比较 | 我们 | 95%CI | 对照 | 判定 |
 | --- | ---: | :---: | ---: | --- |
-| CPsyExam vs GPT-4 | 83.1 acc | [81.9, 84.3] | 67.4 | ✅ 显著胜(CI 全在基线上) |
+| CPsyExam vs GPT-4 | 83.1 acc | [81.9, 84.3] | 67.4(含少样本;零样本 57.6) | ✅ 显著胜(CI 全在基线上) |
 | MentalManip vs GPT-4-Turbo | 77.8 acc | [74.2, 81.2] | 65.7 | ✅ 显著胜 |
 | EmoBench-EU vs GPT-4 | 63.5 acc | [58.8, 68.5] | 56.9 | ✅ 显著胜(下界 58.8 > 56.9) |
 | dreaddit vs 微调 MentalRoBERTa | 81.1 wF1 | [77.3, 85.0] | 81.8 | ~ 平手(CI 覆盖 81.8) |

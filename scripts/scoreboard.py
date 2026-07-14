@@ -21,7 +21,7 @@ PUB={
  "imhi-swmh":[("ChatGPT-zs","zsllm",49.32),("MentaLLaMA-13B","domainllm",71.7),("MentalRoBERTa-ft","finetuned",72.16)],
  "imhi-t-sid":[("ChatGPT-zs","zsllm",33.3),("MentaLLaMA-13B","domainllm",75.31),("MentalRoBERTa-ft","finetuned",89.01)],
  "cpsyexam":[("ChatGPT-zs","zsllm",51.15),("ChatGLM-Turbo","zsllm",64.58),("GPT-4-zs","zsllm",67.43)],
- "psysuicide":[("majority","baseline",72.4)],
+ "psysuicide":[("majority","baseline",71.4)],
  "mentalmanip":[("majority","baseline",69.2)],
  "eatd-depression":[("BiLSTM-text","finetuned",65.0),("multimodal-fusion-SOTA","finetuned",71.0)],
 }
