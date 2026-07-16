@@ -1,0 +1,24 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <list>
+          <option value="einops" />
+          <option value="facenet_pytorch" />
+          <option value="matplotlib" />
+          <option value="numpy" />
+          <option value="opencv_python" />
+          <option value="pandas" />
+          <option value="Pillow" />
+          <option value="scikit_learn" />
+          <option value="scipy" />
+          <option value="torch" />
+          <option value="torch_summary" />
+          <option value="torchvision" />
+          <option value="vit_pytorch" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>

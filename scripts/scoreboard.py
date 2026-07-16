@@ -50,7 +50,7 @@ def emb(task,model):
     a=(sum(r["correct"] for r in en)/len(en)+sum(r["correct"] for r in zh)/len(zh))/2*100
     return a
 
-print("# 静室 vs 公开基准 —— 诚实计分板(chat=非思考, reasoner=思考)\n")
+print("# 被测模型 vs 公开基准 —— 诚实计分板(chat=非思考, reasoner=思考)\n")
 print(f"{'task':16s}{'chat':>7s}{'reas':>7s}{'best':>7s}{'cfg':>5s}{'metric':>7s} | 最强可比对照 → 结论")
 print("-"*104)
 WINS=[]; COMP=[]; LOSS=[]

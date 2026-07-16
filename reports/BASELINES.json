@@ -1,5 +1,5 @@
 {
-  "_spec": "单一数字源。本文件收录全部论文对照基线值。所有文档(scratch/paper.html、scratch/scoreboard.html、reports/*.md、README.md、静室_大白话全解.md)引用对照值时必须与本文件一致,禁止手抄新数;如需新增基线,先在此登记再引用。scope 取值:zero-shot=论文零样本列;few-shot-mixed=论文报告均值含少样本;derived-mean=由论文分项我们计算(如 en/zh 均值、按题量加权);fine-tuned=任务微调判别式;domain-llm=领域微调 LLM;majority-class=多数类基线。",
+  "_spec": "单一数字源。本文件收录全部论文对照基线值。所有文档(scratch/paper.html、scratch/scoreboard.html、reports/*.md、README.md)引用对照值时必须与本文件一致,禁止手抄新数;如需新增基线,先在此登记再引用。scope 取值:zero-shot=论文零样本列;few-shot-mixed=论文报告均值含少样本;derived-mean=由论文分项我们计算(如 en/zh 均值、按题量加权);fine-tuned=任务微调判别式;domain-llm=领域微调 LLM;majority-class=多数类基线。",
   "generated": "2026-07-13",
   "source_of_truth": "datasets/eval-suite/tasks/*.mjs 的 comparisons 字段 + 各论文 PDF 页码级核验",
   "baselines": [
