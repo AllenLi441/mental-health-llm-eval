@@ -1,18 +1,18 @@
 # EmoBench eval harness — build spec (faithful reproduction of the official Base/zero-shot protocol)
 
-Goal: measure 静室's underlying model (DeepSeek) on EmoBench (ACL 2024) and compare to the
+Goal: measure the target model (DeepSeek) on EmoBench (ACL 2024) and compare to the
 paper's Table 1/2 Base numbers. Reproduce the OFFICIAL protocol exactly, but as a light
 standalone script (NO langchain/torch — this machine can't take the official heavy stack).
 
 ## Output
 Write `eval.mjs` (Node, stdlib only, zero deps — same style as
-`~/Desktop/静室/datasets/ed-emotion-eval/eval.mjs`). Node >= 18 (global fetch).
+the sibling harness style). Node >= 18 (global fetch).
 
 ## Data (verbatim schemas — do NOT re-derive)
-- `~/Desktop/静室/datasets/EmoBench/repo/data/EA.jsonl` (400 lines; 200 en + 200 zh)
+- `<EmoBench-repo>/data/EA.jsonl` (400 lines; 200 en + 200 zh)
   fields: qid, language ("en"|"zh"), category, `question type` ("Action"|"Response"),
   scenario, subject, choices (list[str]), label (str, one of choices).
-- `~/Desktop/静室/datasets/EmoBench/repo/data/EU.jsonl` (400 lines; 200 en + 200 zh)
+- `<EmoBench-repo>/data/EU.jsonl` (400 lines; 200 en + 200 zh)
   fields: qid, language, coarse_category, finegrained_category, scenario, subject,
   emotion_choices (list[str]), emotion_label (str∈emotion_choices),
   cause_choices (list[str]), cause_label (str∈cause_choices).
@@ -130,7 +130,7 @@ EU.zh:
 
 ## API
 OpenAI-compatible `${BASE}/chat/completions`. BASE default `https://api.deepseek.com`.
-Key from env DEEPSEEK_API_KEY (export via `set -a; . ~/Desktop/静室/app/.env.local; set +a`).
+Key from env DEEPSEEK_API_KEY (put it in a local `.env`, never commit).
 messages = [ {role:"system", content: sysPrompt}, {role:"user", content: userMsg} ].
 temperature 0 (deterministic; note in output that official used Base 5-sample majority@0.6 —
 temp-0 single is the clean deterministic proxy). max_tokens: 30 for chat, 2048 for reasoner
