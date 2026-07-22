@@ -6,6 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DATASETS, csvObjects } from '../lib.mjs';
+import { imhiBaseline } from '../lib/baselines.mjs';
 
 const DIR = join(DATASETS, 'MentaLLaMA', 'test_data', 'test_complete');
 
@@ -21,7 +22,6 @@ const TASKS = [
       'Answer no for transient sadness, venting about one specific event, ordinary stress, or posts that only discuss depression in other people or in the abstract.',
       'Do not infer depression merely because the post is negative, emotional, or about an unpleasant situation.',
     ].join(' '),
-    cmp: { chatgptZS: 82.41, bestDiscriminative: 'RoBERTa 95.11', mentallama13b: 85.68 },
   },
   {
     name: 'dreaddit', file: 'dreaddit.csv', type: 'binary',
@@ -32,7 +32,6 @@ const TASKS = [
       'Answer no for neutral descriptions, ordinary advice requests, isolated annoyance or disagreement, and descriptions of a difficult event that do not show the poster experiencing psychological strain.',
       'Do not infer stress merely because the topic is unpleasant or could be stressful.',
     ].join(' '),
-    cmp: { chatgptZS: 71.79, bestDiscriminative: 'MentalRoBERTa 81.76', mentallama13b: 75.79 },
   },
   {
     name: 'loneliness', file: 'loneliness.csv', type: 'binary',
@@ -43,7 +42,6 @@ const TASKS = [
       'Answer no when the poster is simply by themselves, mentions relationships or social activity without distress, or describes other problems without expressed loneliness.',
       'Do not infer loneliness merely because the poster is physically alone or mentions other people.',
     ].join(' '),
-    cmp: { chatgptZS: 58.40, bestDiscriminative: 'MentalRoBERTa 85.33', mentallama13b: 85.1 },
   },
   {
     name: 'Irf', file: 'Irf.csv', type: 'binary', questionFromRow: true,
@@ -54,7 +52,6 @@ const TASKS = [
       'Answer yes only when the post expresses the specific factor named in the question; answer no when it is absent or only another kind of distress is shown.',
       'Do not infer the factor merely from general negativity, sadness, or the mention of relationships or self-worth.',
     ].join(' '),
-    cmp: { chatgptZS: 41.33, bestDiscriminative: 'MentalBERT 76.73', mentallama13b: 76.49 },
   },
   {
     name: 'MultiWD', file: 'MultiWD.csv', type: 'binary', questionFromRow: true,
@@ -68,32 +65,27 @@ const TASKS = [
       'Intellectual = learning, curiosity, creativity, problem solving, or cultural and intellectual activity.',
       'Answer yes for explicit or clearly demonstrated evidence, including impairment or absence in that dimension; answer no when the dimension is only remotely implied or when evidence belongs to another dimension.',
     ].join(' '),
-    cmp: { chatgptZS: 62.72, bestDiscriminative: 'BERT 76.69', mentallama13b: 75.11 },
   },
   {
     name: 'SAD', file: 'SAD.csv', type: 'multi',
     question: 'What is the cause of the poster\'s stress?',
     labels: ['school', 'financial problem', 'family issues', 'social relationships', 'work',
       'health issues', 'emotional turmoil', 'everyday decision making', 'other causes'],
-    cmp: { chatgptZS: 54.05, bestDiscriminative: 'MentalRoBERTa 68.44', mentallama13b: 63.62 },
   },
   {
     name: 'CAMS', file: 'CAMS.csv', type: 'multi',
     question: 'What is the cause of the poster\'s mental disorder? (answer "none" if no cause is shown)',
     labels: ['bias or abuse', 'jobs and career', 'medication', 'relationship', 'alienation', 'none'],
-    cmp: { chatgptZS: 33.85, bestDiscriminative: 'MentalRoBERTa 47.62', mentallama13b: 45.52 },
   },
   {
     name: 'swmh', file: 'swmh.csv', type: 'multi',
     question: 'Which mental disorder symptoms does this post show?',
     labels: ['depression', 'suicide', 'anxiety', 'bipolar disorder', 'no mental disorders'],
-    cmp: { chatgptZS: 49.32, bestDiscriminative: 'MentalRoBERTa 72.16', mentallama13b: 71.7 },
   },
   {
     name: 't-sid', file: 't-sid.csv', type: 'multi',
     question: 'Which mental disorder symptoms does this post show?',
     labels: ['depression', 'suicide or self-harm tendency', 'ptsd', 'no mental disorders'],
-    cmp: { chatgptZS: 33.30, bestDiscriminative: 'MentalRoBERTa 89.01', mentallama13b: 75.31 },
   },
 ];
 
@@ -125,6 +117,7 @@ function goldFrom(resp, t) {
 
 function makeVariant(t) {
   const labels = t.type === 'binary' ? YESNO : t.labels;
+  const published = imhiBaseline(t.name);
   return {
     key: `imhi-${t.name.toLowerCase()}`,
     description: `IMHI ${t.name} (${t.type === 'binary' ? 'binary' : `${labels.length}-class`}, zero-shot)`,
@@ -178,9 +171,9 @@ function makeVariant(t) {
       return { predicted: null, invalid: true };
     },
     comparisons: [
-      { method: 'ChatGPT zero-shot (paper Table 2)', metric: 'weighted F1', value: t.cmp.chatgptZS },
-      { method: `best fine-tuned discriminative (${t.cmp.bestDiscriminative.split(' ')[0]})`, metric: 'weighted F1', value: Number(t.cmp.bestDiscriminative.split(' ')[1]) },
-      { method: 'MentaLLaMA-chat-13B (paper)', metric: 'weighted F1', value: t.cmp.mentallama13b },
+      { method: 'ChatGPT zero-shot (paper Table 2)', metric: 'weighted F1', value: published.chatgpt_zs },
+      { method: `best fine-tuned discriminative (${published.best_finetuned.name})`, metric: 'weighted F1', value: published.best_finetuned.value },
+      { method: 'MentaLLaMA-chat-13B (paper)', metric: 'weighted F1', value: published.mentallama13b },
     ],
   };
 }

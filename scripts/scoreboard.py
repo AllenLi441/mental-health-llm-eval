@@ -1,103 +1,147 @@
 #!/usr/bin/env python3
-# Honest final scoreboard: chat vs reasoner vs published baselines.
-# Takes the better of chat/reasoner per task (labeled), compares to the fair baseline class.
-import json, os, glob
-SUITE=os.path.join(os.path.dirname(__file__),"..")
-R=lambda p: json.load(open(os.path.join(SUITE,p)))
-def jl(p):
-    return [json.loads(l) for l in open(os.path.join(SUITE,p)) if l.strip()]
+"""Honest scoreboard generated from aggregate summaries and reports/BASELINES.json."""
+import argparse
+import glob
+import json
+import os
 
-allv2={r["task"]:r for r in R("results/all-v2.summary.json")}
+SUITE = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+SUMMARY_DIR = os.path.join(SUITE, "results") if os.path.exists(os.path.join(SUITE, "results", "all-v2.summary.json")) else os.path.join(SUITE, "results-summary")
 
-# published baselines: task -> list of (name, kind, score)  kind: zsllm|domainllm|finetuned
-PUB={
- "imhi-dr":[("ChatGPT-zs","zsllm",82.41),("MentaLLaMA-13B","domainllm",85.68),("RoBERTa-ft","finetuned",95.11)],
- "imhi-dreaddit":[("ChatGPT-zs","zsllm",71.79),("MentaLLaMA-13B","domainllm",75.79),("MentalRoBERTa-ft","finetuned",81.76)],
- "imhi-loneliness":[("ChatGPT-zs","zsllm",58.4),("MentaLLaMA-13B","domainllm",85.1),("MentalRoBERTa-ft","finetuned",85.33)],
- "imhi-irf":[("ChatGPT-zs","zsllm",41.33),("MentaLLaMA-13B","domainllm",76.49),("MentalBERT-ft","finetuned",76.73)],
- "imhi-multiwd":[("ChatGPT-zs","zsllm",62.72),("MentaLLaMA-13B","domainllm",75.11),("BERT-ft","finetuned",76.69)],
- "imhi-sad":[("ChatGPT-zs","zsllm",54.05),("MentaLLaMA-13B","domainllm",63.62),("MentalRoBERTa-ft","finetuned",68.44)],
- "imhi-cams":[("ChatGPT-zs","zsllm",33.85),("MentaLLaMA-13B","domainllm",45.52),("MentalRoBERTa-ft","finetuned",47.62)],
- "imhi-swmh":[("ChatGPT-zs","zsllm",49.32),("MentaLLaMA-13B","domainllm",71.7),("MentalRoBERTa-ft","finetuned",72.16)],
- "imhi-t-sid":[("ChatGPT-zs","zsllm",33.3),("MentaLLaMA-13B","domainllm",75.31),("MentalRoBERTa-ft","finetuned",89.01)],
- "cpsyexam":[("ChatGPT-zs","zsllm",51.15),("ChatGLM-Turbo","zsllm",64.58),("GPT-4-zs","zsllm",67.43)],
- "psysuicide":[("majority","baseline",71.4)],
- "mentalmanip":[("majority","baseline",69.2)],
- "eatd-depression":[("BiLSTM-text","finetuned",65.0),("multimodal-fusion-SOTA","finetuned",71.0)],
-}
-IMHI_F1={t for t in PUB if t.startswith("imhi-")}|{"psysuicide"}  # paper metric = weighted F1
+def read_json(path):
+    with open(path, encoding="utf-8") as handle:
+        return json.load(handle)
 
-def num(task,model):
-    """return (metric_value, metric_name, n) for a task+model, best available file."""
-    if model=="chat":
-        d=allv2.get(task)
-        if not d: return None
+registry = read_json(os.path.join(SUITE, "reports", "BASELINES.json"))
+BASE = {row["id"]: row for row in registry["baselines"]}
+
+def value(baseline_id):
+    return BASE[baseline_id]["value"]
+
+def build_published():
+    imhi = BASE["imhi-weighted-f1"]["subtasks"]
+    out = {}
+    for subtask, row in imhi.items():
+        key = "imhi-" + subtask.lower()
+        out[key] = [
+            ("ChatGPT-zs", "zsllm", row["chatgpt_zs"]),
+            ("MentaLLaMA-13B", "domainllm", row["mentallama13b"]),
+            (row["best_finetuned"]["name"] + "-ft", "finetuned", row["best_finetuned"]["value"]),
+        ]
+    out.update({
+        "cpsyexam": [
+            ("ChatGPT mixed-best-of", "mixed", value("cpsyexam-chatgpt-avg")),
+            ("GPT-4 strict-zs derived", "zsllm", value("cpsyexam-gpt4-zeroshot-weighted")),
+        ],
+        "psysuicide": [
+            ("majority", "baseline", value("psysuicide-majority")),
+            ("GPT-4-preview-zs", "zsllm", value("psysuicide-gpt4-preview-acc")),
+            ("RoBERTa-large-ft", "finetuned", value("psysuicide-roberta-large-acc")),
+        ],
+        "mentalmanip": [
+            ("majority", "baseline", value("mentalmanip-majority")),
+            ("GPT-4-Turbo-zs", "zsllm", value("mentalmanip-gpt4turbo")),
+            ("RoBERTa-base-ft", "finetuned", value("mentalmanip-roberta-base")),
+            ("Llama-2-13B-ft", "finetuned", value("mentalmanip-llama2-13b")),
+        ],
+        "eatd-depression": [],  # published F1 is not comparable to this script's accuracy
+    })
+    return out
+
+REFERENCE_POINTS = build_published()
+IMHI_F1 = {task for task in REFERENCE_POINTS if task.startswith("imhi-")} | {"psysuicide"}
+allv2 = {row["task"]: row for row in read_json(os.path.join(SUMMARY_DIR, "all-v2.summary.json"))}
+
+def numeric(task, model):
+    if model == "chat":
+        data = allv2.get(task)
     else:
-        cands=sorted(glob.glob(os.path.join(SUITE,f"results/{task}-deepseek-reasoner-*.summary.json")))
-        if not cands: return None
-        d=json.load(open(cands[-1]))
-    metric = d["weightedF1"]*100 if (task in IMHI_F1 and d.get("weightedF1") is not None) else d["accuracy"]*100
-    mname = "wF1" if (task in IMHI_F1 and d.get("weightedF1") is not None) else "acc"
-    return (metric, mname, d["n"])
+        candidates = sorted(glob.glob(os.path.join(SUMMARY_DIR, f"{task}-deepseek-reasoner-*.summary.json")))
+        data = read_json(candidates[-1]) if candidates else None
+    if not data:
+        return None
+    metric_name = "wF1" if task in IMHI_F1 and data.get("weightedF1") is not None else "acc"
+    metric = data["weightedF1"] * 100 if metric_name == "wF1" else data["accuracy"] * 100
+    return metric, metric_name, data["n"]
 
-# EmoBench official (separate harness)
-EMB=os.path.join(SUITE,"../EmoBench/eval/results")
-def emb(task,model):
-    f=os.path.join(EMB,f"deepseek-{model}-{task}.jsonl")
-    if not os.path.exists(f): return None
-    rows=[json.loads(l) for l in open(f) if l.strip()]
-    en=[r for r in rows if r["lang"]=="en"]; zh=[r for r in rows if r["lang"]=="zh"]
-    a=(sum(r["correct"] for r in en)/len(en)+sum(r["correct"] for r in zh)/len(zh))/2*100
-    return a
+def emo(task, model):
+    path = os.path.join(SUMMARY_DIR, f"deepseek-{model}-{task}.summary.json")
+    if not os.path.exists(path):
+        return None
+    return read_json(path)["combined"]["accuracy"] * 100
 
-print("# 被测模型 vs 公开基准 —— 诚实计分板(chat=非思考, reasoner=思考)\n")
-print(f"{'task':16s}{'chat':>7s}{'reas':>7s}{'best':>7s}{'cfg':>5s}{'metric':>7s} | 最强可比对照 → 结论")
-print("-"*104)
-WINS=[]; COMP=[]; LOSS=[]
-def eval_task(task,label=None):
-    c=num(task,"chat"); r=num(task,"reasoner")
-    if not c and not r: return
-    cv=c[0] if c else None; rv=r[0] if r else None
-    mname=(c or r)[1]
-    best=max([x for x in [cv,rv] if x is not None])
-    cfg="reas" if (rv is not None and rv==best) else "chat"
-    pubs=PUB.get(task,[])
-    # fair baseline = best domainllm/zsllm/baseline we should target; note finetuned separately
-    fair=[p for p in pubs if p[1] in ("zsllm","domainllm","baseline")]
-    ftb=[p for p in pubs if p[1]=="finetuned"]
-    fair_best=max(fair,key=lambda x:x[2]) if fair else None
-    ft_best=max(ftb,key=lambda x:x[2]) if ftb else None
-    verdict=""
-    if fair_best and best>=fair_best[2]:
-        # also check if beats finetuned
-        if ft_best and best>=ft_best[2]:
-            verdict=f"✅✅ 赢过微调SOTA {ft_best[0]}={ft_best[2]:.1f}"; WINS.append((task,best,cfg,verdict))
+def selftest():
+    required = {
+        "cpsyexam-gpt4-zeroshot-weighted", "emobench-ea-gpt4-mean", "emobench-eu-gpt4-mean",
+        "psysuicide-majority", "mentalmanip-majority", "imhi-weighted-f1",
+    }
+    missing = sorted(required - BASE.keys())
+    if missing:
+        raise SystemExit(f"missing baseline ids: {missing}")
+    if len(allv2) != 19:
+        raise SystemExit(f"expected 19 all-v2 summaries, got {len(allv2)}")
+    print(f"scoreboard selftest PASS: baselines={len(BASE)}, summaries={len(allv2)}, source={SUMMARY_DIR}")
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--selftest", action="store_true")
+    args = parser.parse_args()
+    if args.selftest:
+        selftest()
+        return
+
+    print("# 被测模型 vs 公开参考点（chat=非思考，reasoner=思考）\n")
+    print("只比较已记录的点估计；不代表统计显著，采样、提示和协议差异须回到对应报告核对。\n")
+    print(f"{'task':16s}{'chat':>7s}{'reas':>7s}{'best':>7s}{'cfg':>6s}{'metric':>7s} | 描述性参考差值")
+    print("-" * 108)
+    above, below = [], []
+
+    def evaluate(task, label=None):
+        chat, reasoner = numeric(task, "chat"), numeric(task, "reasoner")
+        if not chat and not reasoner:
+            return
+        chat_value = chat[0] if chat else None
+        reasoner_value = reasoner[0] if reasoner else None
+        metric_name = (chat or reasoner)[1]
+        best = max(value for value in (chat_value, reasoner_value) if value is not None)
+        config = "reas" if reasoner_value is not None and reasoner_value == best else "chat"
+        fair = [row for row in REFERENCE_POINTS.get(task, []) if row[1] in ("zsllm", "domainllm", "baseline")]
+        finetuned = [row for row in REFERENCE_POINTS.get(task, []) if row[1] == "finetuned"]
+        fair_best = max(fair, key=lambda row: row[2]) if fair else None
+        ft_best = max(finetuned, key=lambda row: row[2]) if finetuned else None
+        if fair_best and best >= fair_best[2]:
+            verdict = f"点估计高于 {fair_best[0]}={fair_best[2]:.1f} (Δ{best-fair_best[2]:+.1f})"
+            if ft_best and best < ft_best[2]: verdict += f"；仍低于微调 {ft_best[2]:.1f}"
+            above.append(task)
+        elif fair_best:
+            verdict = f"点估计低于 {fair_best[0]}={fair_best[2]:.1f} (Δ{best-fair_best[2]:+.1f})"
+            below.append(task)
         else:
-            verdict=f"✅ 赢过 {fair_best[0]}={fair_best[2]:.1f}"+(f"(仍输微调{ft_best[2]:.1f})" if ft_best else ""); WINS.append((task,best,cfg,verdict))
-    elif fair_best:
-        verdict=f"🟡 近 {fair_best[0]}={fair_best[2]:.1f} (Δ{best-fair_best[2]:+.1f})"; COMP.append((task,best,cfg,verdict))
-    else:
-        verdict="(无可比对照)"
-    cstr=f"{cv:6.1f}" if cv is not None else "   -  "
-    rstr=f"{rv:6.1f}" if rv is not None else "   -  "
-    print(f"{(label or task):16s}{cstr}{rstr}{best:7.1f}{cfg:>5s}{mname:>7s} | {verdict}")
+            verdict = "无同指标公开参考，不判高低"
+        cstr = f"{chat_value:6.1f}" if chat_value is not None else "   -  "
+        rstr = f"{reasoner_value:6.1f}" if reasoner_value is not None else "   -  "
+        print(f"{(label or task):16s}{cstr}{rstr}{best:7.1f}{config:>6s}{metric_name:>7s} | {verdict}")
 
-# EmoBench (official)
-for t in ["EA","EU"]:
-    c=emb(t,"chat"); r=emb(t,"reasoner")
-    if c is None and r is None: continue
-    best=max(x for x in [c,r] if x is not None); cfg="reas" if (r is not None and r==best) else "chat"
-    gpt4=74.6 if t=="EA" else 56.9
-    v=(f"✅ 赢过 GPT-4={gpt4}" if best>=gpt4 else f"🟡 近 GPT-4={gpt4} (Δ{best-gpt4:+.1f})")
-    (WINS if best>=gpt4 else COMP).append((f"emobench-{t.lower()}",best,cfg,v))
-    print(f"{'emobench-'+t.lower():16s}{c or 0:6.1f}{r or 0:6.1f}{best:7.1f}{cfg:>5s}{'acc':>7s} | {v}")
+    for task in ("EA", "EU"):
+        chat, reasoner = emo(task, "chat"), emo(task, "reasoner")
+        if chat is None and reasoner is None:
+            continue
+        best = max(value for value in (chat, reasoner) if value is not None)
+        config = "reas" if reasoner is not None and reasoner == best else "chat"
+        baseline_id = "emobench-ea-gpt4-mean" if task == "EA" else "emobench-eu-gpt4-mean"
+        gpt4 = value(baseline_id)
+        relation = "高于" if best >= gpt4 else "低于"
+        verdict = f"点估计{relation} GPT-4论文中英均值={gpt4:.1f} (Δ{best-gpt4:+.1f})"
+        (above if best >= gpt4 else below).append("emobench-" + task.lower())
+        print(f"{'emobench-'+task.lower():16s}{chat or 0:6.1f}{reasoner or 0:6.1f}{best:7.1f}{config:>6s}{'acc':>7s} | {verdict}")
 
-for t in ["cpsyexam","imhi-dr","imhi-dreaddit","imhi-loneliness","imhi-irf","imhi-multiwd",
-          "imhi-sad","imhi-cams","imhi-swmh","imhi-t-sid","psysuicide","mentalmanip","eatd-depression"]:
-    eval_task(t)
+    for task in ["cpsyexam", "imhi-dr", "imhi-dreaddit", "imhi-loneliness", "imhi-irf", "imhi-multiwd",
+                 "imhi-sad", "imhi-cams", "imhi-swmh", "imhi-t-sid", "psysuicide", "mentalmanip", "eatd-depression"]:
+        evaluate(task)
+    print(
+        f"\n点估计高于参考：{len(above)}；低于参考：{len(below)}。"
+        "这是描述性盘点，不是显著性检验或跨协议胜负。数值来源：reports/BASELINES.json"
+    )
 
-print("\n## 汇总")
-print(f"✅ 赢过可比对照: {len(WINS)}")
-for t,b,c,v in WINS: print(f"    {t} ({b:.1f}, {c}) — {v}")
-print(f"🟡 competitive(近但未过): {len(COMP)}")
-for t,b,c,v in COMP: print(f"    {t} ({b:.1f}, {c}) — {v}")
+if __name__ == "__main__":
+    main()

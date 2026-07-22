@@ -36,19 +36,19 @@
   },
   "comparisons": [
     {
-      "method": "GPT-4 (paper Table 2, zero-shot)",
+      "method": "GPT-4 (paper Table 2 zero-shot groups; mixed-best-of Avg.)",
       "metric": "acc KG-SCQ/KG-MAQ/CA-SCQ/CA-MAQ",
-      "value": "76.56 / 10.76 / 60.33 / 13.00 (Avg. 67.43 incl. few-shot)"
+      "value": "76.56 / 10.76 / 60.33 / 13.00 (Avg. 67.43 mixed zero/few-shot best-of)"
     },
     {
-      "method": "ChatGLM-Turbo (paper)",
-      "metric": "Avg.",
+      "method": "ChatGLM-Turbo (paper Table 2 mixed-best-of Avg.)",
+      "metric": "Avg. across zero/few-shot maxima",
       "value": 64.58
     },
     {
-      "method": "ChatGPT (paper, zero-shot)",
-      "metric": "acc KG-SCQ/KG-MAQ/CA-SCQ/CA-MAQ",
-      "value": "57.43 / 11.14 / 47.33 / 9.00 (Avg. 51.15)"
+      "method": "ChatGPT (paper Table 2 mixed-best-of Avg.)",
+      "metric": "zero-shot groups shown; Avg. takes zero/few-shot maxima",
+      "value": "57.43 / 11.14 / 47.33 / 9.00 (Avg. 51.15 mixed zero/few-shot best-of)"
     }
   ]
 }
