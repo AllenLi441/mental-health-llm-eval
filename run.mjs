@@ -5,7 +5,7 @@
 //   node run.mjs all [--selftest | flags]        (runs every task sequentially)
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { SUITE, parseArgs, runTask } from './lib.mjs';
+import { SUITE, parseArgs, runTask, selftestTask, dataCheckTask } from './lib.mjs';
 
 const MODULES = [
   './tasks/emobench.mjs', './tasks/mdd5k.mjs', './tasks/psysuicide.mjs',
@@ -37,6 +37,16 @@ async function main() {
   if (!selected.length) {
     console.error(`unknown task "${cmd}". Use: node run.mjs list`);
     process.exit(2);
+  }
+  if (args.selftest) {
+    for (const t of selected) selftestTask(t);
+    console.log(`standalone selftest PASS: ${selected.length}/${selected.length} tasks; no dataset read, API call, or result write`);
+    return;
+  }
+  if (args.dataCheck) {
+    for (const t of selected) dataCheckTask(t);
+    console.log(`authorized dataset check PASS: ${selected.length}/${selected.length} tasks; no API call or result write`);
+    return;
   }
   const summaries = [];
   for (const t of selected) {

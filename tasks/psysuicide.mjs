@@ -5,6 +5,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DATASETS, makeLabelParser } from '../lib.mjs';
+import { baselineValue } from '../lib/baselines.mjs';
 
 const LABELS = [
   '与自杀/自伤/攻击行为无关', '被动自杀意图', '主动自杀意图', '关于自杀的探索',
@@ -26,7 +27,9 @@ export function load() {
     if (!Array.isArray(r.labels) || r.labels.length !== 1) { multi++; continue; }
     const gold = r.labels[0];
     if (!LABELS.includes(gold)) { unknown++; continue; }
-    items.push({ id: String(r.idx), gold, text: r.text });
+    // Released `idx` values are not unique. Prefix the retained-row position so resume
+    // and paired audits cannot collapse unrelated counseling texts sharing one idx.
+    items.push({ id: `${items.length}:${r.idx}`, sourceId: String(r.idx), gold, text: r.text });
   }
   if (multi || unknown) console.log(`[psysuicide] dropped ${multi} multi-label + ${unknown} unknown-label rows`);
   return items;
@@ -34,6 +37,7 @@ export function load() {
 
 export function assert(items) {
   if (items.length < 1400) throw new Error(`expected ~1470 single-label test rows, got ${items.length}`);
+  if (new Set(items.map((item) => item.id)).size !== items.length) throw new Error('PsySUICIDE normalized ids are not unique');
 }
 
 export function messages(item) {
@@ -49,6 +53,9 @@ export function messages(item) {
 export const parse = makeLabelParser(LABELS);
 
 export const comparisons = [
-  { method: 'PsyGUARD 论文微调基线（Chinese-RoBERTa 系）', metric: 'weighted F1', value: '见论文 Table（微调设定，非零样本）' },
-  { method: 'majority class（与自杀无关，71.4%——样本金标实占比）', metric: 'accuracy', value: 71.4 },
+  { method: 'PsyGUARD RoBERTa-large fine-tuned', metric: 'accuracy', value: baselineValue('psysuicide-roberta-large-acc') },
+  { method: 'PsyGUARD RoBERTa-large fine-tuned', metric: 'micro-F1', value: baselineValue('psysuicide-roberta-large-microf1') },
+  { method: 'PsyGUARD RoBERTa-large fine-tuned', metric: 'macro-F1', value: baselineValue('psysuicide-roberta-large-macrof1') },
+  { method: 'PsyGUARD GPT-4-preview zero-shot', metric: 'accuracy', value: baselineValue('psysuicide-gpt4-preview-acc') },
+  { method: 'majority class（与自杀无关）', metric: 'accuracy', value: baselineValue('psysuicide-majority') },
 ];

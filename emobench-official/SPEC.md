@@ -1,18 +1,20 @@
-# EmoBench eval harness — build spec (faithful reproduction of the official Base/zero-shot protocol)
+# EmoBench eval harness — official-prompt-compatible deterministic proxy
 
-Goal: measure the target model (DeepSeek) on EmoBench (ACL 2024) and compare to the
-paper's Table 1/2 Base numbers. Reproduce the OFFICIAL protocol exactly, but as a light
-standalone script (NO langchain/torch — this machine can't take the official heavy stack).
+Goal: measure the target model (DeepSeek) on EmoBench (ACL 2024) using the official data,
+prompt wording and scoring logic in a light standalone script (NO langchain/torch). This is
+**not an exact reproduction of the paper protocol**: the paper samples each MCQ five times,
+uses majority vote, repeats under four option orderings, and averages the four runs; this
+harness uses one deterministic temperature-0 call per row unless that full protocol is added.
 
 ## Output
 Write `eval.mjs` (Node, stdlib only, zero deps — same style as
 the sibling harness style). Node >= 18 (global fetch).
 
 ## Data (verbatim schemas — do NOT re-derive)
-- `<EmoBench-repo>/data/EA.jsonl` (400 lines; 200 en + 200 zh)
+- `EMOBENCH_DATA_DIR/EA.jsonl` (400 lines; 200 en + 200 zh)
   fields: qid, language ("en"|"zh"), category, `question type` ("Action"|"Response"),
   scenario, subject, choices (list[str]), label (str, one of choices).
-- `<EmoBench-repo>/data/EU.jsonl` (400 lines; 200 en + 200 zh)
+- `EMOBENCH_DATA_DIR/EU.jsonl` (400 lines; 200 en + 200 zh)
   fields: qid, language, coarse_category, finegrained_category, scenario, subject,
   emotion_choices (list[str]), emotion_label (str∈emotion_choices),
   cause_choices (list[str]), cause_label (str∈cause_choices).
@@ -122,7 +124,7 @@ EU.zh:
    If no letter but the value exactly matches a choice string, map that choice→its letter.
    If still unresolved → mark invalid (counts as wrong).
 
-## Scoring (EXACT match, mirror data.py.evaluate_results)
+## Scoring (exact answer match; mirrors the per-run evaluator, not the paper's repeated-sampling aggregation)
 - EA: correct = (predLetter == goldLetter). Group accuracy by `category` + Overall.
 - EU: correct = (predEmoLetter == emoGoldLetter) AND (predCauseLetter == causeGoldLetter).
   Group by `coarse_category` + Overall. BOTH sub-answers must be right.
@@ -130,14 +132,15 @@ EU.zh:
 
 ## API
 OpenAI-compatible `${BASE}/chat/completions`. BASE default `https://api.deepseek.com`.
-Key from env DEEPSEEK_API_KEY (put it in a local `.env`, never commit).
+Key from dedicated env `EVAL_API_KEY` (put it in a local `.env`, never commit). The harness must not
+fall back to `DEEPSEEK_API_KEY` or other application credentials.
 messages = [ {role:"system", content: sysPrompt}, {role:"user", content: userMsg} ].
 temperature 0 (deterministic; note in output that official used Base 5-sample majority@0.6 —
 temp-0 single is the clean deterministic proxy). max_tokens: 30 for chat, 2048 for reasoner
 (reasoner emits reasoning tokens; still parse the final JSON from content). Retry 3× on 429/5xx/timeout.
 
 ## CLI
-`node eval.mjs --model deepseek-chat --task all --lang all --concurrency 10`
+`EVAL_MODEL=deepseek-v4-flash node eval.mjs --task all --lang all --concurrency 10`
 --task EA|EU|all ; --lang en|zh|all ; write results/<model>-<task>.jsonl (per-item) +
 results/<model>-<task>.summary.json (overall + per-category + per-lang + invalid count).
 Print a final line: `EA en=.. zh=.. | EU en=.. zh=..` accuracies.

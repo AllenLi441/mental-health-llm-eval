@@ -1,21 +1,50 @@
 # eval-suite — 8 数据集 · 19 任务 · 零样本准确率评测
 
-零依赖 Node.js（≥18）。被测模型 = 任意 OpenAI 兼容 chat API（默认 DeepSeek `deepseek-chat`）。
+零依赖 Node.js（≥18）。被测模型 = 任意 OpenAI 兼容 chat API（示例默认显式使用 DeepSeek `deepseek-v4-flash`，不使用即将弃用的 `deepseek-chat` 别名）。公开仓库包含代码与聚合结果；规划中的 CPsyExam V4 Release 仅允许发布去敏的逐行承诺与成对正确性结果。受许可/敏感性约束的原始数据、题目、选项、标签、模型预测和原始输出不随仓库或 Release 发布。
 
 ## 用法
 
 ```bash
-echo "EVAL_API_KEY=sk-..." > .env        # 三选一：EVAL_API_KEY / DEEPSEEK_API_KEY / OPENAI_API_KEY
+cp .env.example .env                     # 填 API key 和 EVAL_DATASETS_DIR
 node run.mjs list                        # 任务清单
-node run.mjs all --selftest              # 本地自检（不发请求）
+node run.mjs all --selftest              # 仓库内 19/19 prompt+parser 自检；不读外部数据、不发请求
+node run.mjs all --data-check            # 读取 EVAL_DATASETS_DIR，验证授权数据布局；不发请求
 node run.mjs psysuicide --sample 200     # 单任务，抽样覆盖默认值
+node run.mjs cpsyexam --model deepseek-v4-pro --thinking enabled --reasoning-effort high --run-id full
+node run.mjs cpsyexam --model deepseek-v4-flash --thinking disabled --run-id paired-control
 node run.mjs all --run-id v1             # 全套顺序跑，汇总写 results/all-v1.summary.json
 node run.mjs imhi-dr --resume results/imhi-dr-deepseek-chat-run.jsonl   # 断点续跑
+python3 scripts/audit_results.py --selftest  # 检查已发布聚合结果，不冒充逐行重算
+python3 scripts/scoreboard.py --selftest
+python3 scripts/check_baselines.py
+python3 scripts/check_harness_safety.py
+node emobench-official/eval.mjs --selftest # 无官方数据也可验证 prompt/parser；有数据时再验 400+400
 ```
 
 通用协议：零样本、temperature 0、严格标签解析（无同义词映射，解析失败记 invalid 并算错）、
 抽样用种子 42 确定性洗牌（`--seed` 可换）、逐条落盘 JSONL 可续跑、汇总含 accuracy + Wilson 95% CI +
 weighted/macro-F1 + 逐类精度 + 混淆对。
+
+DeepSeek V4 的思考配置必须显式传入：`--thinking enabled|disabled`；启用时可用
+`--reasoning-effort high|max`。401/402 会立即中止且不会把该题写成“已完成”。逐行结果记录
+requested/response model、provider、fingerprint、usage、UTC 时间、case/prompt/dataset 哈希与 run ID。
+
+账户隔离：批量运行只读取专用的 `EVAL_API_KEY`，不会回退读取应用或 shell 中的
+`DEEPSEEK_API_KEY` / `OPENAI_API_KEY`。请为评测设置独立预算、告警和可撤销 key，避免跑分耗尽生产额度。
+
+## CPsyExam V4 全量确认性结果（2026-07-22）
+
+本次比较在[不可变预注册 Release](https://github.com/AllenLi441/mental-health-llm-eval/releases/tag/cpsyexam-v4-prereg-2026-07-22)之后运行，并对同一批 3,902 道题进行严格配对：
+
+- `deepseek-v4-pro`：3,307/3,902，**84.7514%**，invalid 17，API error 0；响应 fingerprint 为 `fp_9954b31ca7_prod0820_fp8_kvcache_20260402`。
+- `deepseek-v4-flash`：3,252/3,902，**83.3419%**，invalid 0，API error 0；响应 fingerprint 为 `fp_8b330d02d0_prod0820_fp8_kvcache_20260402`。
+- 配对列联：两者都对 3,088，只有 v4-pro 对 219，只有 v4-flash 对 164，两者都错 431；差值为 **+1.4095pp**。
+- 预注册 exact McNemar 双侧检验 `p=0.00572255`；配对 normal 95% CI `[0.4274, 2.3917]pp`，20,000 次 bootstrap 95% CI `[0.4357, 2.4090]pp`。因此，本协议内的结论是 **v4-pro 显著优于 v4-flash**。
+- ±2pp TOST 的 `p_lower=5.086e-12`、`p_upper=0.119332`，未同时通过；**未证明等价**，不得写成“统计平手”或“等价”。
+
+公开聚合文件为 `results-summary/cpsyexam-v4-full-paired.summary.json`。完整去敏资产已发布到 [`cpsyexam-v4-full-2026-07-22`](https://github.com/AllenLi441/mental-health-llm-eval/releases/tag/cpsyexam-v4-full-2026-07-22)：GitHub 报告 `isImmutable=true`，Release attestation 与 6/6 个本地资产摘要均已通过 `gh release verify` / `verify-asset`。
+
+复现定位：runner commit `3e6890374cb39631bb1cc8bca46ef4835df85446`；公开 case commitment manifest SHA-256 `1275ce7edeb55ad62500ac1692b82bef3800592decc2ece4d615fc8770232c9d`；数据 revision 见公开 summary 的 `dataset.revision`。
 
 ## 任务与对比基准
 
@@ -24,10 +53,10 @@ weighted/macro-F1 + 逐类精度 + 混淆对。
 | emobench-ea | EmoBench EA | 400（全量） | acc（分中英） | GPT-4: 75.50 en / 73.75 zh |
 | emobench-eu | EmoBench EU | 400（全量） | acc，情绪+原因全对 | GPT-4: 59.75 en / 54.12 zh |
 | mdd5k-diagnosis | MDD-5k | 925（抽 400） | acc（5 类，ICD 归并，**本模块自定协议**） | 无统一榜单，横向比模型用 |
-| psysuicide | PsySUICIDE test | 1,464（抽 500） | weighted-F1 / acc（11 类） | 多数类 72.4%；论文微调基线见 PDF |
+| psysuicide | PsySUICIDE test | 1,464（抽 500） | weighted-F1 / acc（11 类） | 多数类 71.4%；论文微调基线见 `reports/BASELINES.json` |
 | cbt-cd / pc / fc | CBT-Bench | 146/184/112（全量） | top-1 命中率（金标多标签） | 论文用 multi-label F1，口径不同 |
 | mentalmanip | MentalManip con | 2,915（抽 500） | acc / F1 | 多数类 69.2%；GPT-4 基线见 PDF |
-| imhi-dr 等 9 个 | IMHI test | 405~10,861（各抽 500） | weighted-F1 / acc | ChatGPT-ZS / 最强微调 / MentaLLaMA-13B 已写入各任务 comparisons |
+| imhi-dr 等 9 个 | IMHI test | 405~10,861（各抽 500） | weighted-F1 / acc | 原论文有 10 个 test sets；本 harness 未含 CLP，只能报告 9/10 子集 |
 | cpsyexam | CPsyExam test | 3,902（全量） | acc（KG/CA × 单选/多选分组） | GPT-4 零样本 76.56/10.76/60.33/13.00（67.43 为论文含少样本均值,严格零样本加权 57.6） |
 | eatd-depression | EATD validation | 79（全量） | F1(抑郁) / acc | 论文文本 BiLSTM F1 0.65，融合 0.71 |
 
@@ -37,24 +66,33 @@ weighted/macro-F1 + 逐类精度 + 混淆对。
 ## 结构
 
 ```
-eval-suite/
+mental-health-llm-eval/
 ├── lib.mjs        共享：配置/.env、CSV 解析、API 重试、并发池、指标、任务运行器
+├── lib/baselines.mjs  从 reports/BASELINES.json 读取对照值
 ├── run.mjs        入口（list / all / 单任务）
 ├── tasks/         emobench mdd5k psysuicide cbtbench mentalmanip imhi cpsyexam eatd
-└── results/       <task>-<model>-<runid>.jsonl + .summary.json
+├── results-summary/  可公开的聚合结果
+└── results/       本地运行后生成的逐行结果（不发布）
 ```
+
+## 数据目录
+
+真实评测需要从各数据集官方来源取得许可并放在同一个根目录，再把 `EVAL_DATASETS_DIR` 指向该目录。任务读取的顶层目录为：`EmoBench`、`MDD-5k`、`PsySUICIDE`、`CBT-Bench`、`MentalManip`、`MentaLLaMA`、`CPsyExam`、`EATD`。公开仓库的 `--selftest` 使用合成微型 fixture，只证明入口、prompt 和严格解析器可运行，不声称重算论文指标。
+
+官方 EmoBench 复刻脚本单独读取 `EMOBENCH_DATA_DIR/{EA,EU}.jsonl`。未提供授权数据时，它的
+`--selftest` 同样只运行仓库内合成 fixture；提供数据后会额外强制校验 EA/EU 各 400 条、中英各 200。
 
 ## 审计与复现口径(2026-07-07 固化)
 
 - **v1 主跑分 = 17 个非 EmoBench 任务**(`run-v1.log`,10,142 次调用);**v2(2026-07-07)= 全部 19 任务重跑**,
-  17 主任务中 16 项与 v1 精确一致、cbt-fc -0.89pp(1 题输出波动),overview 固化于 `results/all-v2.summary.json`
+  17 主任务中 16 项与 v1 精确一致、cbt-fc -0.89pp(1 题输出波动),公开 overview 固化于 `results-summary/all-v2.summary.json`
   (由 `scripts/compare_runs.py v1 v2` 生成,含逐任务差异表)。
-- ⚠ **EmoBench 口径**:报告中的 EmoBench 数字出自独立 harness `../EmoBench/eval/eval.mjs`(官方仓库提示词逐字复刻,
-  可与论文 Table 1/2 对比)。套件内置 `emobench-ea/eu` 用的是简化提示词:EA 与官方版一致(71.5 vs 72.0),
+- ⚠ **EmoBench 口径**:报告中的 EmoBench 数字出自独立 harness `../EmoBench/eval/eval.mjs`（复用官方数据、提示词和单次评分，但当前是 temp-0 单次 proxy；论文是每题 5 次采样多数票 × 4 个选项排列后取均值，不能称完全同协议）。套件内置 `emobench-ea/eu` 用的是简化提示词:EA 与独立 proxy 接近(71.5 vs 72.0),
   但 **EU 仅 39.3 vs 官方协议 57.8**——提示词差异对 EU 影响巨大,内置版数字不得与论文对比,仅作内部追踪。
-- 独立重算对账:`python3 scripts/audit_results.py`(JSONL→指标重算,与 summary 逐项比对,输出 results/audit_recompute.json)。
+- 独立重算对账：在持有授权逐行 JSONL 的本地环境运行 `python3 scripts/audit_results.py`；公开包没有原始行，`--selftest` 只验证聚合文件结构并明确标注边界。
+- 授权环境可运行 `python3 scripts/audit_results.py --results-dir /authorized/results --manifest-out /review/authorized-run.manifest.json --audit-out /review/audit-recompute.json` 生成不含文本、输出和行 ID 的证据清单（文件 SHA-256、行数/唯一数/重复数、错误数、字段覆盖、模型/供应商聚合）。它能暴露续跑碰撞和 provenance 缺字段，但**不能替代获许可的逐行结果发布**。
 - Kimi/DeepSeek 同题配对:`python3 scripts/paired_model_audit.py`(固化 id+gold 双键配对、碰撞剔除、429 披露;strict 与 keep-first 两口径)。
-- ⚠ `--resume` 的 summary 只统计本次新跑的 items,不会自动合并旧记录;断点续跑后请用 `scripts/audit_results.py` 重算全量。
+- CPsyExam V4 全量确认性比较以 `reports/cpsyexam_v4_full_preregistration.md` 为预注册口径；`scripts/cpsyexam_paired_inference.py` 固化 exact McNemar、paired CI、±2pp TOST 与去敏逐行 Release builder。2026-07-22 的 3,902×2 配对结果见 `results-summary/cpsyexam-v4-full-paired.summary.json`；旧 `n=599` 仅是历史 pilot，不进入确认性分析。
+- `--resume` 会把既有 JSONL 行与本次新行合并后重建 summary；旧版本留下的中断运行必须标为 `incomplete_archived` 或由授权原始行重建，不能把半跑 summary 当完整结果。
 - ⚠ `.env` 含 API key,不得进入任何可分享包/提交范围。
-- 数据许可与敏感性边界见 `../license_manifest.tsv`:本套件仅作研究评测;MentalManip/CBT-Bench 为 CC BY-NC(禁商用),
-  PsySUICIDE 对营利组织需另签协议,EATD/IMHI 类含敏感文本不得外发,全部不用于产品训练。
+- 数据许可与敏感性边界见 `PUBLISHING_NOTE.md`：本套件仅作研究评测；各数据集许可必须分别遵守，原始敏感文本和逐行模型输出不随本仓库发布，也不用于产品训练。
