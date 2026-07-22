@@ -1,6 +1,6 @@
 # eval-suite — 8 数据集 · 19 任务 · 零样本准确率评测
 
-零依赖 Node.js（≥18）。被测模型 = 任意 OpenAI 兼容 chat API（示例默认显式使用 DeepSeek `deepseek-v4-flash`，不使用即将弃用的 `deepseek-chat` 别名）。公开仓库包含代码与聚合结果；受许可/敏感性约束的原始数据和逐行输出不随仓库发布。
+零依赖 Node.js（≥18）。被测模型 = 任意 OpenAI 兼容 chat API（示例默认显式使用 DeepSeek `deepseek-v4-flash`，不使用即将弃用的 `deepseek-chat` 别名）。公开仓库包含代码与聚合结果；规划中的 CPsyExam V4 Release 仅允许发布去敏的逐行承诺与成对正确性结果。受许可/敏感性约束的原始数据、题目、选项、标签、模型预测和原始输出不随仓库或 Release 发布。
 
 ## 用法
 
@@ -31,6 +31,20 @@ requested/response model、provider、fingerprint、usage、UTC 时间、case/pr
 
 账户隔离：批量运行只读取专用的 `EVAL_API_KEY`，不会回退读取应用或 shell 中的
 `DEEPSEEK_API_KEY` / `OPENAI_API_KEY`。请为评测设置独立预算、告警和可撤销 key，避免跑分耗尽生产额度。
+
+## CPsyExam V4 全量确认性结果（2026-07-22）
+
+本次比较在[不可变预注册 Release](https://github.com/AllenLi441/mental-health-llm-eval/releases/tag/cpsyexam-v4-prereg-2026-07-22)之后运行，并对同一批 3,902 道题进行严格配对：
+
+- `deepseek-v4-pro`：3,307/3,902，**84.7514%**，invalid 17，API error 0；响应 fingerprint 为 `fp_9954b31ca7_prod0820_fp8_kvcache_20260402`。
+- `deepseek-v4-flash`：3,252/3,902，**83.3419%**，invalid 0，API error 0；响应 fingerprint 为 `fp_8b330d02d0_prod0820_fp8_kvcache_20260402`。
+- 配对列联：两者都对 3,088，只有 v4-pro 对 219，只有 v4-flash 对 164，两者都错 431；差值为 **+1.4095pp**。
+- 预注册 exact McNemar 双侧检验 `p=0.00572255`；配对 normal 95% CI `[0.4274, 2.3917]pp`，20,000 次 bootstrap 95% CI `[0.4357, 2.4090]pp`。因此，本协议内的结论是 **v4-pro 显著优于 v4-flash**。
+- ±2pp TOST 的 `p_lower=5.086e-12`、`p_upper=0.119332`，未同时通过；**未证明等价**，不得写成“统计平手”或“等价”。
+
+公开聚合文件为 `results-summary/cpsyexam-v4-full-paired.summary.json`。完整去敏资产计划发布到 [`cpsyexam-v4-full-2026-07-22`](https://github.com/AllenLi441/mental-health-llm-eval/releases/tag/cpsyexam-v4-full-2026-07-22)；本次文档更新时该结果 Release 仍为待发布/待验证状态，不能提前声称 `isImmutable=true` 或资产已经校验。
+
+复现定位：runner commit `3e6890374cb39631bb1cc8bca46ef4835df85446`；公开 case commitment manifest SHA-256 `1275ce7edeb55ad62500ac1692b82bef3800592decc2ece4d615fc8770232c9d`；数据 revision 见公开 summary 的 `dataset.revision`。
 
 ## 任务与对比基准
 
@@ -78,7 +92,7 @@ mental-health-llm-eval/
 - 独立重算对账：在持有授权逐行 JSONL 的本地环境运行 `python3 scripts/audit_results.py`；公开包没有原始行，`--selftest` 只验证聚合文件结构并明确标注边界。
 - 授权环境可运行 `python3 scripts/audit_results.py --results-dir /authorized/results --manifest-out /review/authorized-run.manifest.json --audit-out /review/audit-recompute.json` 生成不含文本、输出和行 ID 的证据清单（文件 SHA-256、行数/唯一数/重复数、错误数、字段覆盖、模型/供应商聚合）。它能暴露续跑碰撞和 provenance 缺字段，但**不能替代获许可的逐行结果发布**。
 - Kimi/DeepSeek 同题配对:`python3 scripts/paired_model_audit.py`(固化 id+gold 双键配对、碰撞剔除、429 披露;strict 与 keep-first 两口径)。
-- CPsyExam V4 全量确认性比较以 `reports/cpsyexam_v4_full_preregistration.md` 为预注册口径；`scripts/cpsyexam_paired_inference.py` 固化 exact McNemar、paired CI、±2pp TOST 与去敏逐行 Release builder。旧 `n=599` 仅是已观察 pilot，不进入确认性分析。
+- CPsyExam V4 全量确认性比较以 `reports/cpsyexam_v4_full_preregistration.md` 为预注册口径；`scripts/cpsyexam_paired_inference.py` 固化 exact McNemar、paired CI、±2pp TOST 与去敏逐行 Release builder。2026-07-22 的 3,902×2 配对结果见 `results-summary/cpsyexam-v4-full-paired.summary.json`；旧 `n=599` 仅是历史 pilot，不进入确认性分析。
 - `--resume` 会把既有 JSONL 行与本次新行合并后重建 summary；旧版本留下的中断运行必须标为 `incomplete_archived` 或由授权原始行重建，不能把半跑 summary 当完整结果。
 - ⚠ `.env` 含 API key,不得进入任何可分享包/提交范围。
 - 数据许可与敏感性边界见 `PUBLISHING_NOTE.md`：本套件仅作研究评测；各数据集许可必须分别遵守，原始敏感文本和逐行模型输出不随本仓库发布，也不用于产品训练。

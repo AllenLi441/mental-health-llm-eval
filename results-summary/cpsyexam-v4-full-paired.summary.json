@@ -1,0 +1,173 @@
+{
+  "arms": {
+    "v4_flash": {
+      "correct": 3252,
+      "dataset_manifest_sha256": [
+        "bd4ae0d8536771d51a06128564e60793005813ac18ed12eb70180006ec52066a"
+      ],
+      "errors": 0,
+      "file": "cpsyexam-deepseek-v4-flash-full-20260722.jsonl",
+      "fingerprints": [
+        "fp_8b330d02d0_prod0820_fp8_kvcache_20260402"
+      ],
+      "first_request_started_at": "2026-07-22T10:47:54.453Z",
+      "invalid": 0,
+      "last_completed_at": "2026-07-22T10:53:06.374Z",
+      "prompt_template_sha256": [
+        "0a121a4b867dfa8d598c2a4949c92485e286874e07e2d6a59fc2166437780386"
+      ],
+      "providers": [
+        "deepseek"
+      ],
+      "reasoning_effort": [],
+      "requested_models": [
+        "deepseek-v4-flash"
+      ],
+      "response_models": [
+        "deepseek-v4-flash"
+      ],
+      "rows": 3902,
+      "run_ids": [
+        "paired-control-20260722"
+      ],
+      "sha256": "f89344dfb7bed19252408d3e08d688b6c19d5615b489b02e637ae1fb3827ac1c",
+      "thinking": [
+        "disabled"
+      ]
+    },
+    "v4_pro": {
+      "correct": 3307,
+      "dataset_manifest_sha256": [
+        "bd4ae0d8536771d51a06128564e60793005813ac18ed12eb70180006ec52066a"
+      ],
+      "errors": 0,
+      "file": "cpsyexam-deepseek-v4-pro-full-20260722.jsonl",
+      "fingerprints": [
+        "fp_9954b31ca7_prod0820_fp8_kvcache_20260402"
+      ],
+      "first_request_started_at": "2026-07-22T10:24:35.243Z",
+      "invalid": 17,
+      "last_completed_at": "2026-07-22T10:47:43.065Z",
+      "prompt_template_sha256": [
+        "fc6e2faef3f1ceb7108269428590d45d754a6cc7bc5c8ef02b66ed3b870a0c28"
+      ],
+      "providers": [
+        "deepseek"
+      ],
+      "reasoning_effort": [
+        "high"
+      ],
+      "requested_models": [
+        "deepseek-v4-pro"
+      ],
+      "response_models": [
+        "deepseek-v4-pro"
+      ],
+      "rows": 3902,
+      "run_ids": [
+        "full-confirmatory-20260722"
+      ],
+      "sha256": "3e4839c645d0431fe4dd6a15e78af215b613628a0d8ec1504980249586d5858b",
+      "thinking": [
+        "enabled"
+      ]
+    }
+  },
+  "dataset": {
+    "license": "CC-BY-4.0",
+    "name": "CPsyExam",
+    "public_case_commitment_manifest_sha256": "1275ce7edeb55ad62500ac1692b82bef3800592decc2ece4d615fc8770232c9d",
+    "revision": "hf-dataset:CAS-SIAT-XinHai/CPsyExam@cf094fdc50407e2976ba7efcf9d3ab67ad0a96be;file:cpsyexam_with_test_answer.zip;sha256:c014c5e0aa4d673d959d468e4fbc7a9f63cc96d554c7e722ae7cc5c52f5e00dd;runner_manifest_sha256:bd4ae0d8536771d51a06128564e60793005813ac18ed12eb70180006ec52066a",
+    "rows": 3902,
+    "source": "https://huggingface.co/datasets/CAS-SIAT-XinHai/CPsyExam"
+  },
+  "generated_at": "2026-07-22T10:53:44.492778+00:00",
+  "inference": {
+    "bootstrap": {
+      "repetitions": 20000,
+      "seed": 20260722
+    },
+    "contingency": {
+      "both_correct": 3088,
+      "neither_correct": 431,
+      "v4_flash_only_correct_c": 164,
+      "v4_pro_only_correct_b": 219
+    },
+    "delta_v4_pro_minus_flash": 0.014095335725269094,
+    "difference_claim": "V4_PRO_SUPERIOR",
+    "equivalence_claim": "EQUIVALENCE_NOT_DEMONSTRATED",
+    "equivalence_tost": {
+      "alpha": 0.05,
+      "equivalent": false,
+      "margin": 0.02,
+      "p_lower": 5.086153720412767e-12,
+      "p_upper": 0.119332278716197
+    },
+    "exact_mcnemar": {
+      "alpha": 0.05,
+      "two_sided_p": 0.005722550231366336
+    },
+    "groups_descriptive_only": {
+      "CA-MAQ": {
+        "delta": 0.030000000000000027,
+        "n": 200,
+        "v4_flash_accuracy": 0.605,
+        "v4_flash_correct": 121,
+        "v4_pro_accuracy": 0.635,
+        "v4_pro_correct": 127
+      },
+      "CA-SCQ": {
+        "delta": 0.018333333333333313,
+        "n": 600,
+        "v4_flash_accuracy": 0.795,
+        "v4_flash_correct": 477,
+        "v4_pro_accuracy": 0.8133333333333334,
+        "v4_pro_correct": 488
+      },
+      "KG-MAQ": {
+        "delta": 0.02944942381562099,
+        "n": 781,
+        "v4_flash_accuracy": 0.7221510883482715,
+        "v4_flash_correct": 564,
+        "v4_pro_accuracy": 0.7516005121638925,
+        "v4_pro_correct": 587
+      },
+      "KG-SCQ": {
+        "delta": 0.00646273158121502,
+        "n": 2321,
+        "v4_flash_accuracy": 0.9004739336492891,
+        "v4_flash_correct": 2090,
+        "v4_pro_accuracy": 0.9069366652305041,
+        "v4_pro_correct": 2105
+      }
+    },
+    "n": 3902,
+    "paired_bootstrap_ci95": [
+      0.004356740133264992,
+      0.02409021014864172
+    ],
+    "paired_normal_ci95": [
+      0.004273879401151447,
+      0.02391679204938674
+    ],
+    "v4_flash_accuracy": 0.8334187596104562,
+    "v4_flash_correct": 3252,
+    "v4_pro_accuracy": 0.8475140953357253,
+    "v4_pro_correct": 3307
+  },
+  "preregistration": "https://github.com/AllenLi441/mental-health-llm-eval/releases/tag/cpsyexam-v4-prereg-2026-07-22",
+  "protocol_files": {
+    "lib.mjs": "9ff0b2c24ca359435eea6cc2706380466e7aaf55fddd752edddeb716451611cc",
+    "reports/cpsyexam_v4_full_preregistration.md": "e6c4af9cd25f00e45a18a496ee1e655a5ba9972571a0296f566670960ba7381d",
+    "scripts/cpsyexam_paired_inference.py": "511634d27e3d173c61a76f3ed3858e37ee454a03732dc7a4b768d050a5eebec2",
+    "tasks/cpsyexam.mjs": "5b960515b46fde744ce41e14d12febaa668c0122db46e47161d75cc3898e6502"
+  },
+  "publishing_boundary": "No question, option, gold, prediction, raw output, source id, API key, or key fingerprint is published.",
+  "release": {
+    "status": "pending_publication_and_verification",
+    "tag": "cpsyexam-v4-full-2026-07-22",
+    "url": "https://github.com/AllenLi441/mental-health-llm-eval/releases/tag/cpsyexam-v4-full-2026-07-22"
+  },
+  "runner_commit": "3e6890374cb39631bb1cc8bca46ef4835df85446",
+  "schema_version": 1
+}

@@ -1,5 +1,7 @@
 {
   "generated": "2026-07-21",
+  "historical": true,
+  "superseded_by": "https://github.com/AllenLi441/mental-health-llm-eval/releases/tag/cpsyexam-v4-full-2026-07-22",
   "model": "deepseek-v4-pro",
   "fingerprint": "fp_9954b31ca7_prod0820_fp8_kvcache_20260402",
   "cpsyexam": {
