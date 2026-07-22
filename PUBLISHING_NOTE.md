@@ -13,11 +13,16 @@ from its original source (links in `reports/` and the paper); put your key in lo
 ## Run
 ```bash
 node run.mjs list
-node run.mjs imhi-dreaddit --model deepseek-chat --run-id demo
+node run.mjs all --selftest
+EVAL_DATASETS_DIR=/authorized/datasets node run.mjs all --data-check
+node run.mjs imhi-dreaddit --model deepseek-v4-flash --thinking disabled --run-id demo
 python3 scripts/scoreboard.py
 ```
 
-## Honest conclusion: see reports/imhi_uniform_v3u.md
-Uniform de-biased protocol → 3 statistically-significant wins vs GPT-4-class
-(EmoBench-EU / MentalManip / CPsyExam); IMHI 0/9 clearly beats fine-tuned SOTA.
-Not clinical validation.
+Set `EVAL_DATASETS_DIR` to an authorized local dataset root for real runs. The standalone selftest uses repository fixtures and intentionally does not claim metric reproduction.
+
+## Reporting boundary
+
+Historical result snapshots remain in `reports/`; current claims must be regenerated from aggregate summaries plus `reports/BASELINES.json`. Benchmark performance is not clinical validation, and raw-result recomputation requires the locally authorized JSONL files that are deliberately excluded here.
+
+In an authorized environment, `python3 scripts/audit_results.py --manifest-out <reviewed-path>` can emit a redacted evidence manifest containing file hashes, row/unique/duplicate/error counts, field coverage, and aggregate model/provider attribution. Review that manifest before publishing it. It deliberately excludes row ids, source text, gold text, prompts, and model outputs; therefore it improves provenance auditing but does not make row-level claims independently reproducible.

@@ -1,0 +1,36 @@
+{
+  "generated": "2026-07-21",
+  "model": "deepseek-v4-pro",
+  "fingerprint": "fp_9954b31ca7_prod0820_fp8_kvcache_20260402",
+  "cpsyexam": {
+    "raw_rows": 600,
+    "unique_rows": 599,
+    "duplicate_id_count": 1,
+    "correct": 518,
+    "accuracy": 0.8647746243739566,
+    "invalid": 1,
+    "errors": 0,
+    "groups": {
+      "KG-SCQ": {"n": 347, "correct": 322, "accuracy": 0.9279538904899135},
+      "KG-MAQ": {"n": 124, "correct": 89, "accuracy": 0.717741935483871},
+      "CA-SCQ": {"n": 102, "correct": 90, "accuracy": 0.8823529411764706},
+      "CA-MAQ": {"n": 26, "correct": 17, "accuracy": 0.6538461538461539}
+    },
+    "scope": "observed pilot; not the 3902-item confirmatory full test"
+  },
+  "emobench_ea": {
+    "n": 400,
+    "correct": 297,
+    "accuracy": 0.7425,
+    "invalid": 1,
+    "by_language": {"en": 0.755, "zh": 0.73}
+  },
+  "emobench_eu": {
+    "n": 400,
+    "correct": 286,
+    "accuracy": 0.715,
+    "invalid": 9,
+    "by_language": {"en": 0.74, "zh": 0.69}
+  },
+  "publishing_boundary": "aggregate pilot evidence only; row ids, raw text, labels, predictions, and outputs are excluded"
+}
