@@ -42,7 +42,7 @@ requested/response model、provider、fingerprint、usage、UTC 时间、case/pr
 - 预注册 exact McNemar 双侧检验 `p=0.00572255`；配对 normal 95% CI `[0.4274, 2.3917]pp`，20,000 次 bootstrap 95% CI `[0.4357, 2.4090]pp`。因此，本协议内的结论是 **v4-pro 显著优于 v4-flash**。
 - ±2pp TOST 的 `p_lower=5.086e-12`、`p_upper=0.119332`，未同时通过；**未证明等价**，不得写成“统计平手”或“等价”。
 
-公开聚合文件为 `results-summary/cpsyexam-v4-full-paired.summary.json`。完整去敏资产计划发布到 [`cpsyexam-v4-full-2026-07-22`](https://github.com/AllenLi441/mental-health-llm-eval/releases/tag/cpsyexam-v4-full-2026-07-22)；本次文档更新时该结果 Release 仍为待发布/待验证状态，不能提前声称 `isImmutable=true` 或资产已经校验。
+公开聚合文件为 `results-summary/cpsyexam-v4-full-paired.summary.json`。完整去敏资产已发布到 [`cpsyexam-v4-full-2026-07-22`](https://github.com/AllenLi441/mental-health-llm-eval/releases/tag/cpsyexam-v4-full-2026-07-22)：GitHub 报告 `isImmutable=true`，Release attestation 与 6/6 个本地资产摘要均已通过 `gh release verify` / `verify-asset`。
 
 复现定位：runner commit `3e6890374cb39631bb1cc8bca46ef4835df85446`；公开 case commitment manifest SHA-256 `1275ce7edeb55ad62500ac1692b82bef3800592decc2ece4d615fc8770232c9d`；数据 revision 见公开 summary 的 `dataset.revision`。
 

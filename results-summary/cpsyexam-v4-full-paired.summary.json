@@ -164,9 +164,17 @@
   },
   "publishing_boundary": "No question, option, gold, prediction, raw output, source id, API key, or key fingerprint is published.",
   "release": {
-    "status": "pending_publication_and_verification",
+    "status": "published_verified_immutable",
     "tag": "cpsyexam-v4-full-2026-07-22",
-    "url": "https://github.com/AllenLi441/mental-health-llm-eval/releases/tag/cpsyexam-v4-full-2026-07-22"
+    "url": "https://github.com/AllenLi441/mental-health-llm-eval/releases/tag/cpsyexam-v4-full-2026-07-22",
+    "published_at": "2026-07-22T10:58:48Z",
+    "target_commit": "f91165940afc6da68e9b9d2b7ac02a1003400340",
+    "immutable": true,
+    "asset_count": 6,
+    "assets_verified": true,
+    "verified_asset_count": 6,
+    "manifest_sha256": "9e8d439b9566e3ad519f626a6c394e7ca05ec397ea2f2873f69c0724eee1c223",
+    "sha256sums_sha256": "ff4c14e1895b677de5f68a5c31c956ebff053313d58a77bc65125239f77dd656"
   },
   "runner_commit": "3e6890374cb39631bb1cc8bca46ef4835df85446",
   "schema_version": 1

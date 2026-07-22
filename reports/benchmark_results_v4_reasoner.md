@@ -15,7 +15,7 @@
 
 ±2pp TOST 的 `p_lower=5.086e-12`、`p_upper=0.119332`，等价性的两个单侧检验未同时通过；结论是 **未证明等价**，不能写“统计平手”或“等价”。
 
-公开聚合证据见 `results-summary/cpsyexam-v4-full-paired.summary.json`。去敏资产计划发布到 [`cpsyexam-v4-full-2026-07-22`](https://github.com/AllenLi441/mental-health-llm-eval/releases/tag/cpsyexam-v4-full-2026-07-22)；本次编辑时仍待发布和资产验证，尚不把 `isImmutable` 或 `assets_verified` 写成已完成事实。runner commit 为 `3e6890374cb39631bb1cc8bca46ef4835df85446`，公开 case commitment manifest SHA-256 为 `1275ce7edeb55ad62500ac1692b82bef3800592decc2ece4d615fc8770232c9d`。
+公开聚合证据见 `results-summary/cpsyexam-v4-full-paired.summary.json`。去敏资产已发布到 [`cpsyexam-v4-full-2026-07-22`](https://github.com/AllenLi441/mental-health-llm-eval/releases/tag/cpsyexam-v4-full-2026-07-22)；GitHub 报告 `isImmutable=true`，Release attestation 与 6/6 个资产摘要均已验证。runner commit 为 `3e6890374cb39631bb1cc8bca46ef4835df85446`，公开 case commitment manifest SHA-256 为 `1275ce7edeb55ad62500ac1692b82bef3800592decc2ece4d615fc8770232c9d`。
 
 ## 历史 v4-pro 终端运行
 
@@ -49,6 +49,6 @@ python3 scripts/scoreboard.py --selftest
 
 ## 仍有限制的外部证据
 
-- CPsyExam V4 全量 3,902×2 已运行并按预注册完成配对分析；结果 Release 在本次编辑时仍待发布和资产验证。
+- CPsyExam V4 全量 3,902×2 已运行并按预注册完成配对分析；结果 Release 已发布、锁定为 immutable，并完成 6/6 资产摘要验证。
 - 人类金标尚未产生；模型裁判与公开 benchmark 不能替代真人安全评审。
 - API 余额、历史 key 轮换和过去线上 smoke 不能由聚合文件反向证明。
