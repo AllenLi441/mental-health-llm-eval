@@ -32,9 +32,10 @@ if "EMOBENCH_DATA_DIR" not in text("emobench-official/eval.mjs"):
     raise SystemExit("official EmoBench harness has no portable data-root override")
 
 runtime_files = [ROOT / "lib.mjs", ROOT / "run.mjs", *sorted((ROOT / "tasks").glob("*.mjs"))]
+private_path_markers = ("/Users/", "/home/", "\\Users\\", "../静室")
 for path in runtime_files:
     body = path.read_text(encoding="utf-8")
-    if "/Users/allenli/Desktop/静室" in body or "../静室" in body:
+    if any(marker in body for marker in private_path_markers):
         raise SystemExit(f"{path.relative_to(ROOT)} contains a private app path")
 
 readme = text("README.md")
