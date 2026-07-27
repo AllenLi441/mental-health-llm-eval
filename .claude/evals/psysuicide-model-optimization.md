@@ -23,6 +23,18 @@ hard cases, or tuning on the official test split.
       API call or writing result rows.
 - [ ] Resume rejects rows from a different split, prompt profile, model, seed,
       prompt hash, or dataset hash.
+- [ ] A new run refuses to append to an existing result path unless `--resume`
+      is explicit.
+- [ ] The valid-matrix launcher is dry-run by default and requires both
+      `--execute` and an approved budget for paid calls.
+- [ ] Full valid launch is rejected until all four fixed 50-case smoke summaries
+      have zero API errors, exact response-model identity, and matching protocol
+      metadata.
+- [ ] The paired analyzer validates identical complete ID/gold sets, reports all
+      four arms, runs only the three prespecified contrasts, applies Holm
+      correction, and selects by the frozen metric order.
+- [ ] Result summaries aggregate token usage without exposing credentials or
+      source text.
 
 ## Regression evals
 
@@ -30,6 +42,8 @@ hard cases, or tuning on the official test split.
 - [ ] Existing authorized-data checks still pass.
 - [ ] Harness credential isolation and public-path safety checks still pass.
 - [ ] Result audit and scoreboard generation still pass.
+- [ ] Matrix launcher and paired analyzer selftests pass without dataset or API
+      access.
 
 ## Model experiment acceptance criteria
 

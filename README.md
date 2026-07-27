@@ -19,6 +19,8 @@ python3 scripts/scoreboard.py --selftest
 python3 scripts/check_baselines.py
 python3 scripts/check_harness_safety.py
 node scripts/check_psysuicide_protocol.mjs
+node scripts/run_psysuicide_valid_matrix.mjs --selftest
+python3 scripts/analyze_psysuicide_valid_matrix.py --selftest
 node emobench-official/eval.mjs --selftest # 无官方数据也可验证 prompt/parser；有数据时再验 400+400
 ```
 
@@ -43,16 +45,40 @@ PsySUICIDE 是本套件第一个强制切分隔离的优化模块。开发只允
 - `taxonomy`：加入 11 类工作定义，重点区分被动/主动/探索、计划/准备/未遂以及意图/行为。
 - `hierarchical`：在 taxonomy 之上要求模型内部按类别族和细粒度层级判断，但仍只输出标签。
 
-验证集实验（每个配置均跑完整 1,459 条，不能删难例）：
+验证集由一个默认 dry-run 的编排器执行。下面第一条只打印 4 个 smoke 臂、调用量和保守预算，
+不会调用 API：
 
 ```bash
-node run.mjs psysuicide --split valid --prompt-profile baseline \
-  --model deepseek-v4-pro --thinking enabled --reasoning-effort high --run-id valid-baseline-v1
-node run.mjs psysuicide --split valid --prompt-profile taxonomy \
-  --model deepseek-v4-pro --thinking enabled --reasoning-effort high --run-id valid-taxonomy-v1
-node run.mjs psysuicide --split valid --prompt-profile hierarchical \
-  --model deepseek-v4-pro --thinking enabled --reasoning-effort high --run-id valid-hierarchical-v1
+node scripts/run_psysuicide_valid_matrix.mjs \
+  --phase smoke --batch-id psyvalid-v1
 ```
+
+实际执行必须同时提供 `--execute` 和批准预算。先跑四臂各 50 条；编排器会核对 response model、
+错误、split、profile、thinking、run ID 和 usage 覆盖。每个臂结束后还会按固化价格快照计算
+实际 token 费用；若已花费用加剩余臂预留超过批准预算，会在下一个臂开始前停止：
+
+```bash
+node scripts/run_psysuicide_valid_matrix.mjs \
+  --phase smoke --batch-id psyvalid-v1 \
+  --approved-budget-usd 1 --execute
+```
+
+人工看过 smoke 的 usage、invalid 和成本后才能启动四臂完整 1,459 条。full 会先读取并验收
+同一 smoke batch 的四份 summary；任何一份缺失或模型路由错误都会拒跑：
+
+```bash
+node scripts/run_psysuicide_valid_matrix.mjs \
+  --phase full --batch-id psyvalid-v1 --smoke-batch-id psyvalid-v1 \
+  --approved-budget-usd 15 --execute
+
+python3 scripts/analyze_psysuicide_valid_matrix.py \
+  --batch-id psyvalid-v1 \
+  --out results/psyvalid-v1-valid-analysis.json
+```
+
+分析器强制同一完整 ID/gold/case-hash 集，输出四臂 macro-F1、weighted-F1、逐类指标、usage、
+成本、三项预指定配对比较、exact McNemar、paired bootstrap 和 Holm 校正，并按冻结规则选出
+唯一候选。输出仍是 valid 开发性结论，不允许写成 test 胜出或临床有效。
 
 按预先写明的主指标 macro-F1 选择唯一验证集配置后，先只生成 test 身份文件；这个命令不调用
 API，也不写结果行：

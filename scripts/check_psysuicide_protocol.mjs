@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 // Offline deterministic guard for PsySUICIDE split/profile/test protocol.
+import { fileURLToPath } from 'node:url';
+
 process.env.EVAL_IGNORE_DOTENV = '1';
 
 const lib = await import('../lib.mjs');
@@ -69,4 +71,36 @@ for (const promptProfile of task.promptProfiles) {
   }
 }
 
-console.log('PsySUICIDE protocol check PASS: split isolation, 3 prompt profiles, legacy-model block, frozen-test gate');
+const usage = lib.aggregateUsage([
+  { usage: { prompt_tokens: 10, completion_tokens: 2, completion_tokens_details: { reasoning_tokens: 1 } } },
+  { usage: { prompt_tokens: 7, completion_tokens: 3, completion_tokens_details: { reasoning_tokens: 2 } } },
+  { usage: null },
+]);
+if (
+  usage.requests_with_usage !== 2 ||
+  usage.totals.prompt_tokens !== 17 ||
+  usage.totals.completion_tokens !== 5 ||
+  usage.totals.completion_tokens_details.reasoning_tokens !== 3
+) {
+  throw new Error('usage aggregation selftest failed');
+}
+
+lib.assertArtifactIdentity({ task: 'psysuicide', split: 'test' }, { task: 'psysuicide', split: 'test' });
+expectThrow(
+  'preregistration identity mismatch',
+  () => lib.assertArtifactIdentity({ task: 'psysuicide', split: 'valid' }, { task: 'psysuicide', split: 'test' }),
+  /preregistration mismatch for split/,
+);
+const committedRevision = lib.committedArtifactRevision(
+  fileURLToPath(new URL('../.env.example', import.meta.url)),
+);
+if (!/^[0-9a-f]{40}$/.test(committedRevision)) {
+  throw new Error('committed artifact revision selftest failed');
+}
+expectThrow(
+  'preregistration outside repository',
+  () => lib.committedArtifactRevision('/tmp/not-a-preregistration.json'),
+  /committed file inside this repository/,
+);
+
+console.log('PsySUICIDE protocol check PASS: split isolation, 3 prompt profiles, legacy-model block, exact committed preregistration, usage aggregation');

@@ -24,6 +24,8 @@ required = [
     "test split requires explicit --confirm-test",
     "test preregistration is not committed to git",
     "resume metadata mismatch",
+    "refusing to append a new run to existing result path",
+    "usage: aggregateUsage(combinedResults)",
 ]
 for marker in required:
     if marker not in lib:
@@ -66,5 +68,27 @@ for marker in (
 ):
     if marker not in psysuicide:
         raise SystemExit(f"PsySUICIDE protocol missing marker: {marker}")
+
+matrix = text("scripts/run_psysuicide_valid_matrix.mjs")
+for marker in (
+    "Dry-run by default",
+    "--approved-budget-usd",
+    "validateSmokeGate",
+    "deepseek-v4-flash",
+    "deepseek-v4-pro",
+):
+    if marker not in matrix:
+        raise SystemExit(f"PsySUICIDE valid matrix missing marker: {marker}")
+
+analyzer = text("scripts/analyze_psysuicide_valid_matrix.py")
+for marker in (
+    "CONTRASTS =",
+    "exact_mcnemar",
+    "holm_adjust",
+    "confirmatory_claim_allowed",
+    "publishing_boundary",
+):
+    if marker not in analyzer:
+        raise SystemExit(f"PsySUICIDE valid analyzer missing marker: {marker}")
 
 print("harness safety check PASS: dedicated credentials, split/profile provenance, frozen test, safe resume, portable runtime, honest claims")

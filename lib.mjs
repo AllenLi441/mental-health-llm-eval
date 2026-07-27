@@ -380,6 +380,29 @@ export function positiveF1(results, lab) {
   return f1For(results, lab);
 }
 
+function addNumericUsage(target, value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return;
+  for (const [key, entry] of Object.entries(value)) {
+    if (typeof entry === 'number' && Number.isFinite(entry)) {
+      target[key] = (target[key] || 0) + entry;
+    } else if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+      if (!target[key] || typeof target[key] !== 'object') target[key] = {};
+      addNumericUsage(target[key], entry);
+    }
+  }
+}
+
+export function aggregateUsage(results) {
+  const totals = {};
+  let requestsWithUsage = 0;
+  for (const row of results) {
+    if (!row?.usage || typeof row.usage !== 'object' || Array.isArray(row.usage)) continue;
+    requestsWithUsage++;
+    addNumericUsage(totals, row.usage);
+  }
+  return { requests_with_usage: requestsWithUsage, totals };
+}
+
 // ---------- runner ----------
 function buildRunIdentity(task, args, cfg, sampleN, promptTemplateSha256, datasetManifestSha256) {
   return {
@@ -415,16 +438,7 @@ function writePreregistration(path, identity) {
   console.log('Commit this artifact before the test run, then use --confirm-test --prereg with the same arguments.');
 }
 
-function validatePreregistration(path, identity) {
-  if (!path) throw new Error('test split requires --prereg PATH');
-  const absolute = resolve(path);
-  if (!existsSync(absolute)) throw new Error(`preregistration file not found: ${absolute}`);
-  let artifact;
-  try {
-    artifact = JSON.parse(readFileSync(absolute, 'utf8'));
-  } catch (e) {
-    throw new Error(`invalid preregistration JSON at ${absolute}: ${e.message}`);
-  }
+export function assertArtifactIdentity(artifact, identity) {
   for (const [field, expected] of Object.entries(identity)) {
     if (artifact[field] !== expected) {
       throw new Error(
@@ -433,9 +447,10 @@ function validatePreregistration(path, identity) {
       );
     }
   }
-  if (artifact.protocol !== 'freeze-and-commit-before-test') {
-    throw new Error('preregistration artifact is missing the frozen-test protocol marker');
-  }
+}
+
+export function committedArtifactRevision(path) {
+  const absolute = resolve(path);
   const relativePath = relative(SUITE, absolute);
   if (!relativePath || relativePath.startsWith('..')) {
     throw new Error('test preregistration must be a committed file inside this repository');
@@ -454,9 +469,26 @@ function validatePreregistration(path, identity) {
   }
   const head = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: SUITE, encoding: 'utf8' });
   if (head.status !== 0) throw new Error('cannot resolve git HEAD for preregistration audit');
+  return head.stdout.trim();
+}
+
+function validatePreregistration(path, identity) {
+  if (!path) throw new Error('test split requires --prereg PATH');
+  const absolute = resolve(path);
+  if (!existsSync(absolute)) throw new Error(`preregistration file not found: ${absolute}`);
+  let artifact;
+  try {
+    artifact = JSON.parse(readFileSync(absolute, 'utf8'));
+  } catch (e) {
+    throw new Error(`invalid preregistration JSON at ${absolute}: ${e.message}`);
+  }
+  assertArtifactIdentity(artifact, identity);
+  if (artifact.protocol !== 'freeze-and-commit-before-test') {
+    throw new Error('preregistration artifact is missing the frozen-test protocol marker');
+  }
   return {
     sha256: sha256(readFileSync(absolute, 'utf8')),
-    commit: head.stdout.trim(),
+    commit: committedArtifactRevision(absolute),
   };
 }
 
@@ -518,6 +550,15 @@ export async function runTask(task, args) {
   const scope = [task.key, runArgs.split, runArgs.promptProfile].filter(Boolean).join('-');
   const outPath = runArgs.resume ||
     join(outDir, `${scope}-${cfg.model.replace(/[^\w.-]/g, '_')}-${runArgs.runId}.jsonl`);
+  if (!runArgs.resume && existsSync(outPath)) {
+    throw new Error(
+      `${task.key}: refusing to append a new run to existing result path ${outPath}; ` +
+      'choose a new --run-id or pass --resume explicitly'
+    );
+  }
+  if (runArgs.resume && !existsSync(outPath)) {
+    throw new Error(`${task.key}: --resume file does not exist: ${outPath}`);
+  }
   const done = new Set();
   const existingResults = [];
   if (runArgs.resume && existsSync(outPath)) {
@@ -659,6 +700,8 @@ export async function runTask(task, args) {
     wilson95: wilson95(correct, n),
     invalid: combinedResults.filter((r) => r.invalid).length,
     errors: combinedResults.filter((r) => r.error).length,
+    usage: aggregateUsage(combinedResults),
+    attempts_total: combinedResults.reduce((sum, row) => sum + (Number(row.attempt) || 0), 0),
     elapsedMs: Date.now() - t0,
   };
   if (task.labels) {

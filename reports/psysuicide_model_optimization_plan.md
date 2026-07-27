@@ -35,6 +35,12 @@
 invalid、usage 和成本是否正常；不据此删题或改变 gold。route smoke 通过后运行四个完整 valid
 臂。
 
+执行器 `scripts/run_psysuicide_valid_matrix.mjs` 默认只生成计划，不调用 API。付费运行必须
+同时提供 `--execute`、显式 batch ID 和不低于保守估算的 `--approved-budget-usd`。full 阶段
+还必须指定已完成的 smoke batch，四份 smoke summary 均通过模型身份和协议检查后才会继续。
+每个臂结束后会从 provider usage 估算真实费用；若已花费用加剩余臂预留超过批准额度，会在
+下一个臂开始前停止。这个应用层门禁不能替代供应商账户的硬限额与余额告警。
+
 ## 选择规则
 
 1. 以完整 valid 的 macro-F1 最高者为唯一候选。
@@ -56,7 +62,12 @@ runner 已强制执行：
   dataset hash 完全一致；
 - 预注册 JSON 必须位于本仓库、已被 git 跟踪且内容与 HEAD 一致；
 - resume 必须匹配 split、profile、model、run ID、seed 和两个哈希；
+- 非 resume 运行不得追加到已存在的结果路径；
 - 退役的 `deepseek-chat` / `deepseek-reasoner` 别名会在请求前被拒绝。
+
+完整 valid 结束后，`scripts/analyze_psysuicide_valid_matrix.py` 会验证四臂拥有完全相同的
+ID、gold 和 case commitment，再运行冻结的三个比较与选择规则。它只写聚合分析，不把文本、
+ID、gold、预测或原始输出复制进报告。
 
 ## 调用量与预算边界
 
@@ -69,11 +80,15 @@ runner 已强制执行：
 | hierarchical | 1,459 | 1,257,175 | 862 |
 
 按 2026-07-27 DeepSeek 官方价格，V4-Pro cache-miss 输入为 $0.435/百万 token、输出
-$0.87/百万 token；V4-Flash 分别为 $0.14 和 $0.28。若把每次 thinking 输出都按 runner 的
-2,048 token 上限计，并粗略把中文字符按一 token 估计，四个完整臂约为 **$9.71 的保守单次
-上界**；实际通常更低，但价格、分词、缓存命中、重试和模型实际 reasoning 用量都会改变费用。
-运行前重新核对官方[价格页](https://api-docs.deepseek.com/quick_start/pricing)，建议专用评测
-key 的账户预算至少留出 $15，并在 50 条 smoke 后根据真实 `usage` 再决定是否继续全量。
+$0.87/百万 token；V4-Flash 分别为 $0.14 和 $0.28。执行器用比“一个中文字符约一 token”
+更保守的算法：把全部 UTF-8 输入字节都当作 cache-miss token，并把每次 thinking 输出都按
+2,048 token 上限计算。四个完整臂的单次尝试上界为 **$11.78**；再乘 1.25 的重试预留后，
+最低批准预算为 **$14.72**。50 条 × 4 smoke 的对应值为 $0.40 / $0.50。
+
+实际通常更低，但价格、分词、缓存命中、重试和模型实际 reasoning 用量都会改变费用。运行前
+重新核对官方[价格页](https://api-docs.deepseek.com/quick_start/pricing)，专用 key 建议批准
+$15，并在 smoke 后用真实 usage 再决定是否继续 full。价格快照固化在
+`lib/deepseek_v4_pricing_2026-07-27.json`，不能把过期快照当成永久价格。
 
 ## 当前阻塞条件
 

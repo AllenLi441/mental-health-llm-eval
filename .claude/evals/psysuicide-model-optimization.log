@@ -1,0 +1,40 @@
+EVAL REPORT: PsySUICIDE model optimization protocol
+Date: 2026-07-27
+Scope: offline harness and analysis only; no API call or new prediction
+
+Capability:
+- PASS: explicit train/valid/test split gate
+- PASS: cross-split normalized IDs and exact retained-text leakage check
+- PASS: baseline/taxonomy/hierarchical prompt selftests
+- PASS: split/profile/model/hash/usage provenance in runner
+- PASS: retired DeepSeek alias rejection
+- PASS: full, committed, exact preregistration gate for test
+- PASS: new-run overwrite refusal and strict resume metadata
+- PASS: dry-run-by-default four-arm valid launcher
+- PASS: explicit paid execution and approved-budget gate
+- PASS: full valid requires four protocol-valid smoke summaries
+- PASS: per-arm actual usage accounting and stop-before-next-arm budget check
+- PASS: paired analyzer full synthetic integration, three fixed contrasts,
+  exact McNemar, paired bootstrap, Holm correction, and frozen selection order
+- PASS: aggregate-only analysis output boundary
+
+Regression:
+- PASS: 19/19 task prompt/parser selftests
+- PASS: authorized data check for all 19 tasks
+- PASS: PsySUICIDE train=11671, valid=1459, test=1464 retained single-label rows
+- PASS: no exact retained-text overlap across PsySUICIDE splits
+- PASS: aggregate audit selftest, 76 summaries
+- PASS: scoreboard selftest, 19 summaries
+- PASS: baseline registry, 22 entries
+- PASS: harness safety, syntax, Python compile, and git diff check
+
+Expected-failure gates:
+- PASS: approved $0.10 rejected below $0.50 smoke reserve
+- PASS: full launch rejected when a smoke summary is absent
+- PASS: neither failure wrote a matrix plan, result row, or API request
+
+Current measured dry-run:
+- smoke: 200 calls, $0.4036 single-attempt upper estimate, $0.5046 reserve
+- full: 5836 calls, $11.7781 single-attempt upper estimate, $14.7227 reserve
+
+Status: READY FOR PAID SMOKE AFTER LOCAL EVAL_API_KEY AND USER BUDGET APPROVAL
