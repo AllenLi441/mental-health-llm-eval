@@ -21,6 +21,8 @@ python3 scripts/check_harness_safety.py
 node scripts/check_psysuicide_protocol.mjs
 node scripts/run_psysuicide_valid_matrix.mjs --selftest
 python3 scripts/analyze_psysuicide_valid_matrix.py --selftest
+node scripts/run_psysuicide_test_pair.mjs --selftest
+python3 scripts/analyze_psysuicide_test_pair.py --selftest
 node emobench-official/eval.mjs --selftest # 无官方数据也可验证 prompt/parser；有数据时再验 400+400
 ```
 
@@ -73,35 +75,46 @@ node scripts/run_psysuicide_valid_matrix.mjs \
 
 python3 scripts/analyze_psysuicide_valid_matrix.py \
   --batch-id psyvalid-v1 \
-  --out results/psyvalid-v1-valid-analysis.json
+  --out reports/psyvalid-v1-valid-analysis.json
 ```
 
 分析器强制同一完整 ID/gold/case-hash 集，输出四臂 macro-F1、weighted-F1、逐类指标、usage、
 成本、三项预指定配对比较、exact McNemar、paired bootstrap 和 Holm 校正，并按冻结规则选出
 唯一候选。输出仍是 valid 开发性结论，不允许写成 test 胜出或临床有效。
 
-按预先写明的主指标 macro-F1 选择唯一验证集配置后，先只生成 test 身份文件；这个命令不调用
-API，也不写结果行：
+审核并提交 valid 聚合分析后，生成一次冻结的成对 test campaign。它固定两个臂：
+`A / V4-Flash / baseline` 作为当前控制，以及 valid 选出的唯一赢家作为候选。prepare 会为
+两臂各生成一个完整 test 预注册，并把 valid 分析哈希、两个预注册哈希和主检验规则写入 campaign；
+不会调用 API：
 
 ```bash
-node run.mjs psysuicide --split test --prompt-profile hierarchical \
-  --model deepseek-v4-pro --thinking enabled --reasoning-effort high \
-  --run-id psysuicide-v4pro-frozen-v1 \
-  --prepare-prereg reports/psysuicide-v4pro-frozen-v1.prereg.json
+node scripts/run_psysuicide_test_pair.mjs \
+  --mode prepare \
+  --campaign-id psytest-v1 \
+  --valid-analysis reports/psyvalid-v1-valid-analysis.json \
+  --campaign reports/psytest-v1.campaign.json
 ```
 
-审核并提交预注册文件后，使用完全相同的参数进行一次完整 test。任何 model、profile、seed、
-sample、prompt hash 或 dataset hash 不匹配都会被 runner 拒绝：
+提交 campaign 与两个 preregistration 后，先用 dry-run 查看精确两臂和预算；最昂贵的
+hierarchical 赢家估算预留约 `$6.44`，因此示例批准 `$7`。实际执行必须显式确认 test pair：
 
 ```bash
-node run.mjs psysuicide --split test --prompt-profile hierarchical \
-  --model deepseek-v4-pro --thinking enabled --reasoning-effort high \
-  --run-id psysuicide-v4pro-frozen-v1 --confirm-test \
-  --prereg reports/psysuicide-v4pro-frozen-v1.prereg.json
+node scripts/run_psysuicide_test_pair.mjs \
+  --mode execute --campaign reports/psytest-v1.campaign.json
+
+node scripts/run_psysuicide_test_pair.mjs \
+  --mode execute --campaign reports/psytest-v1.campaign.json \
+  --approved-budget-usd 7 --confirm-test-pair --execute
+
+python3 scripts/analyze_psysuicide_test_pair.py \
+  --campaign reports/psytest-v1.campaign.json \
+  --out results/psytest-v1-confirmatory-analysis.json
 ```
 
-正式 test 前不得把示例中的 `hierarchical` 当成已选赢家；它只是演示，最终配置必须由完整
-valid 结果决定。离线验收定义见 `.claude/evals/psysuicide-model-optimization.md`。
+控制和候选各在 1,464 条 test 上运行一次；若中断，只能 resume 同一冻结文件。主检验是
+macro-F1 的成对随机化检验与 paired bootstrap CI；accuracy 的 exact McNemar 是次要指标。
+没有两臂完整逐题结果就不能宣称显著提升。离线验收定义见
+`.claude/evals/psysuicide-model-optimization.md`。
 
 ## CPsyExam V4 全量确认性结果（2026-07-22）
 

@@ -48,8 +48,8 @@ invalid、usage 和成本是否正常；不据此删题或改变 gold。route sm
 3. 报告 A→B、B→C、B→D 三个预先指定的配对对比。
 4. accuracy 使用逐题正确/错误的 exact McNemar；macro-F1 和 weighted-F1 使用同一批题的
    paired bootstrap 置信区间。多重比较使用 Holm 校正。
-5. 验证结果允许表述“在 valid 上更高/更低”；只有冻结后的一次完整 test 和预注册配对检验
-   才能支持确认性结论。
+5. 验证结果允许表述“在 valid 上更高/更低”；只有冻结后的一次双臂 test campaign 和
+   预注册配对检验才能支持确认性结论。
 
 ## Test 冻结门禁
 
@@ -68,6 +68,30 @@ runner 已强制执行：
 完整 valid 结束后，`scripts/analyze_psysuicide_valid_matrix.py` 会验证四臂拥有完全相同的
 ID、gold 和 case commitment，再运行冻结的三个比较与选择规则。它只写聚合分析，不把文本、
 ID、gold、预测或原始输出复制进报告。
+
+## 一次性确认性 Test Campaign
+
+只跑 valid 赢家一个 test 臂无法做逐题配对检验，因此不能证明它相对当前系统有提升。确认性
+阶段固定为一次 campaign、两个臂：
+
+- reference：A / deepseek-v4-flash / baseline；
+- candidate：完整 valid 按冻结规则选出的唯一赢家。
+
+`scripts/run_psysuicide_test_pair.mjs --mode prepare` 要求 valid 聚合分析已经提交且与 HEAD
+一致。如果 valid 赢家仍是 A，prepare 会停止，不制造“自己对比自己”的显著性实验。如果赢家
+是 B/C/D，prepare 会同时生成 reference 与 candidate 的完整 test 预注册以及 campaign manifest。
+三份文件必须共同提交，之后才允许 dry-run 或付费执行。
+
+两臂各在相同 1,464 条保留单标签 test 上运行一次；中断只能 resume 同一 run ID、prompt、
+model、case hash 和 preregistration。确认性主指标为 macro-F1，预注册判定要求：
+
+1. candidate − reference 的 macro-F1 大于 0；
+2. 20,000 次成对随机化检验双侧 `p < 0.05`；
+3. 20,000 次 paired bootstrap 95% CI 下界大于 0。
+
+accuracy exact McNemar 与 weighted-F1 CI 为次要证据，不替代主检验；未通过主检验只能写
+“未检测到主指标差异”，不能写成统计平手或等价。`scripts/analyze_psysuicide_test_pair.py`
+强制完整配对 ID/gold/case commitment 后才生成聚合确认性报告。
 
 ## 调用量与预算边界
 
@@ -89,6 +113,10 @@ $0.87/百万 token；V4-Flash 分别为 $0.14 和 $0.28。执行器用比“一�
 重新核对官方[价格页](https://api-docs.deepseek.com/quick_start/pricing)，专用 key 建议批准
 $15，并在 smoke 后用真实 usage 再决定是否继续 full。价格快照固化在
 `lib/deepseek_v4_pricing_2026-07-27.json`，不能把过期快照当成永久价格。
+
+确认性 test pair 的预留取决于 valid 赢家：baseline / taxonomy / hierarchical 候选分别约为
+`$4.86 / $5.85 / $6.44`。为覆盖最昂贵候选，campaign 示例批准 `$7`；这不包含之后可能的
+公开 Release 制作成本，因为 Release 分析本身不调用模型。
 
 ## 当前阻塞条件
 

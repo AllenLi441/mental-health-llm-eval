@@ -91,4 +91,26 @@ for marker in (
     if marker not in analyzer:
         raise SystemExit(f"PsySUICIDE valid analyzer missing marker: {marker}")
 
+test_pair = text("scripts/run_psysuicide_test_pair.mjs")
+for marker in (
+    "one-frozen-paired-confirmatory-test-campaign",
+    "A_flash_baseline",
+    "--confirm-test-pair",
+    "committedArtifactRevision",
+    "valid winner equals the current reference",
+):
+    if marker not in test_pair:
+        raise SystemExit(f"PsySUICIDE test pair runner missing marker: {marker}")
+
+test_analyzer = text("scripts/analyze_psysuicide_test_pair.py")
+for marker in (
+    "paired_randomization_macro_f1",
+    "primary_metric",
+    "CANDIDATE_SUPERIOR_ON_PREREGISTERED_MACRO_F1",
+    "NO_DETECTED_PRIMARY_DIFFERENCE_NOT_A_TIE_OR_EQUIVALENCE",
+    "equivalence_tested",
+):
+    if marker not in test_analyzer:
+        raise SystemExit(f"PsySUICIDE confirmatory analyzer missing marker: {marker}")
+
 print("harness safety check PASS: dedicated credentials, split/profile provenance, frozen test, safe resume, portable runtime, honest claims")

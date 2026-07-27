@@ -35,6 +35,17 @@ hard cases, or tuning on the official test split.
       correction, and selects by the frozen metric order.
 - [ ] Result summaries aggregate token usage without exposing credentials or
       source text.
+- [ ] Confirmatory test is a single frozen campaign containing exactly two
+      arms: A/Flash/baseline as reference and the committed valid winner as
+      candidate; each arm runs the full official test exactly once.
+- [ ] Test campaign preparation refuses an uncommitted valid-selection artifact,
+      a winner equal to the reference, or any mutable/mismatched preregistration.
+- [ ] Test execution is dry-run by default and requires explicit pair
+      confirmation, approved budget, a committed campaign, and both committed
+      per-arm preregistrations.
+- [ ] Confirmatory analysis validates complete paired ID/gold/case commitments,
+      uses macro-F1 as the preregistered primary metric, and does not infer
+      significance from an external aggregate baseline.
 
 ## Regression evals
 
@@ -53,8 +64,9 @@ gate.
 - Development split: full official `valid`, fixed seed, exact same retained IDs.
 - Primary metric: macro-F1; secondary: weighted-F1, accuracy, invalid rate.
 - Selection: one frozen profile/model configuration chosen from validation only.
-- Test: one full run after preregistration is committed; no prompt changes after
-  seeing test predictions.
+- Test: one frozen two-arm campaign after preregistration is committed; the
+  reference and candidate each run the full test once, with no changes after any
+  test prediction is seen.
 - Report: paired per-case comparison against the frozen baseline, bootstrap
   confidence intervals, confusion changes, usage, latency, and cost.
 - Claim gate: no “significant win”, “tie”, or “equivalence” claim without the

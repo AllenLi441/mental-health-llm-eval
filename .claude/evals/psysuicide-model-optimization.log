@@ -17,6 +17,15 @@ Capability:
 - PASS: paired analyzer full synthetic integration, three fixed contrasts,
   exact McNemar, paired bootstrap, Holm correction, and frozen selection order
 - PASS: aggregate-only analysis output boundary
+- PASS: test preparation requires a committed valid-selection artifact
+- PASS: reference is fixed to A/Flash/baseline and candidate is derived from
+  the frozen valid winner
+- PASS: valid winner A stops the confirmatory campaign instead of comparing A
+  against itself
+- PASS: paired test execution is dry-run by default and requires explicit test
+  pair confirmation, committed campaign/preregistrations, and approved budget
+- PASS: confirmatory analyzer synthetic pair integration, macro-F1 paired
+  randomization, paired bootstrap, secondary McNemar, and non-equivalence wording
 
 Regression:
 - PASS: 19/19 task prompt/parser selftests
@@ -36,5 +45,12 @@ Expected-failure gates:
 Current measured dry-run:
 - smoke: 200 calls, $0.4036 single-attempt upper estimate, $0.5046 reserve
 - full: 5836 calls, $11.7781 single-attempt upper estimate, $14.7227 reserve
+
+Confirmatory test design:
+- one frozen campaign, not iterative test tuning
+- reference and candidate each run all 1464 retained test cases once
+- primary superiority requires positive macro-F1 delta, paired-randomization
+  p < 0.05, and paired-bootstrap CI95 lower bound > 0
+- pair budget reserve ranges from $4.86 to $6.44 depending on the valid winner
 
 Status: READY FOR PAID SMOKE AFTER LOCAL EVAL_API_KEY AND USER BUDGET APPROVAL
