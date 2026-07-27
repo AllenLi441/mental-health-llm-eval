@@ -15,8 +15,15 @@ required = [
     "EVAL_IGNORE_DOTENV",
     "fatal HTTP ${res.status}; run aborted before recording this case",
     "requested_model: cfg.model",
+    "prompt_profile: runArgs.promptProfile",
+    "split: runArgs.split || null",
     "dataset_manifest_sha256",
     "prompt_template_sha256",
+    "preregistration_sha256",
+    "preregistration_commit",
+    "test split requires explicit --confirm-test",
+    "test preregistration is not committed to git",
+    "resume metadata mismatch",
 ]
 for marker in required:
     if marker not in lib:
@@ -51,4 +58,13 @@ emo_spec = text("emobench-official/SPEC.md")
 if "faithful reproduction" in emo_spec or "Reproduce the OFFICIAL protocol exactly" in emo_spec:
     raise SystemExit("EmoBench deterministic proxy is mislabeled as an exact paper-protocol reproduction")
 
-print("harness safety check PASS: dedicated credentials, safe resume, portable runtime, honest claims")
+psysuicide = text("tasks/psysuicide.mjs")
+for marker in (
+    "export const splits = ['train', 'valid', 'test']",
+    "export const runSplits = ['valid', 'test']",
+    "export const promptProfiles = ['baseline', 'taxonomy', 'hierarchical']",
+):
+    if marker not in psysuicide:
+        raise SystemExit(f"PsySUICIDE protocol missing marker: {marker}")
+
+print("harness safety check PASS: dedicated credentials, split/profile provenance, frozen test, safe resume, portable runtime, honest claims")

@@ -1,7 +1,8 @@
 // eval-suite/lib.mjs — shared infra for all dataset tasks. Zero deps, Node >= 18.
 import { readFileSync, existsSync, mkdirSync, appendFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 export const SUITE = dirname(fileURLToPath(import.meta.url));
@@ -14,6 +15,8 @@ export function parseArgs(argv) {
   const a = {
     sample: -1, concurrency: 8, seed: 42, runId: 'run', selftest: false,
     dataCheck: false, resume: '', thinking: '', reasoningEffort: 'high',
+    split: '', promptProfile: '', confirmTest: false, prereg: '',
+    preparePrereg: '',
   };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
@@ -27,6 +30,11 @@ export function parseArgs(argv) {
     else if (k === '--resume') a.resume = next();
     else if (k === '--thinking') a.thinking = next();
     else if (k === '--reasoning-effort') a.reasoningEffort = next();
+    else if (k === '--split') a.split = next();
+    else if (k === '--prompt-profile') a.promptProfile = next();
+    else if (k === '--confirm-test') a.confirmTest = true;
+    else if (k === '--prereg') a.prereg = next();
+    else if (k === '--prepare-prereg') a.preparePrereg = next();
     else if (k === '--selftest') a.selftest = true;
     else if (k === '--data-check') a.dataCheck = true;
     else { console.error(`unknown flag: ${k}`); process.exit(2); }
@@ -58,7 +66,7 @@ export function resolveConfig(args) {
   // Operators must provide a credential whose name makes its scope explicit.
   const apiKey = pick('EVAL_API_KEY');
   const baseUrl = (args.baseUrl || pick('EVAL_BASE_URL') || 'https://api.deepseek.com/v1').replace(/\/+$/, '');
-  const model = args.model || pick('EVAL_MODEL') || 'deepseek-chat';
+  const model = args.model || pick('EVAL_MODEL') || 'deepseek-v4-flash';
   const wireApi = pick('EVAL_WIRE_API') || 'chat'; // 'chat' | 'responses'
   const thinking = args.thinking || pick('EVAL_THINKING') || '';
   const reasoningEffort = args.reasoningEffort || pick('EVAL_REASONING_EFFORT') || 'high';
@@ -67,6 +75,12 @@ export function resolveConfig(args) {
   }
   if (!['high', 'max'].includes(reasoningEffort)) {
     throw new Error(`--reasoning-effort must be high or max, got ${reasoningEffort}`);
+  }
+  if (['deepseek-chat', 'deepseek-reasoner'].includes(model)) {
+    throw new Error(
+      `model alias "${model}" is retired/ambiguous. Use an explicit versioned model name ` +
+      '(for example deepseek-v4-flash or deepseek-v4-pro).'
+    );
   }
   let provider = 'openai-compatible';
   try {
@@ -78,6 +92,46 @@ export function resolveConfig(args) {
     apiKey, baseUrl, model, wireApi, thinking, reasoningEffort, provider,
     credentialScope: 'EVAL_API_KEY',
   };
+}
+
+export function taskRunArgs(task, args, { mode = 'run' } = {}) {
+  const promptProfile = task.promptProfiles
+    ? (args.promptProfile || task.defaultPromptProfile || 'baseline')
+    : 'baseline';
+  if (task.promptProfiles && !task.promptProfiles.includes(promptProfile)) {
+    throw new Error(
+      `${task.key}: unsupported --prompt-profile ${promptProfile}; choose ${task.promptProfiles.join(', ')}`
+    );
+  }
+  const split = task.splits ? args.split : '';
+  if (task.splits) {
+    if (!split && mode === 'run') {
+      throw new Error(`${task.key}: scored runs require explicit --split ${task.splits.join('|')}`);
+    }
+    if (split && !task.splits.includes(split)) {
+      throw new Error(`${task.key}: unsupported --split ${split}; choose ${task.splits.join(', ')}`);
+    }
+    if (mode === 'run' && task.runSplits && !task.runSplits.includes(split)) {
+      throw new Error(
+        `${task.key}: split "${split}" is not a scored optimization split; use ${task.runSplits.join(' or ')}`
+      );
+    }
+  }
+  if (args.preparePrereg && (mode !== 'run' || split !== 'test')) {
+    throw new Error('--prepare-prereg is only valid for a scored task with --split test');
+  }
+  if (mode === 'run' && split === 'test') {
+    if (args.runId === 'run') {
+      throw new Error(`${task.key}: test split requires a non-default --run-id`);
+    }
+    if (!args.preparePrereg && !args.confirmTest) {
+      throw new Error(`${task.key}: test split requires explicit --confirm-test`);
+    }
+    if (!args.preparePrereg && !args.prereg) {
+      throw new Error(`${task.key}: test split requires --prereg PATH`);
+    }
+  }
+  return { ...args, split, promptProfile };
 }
 
 // ---------- CSV (RFC 4180: quoted fields, embedded commas/newlines/quotes) ----------
@@ -131,7 +185,7 @@ export function seededShuffle(items, seed) {
 // ---------- standalone selftest fixtures ----------
 // Public releases intentionally omit sensitive/licensed datasets. These fixtures exercise
 // each task's prompt and strict parser without reaching outside the repository or making API calls.
-export function selftestTask(task) {
+export function selftestTask(task, args = {}) {
   let item;
   if (task.key === 'emobench-ea') item = { id: 'fixture', gold: 'A', lang: 'en', scenario: 'A teammate is upset.', subject: 'Alex', choices: ['listen', 'ignore', 'mock', 'leave'] };
   else if (task.key === 'emobench-eu') item = { id: 'fixture', gold: 'A+A', lang: 'en', scenario: 'Alex received good news.', subject: 'Alex', emotionChoices: ['joy', 'anger'], causeChoices: ['good news', 'rain'] };
@@ -144,26 +198,59 @@ export function selftestTask(task) {
   else if (task.key === 'eatd-depression') item = { id: 'fixture', gold: 'depressed', positive: '没有兴趣', neutral: '难以集中', negative: '持续低落' };
   else throw new Error(`${task.key}: no standalone selftest fixture`);
 
-  const messages = task.messages(item);
-  if (!Array.isArray(messages) || messages.length < 2 || messages.some((m) => !m.role || !m.content)) {
-    throw new Error(`${task.key}: invalid messages contract`);
-  }
   const raw = task.key === 'emobench-eu' ? 'A A' : task.key === 'eatd-depression' ? '抑郁' : item.gold;
-  const parsed = task.parse(raw, item);
-  const ok = task.ok ? task.ok(item, parsed.predicted) : parsed.predicted === item.gold;
-  if (parsed.invalid || !ok) throw new Error(`${task.key}: parser selftest failed for ${JSON.stringify(raw)} -> ${JSON.stringify(parsed)}`);
-  if (task.group) task.group(item);
-  console.log(`selftest OK: ${task.key} (prompt + parser; dataset intentionally not loaded)`);
+  const profiles = task.promptProfiles
+    ? (args.promptProfile ? [args.promptProfile] : task.promptProfiles)
+    : ['baseline'];
+  for (const promptProfile of profiles) {
+    const taskArgs = taskRunArgs(task, { ...args, promptProfile }, { mode: 'selftest' });
+    const messages = task.messages(item, taskArgs);
+    if (!Array.isArray(messages) || messages.length < 2 || messages.some((m) => !m.role || !m.content)) {
+      throw new Error(`${task.key}/${promptProfile}: invalid messages contract`);
+    }
+    const parsed = task.parse(raw, item);
+    const ok = task.ok ? task.ok(item, parsed.predicted) : parsed.predicted === item.gold;
+    if (parsed.invalid || !ok) {
+      throw new Error(
+        `${task.key}/${promptProfile}: parser selftest failed for ${JSON.stringify(raw)} -> ${JSON.stringify(parsed)}`
+      );
+    }
+    if (task.group) task.group(item);
+    console.log(`selftest OK: ${task.key}/${promptProfile} (prompt + parser; dataset intentionally not loaded)`);
+  }
 }
 
-export function dataCheckTask(task) {
-  const items = task.load();
-  if (!Array.isArray(items) || !items.length) throw new Error(`${task.key}: dataset loader returned no items`);
-  if (task.assert) task.assert(items);
-  const keys = items.map((item) => item.id);
-  if (keys.some((key) => key === undefined || key === null || key === '')) throw new Error(`${task.key}: missing item id`);
-  if (new Set(keys).size !== keys.length) throw new Error(`${task.key}: item ids are not unique; resume would be unsafe`);
-  console.log(`data-check OK: ${task.key} n=${items.length}`);
+export function dataCheckTask(task, args = {}) {
+  const splits = task.splits && !args.split ? task.splits : [args.split || ''];
+  const allKeys = [];
+  const seenCases = new Map();
+  for (const split of splits) {
+    const taskArgs = taskRunArgs(task, { ...args, split }, { mode: 'data-check' });
+    const items = task.load(taskArgs);
+    if (!Array.isArray(items) || !items.length) throw new Error(`${task.key}: dataset loader returned no items`);
+    if (task.assert) task.assert(items, taskArgs);
+    const keys = items.map((item) => item.id);
+    if (keys.some((key) => key === undefined || key === null || key === '')) throw new Error(`${task.key}: missing item id`);
+    if (new Set(keys).size !== keys.length) throw new Error(`${task.key}: item ids are not unique; resume would be unsafe`);
+    allKeys.push(...keys);
+    if (task.leakageKey) {
+      for (const item of items) {
+        const digest = sha256(canonicalJson(task.leakageKey(item)));
+        const previousSplit = seenCases.get(digest);
+        if (previousSplit && previousSplit !== split) {
+          throw new Error(`${task.key}: exact case overlap detected across ${previousSplit} and ${split}`);
+        }
+        seenCases.set(digest, split);
+      }
+    }
+    console.log(`data-check OK: ${task.key}${split ? ` split=${split}` : ''} n=${items.length}`);
+  }
+  if (new Set(allKeys).size !== allKeys.length) {
+    throw new Error(`${task.key}: normalized ids overlap across splits; paired audits would be unsafe`);
+  }
+  if (task.leakageKey && splits.length > 1) {
+    console.log(`leakage-check OK: ${task.key} no exact retained-case overlap across ${splits.join('/')}`);
+  }
 }
 
 // ---------- API ----------
@@ -294,35 +381,146 @@ export function positiveF1(results, lab) {
 }
 
 // ---------- runner ----------
-export async function runTask(task, args) {
-  const all = task.load();
-  console.log(`[${task.key}] pool=${all.length}${task.labels ? ` labels=${task.labels.length}` : ''}`);
-  if (task.assert) task.assert(all);
+function buildRunIdentity(task, args, cfg, sampleN, promptTemplateSha256, datasetManifestSha256) {
+  return {
+    schema_version: 1,
+    task: task.key,
+    split: args.split || null,
+    prompt_profile: args.promptProfile,
+    requested_model: cfg.model,
+    thinking: cfg.thinking || null,
+    reasoning_effort: cfg.thinking === 'enabled' ? cfg.reasoningEffort : null,
+    run_id: args.runId,
+    seed: args.seed,
+    sample: sampleN > 0 ? sampleN : 'full',
+    prompt_template_sha256: promptTemplateSha256,
+    dataset_manifest_sha256: datasetManifestSha256,
+  };
+}
 
-  if (args.selftest) {
-    const dist = {};
-    for (const it of all) dist[it.gold] = (dist[it.gold] || 0) + 1;
-    console.log('gold distribution:', Object.entries(dist).sort((a, b) => b[1] - a[1])
-      .map(([l, c]) => `${l}=${c}`).join(', '));
-    const ex = all[0];
-    console.log('--- sample messages ---');
-    for (const m of task.messages(ex)) console.log(`[${m.role}] ${m.content.slice(0, 500)}`);
-    console.log(`selftest OK: ${task.key}`);
+function writePreregistration(path, identity) {
+  const absolute = resolve(path);
+  if (existsSync(absolute)) {
+    throw new Error(`refusing to overwrite existing preregistration: ${absolute}`);
+  }
+  mkdirSync(dirname(absolute), { recursive: true });
+  const artifact = {
+    ...identity,
+    prepared_at: new Date().toISOString(),
+    protocol: 'freeze-and-commit-before-test',
+    test_attempt_policy: 'one full official test run; no prompt or model changes after predictions are seen',
+  };
+  writeFileSync(absolute, `${JSON.stringify(artifact, null, 2)}\n`);
+  console.log(`preregistration prepared (no API call, no result rows) -> ${absolute}`);
+  console.log('Commit this artifact before the test run, then use --confirm-test --prereg with the same arguments.');
+}
+
+function validatePreregistration(path, identity) {
+  if (!path) throw new Error('test split requires --prereg PATH');
+  const absolute = resolve(path);
+  if (!existsSync(absolute)) throw new Error(`preregistration file not found: ${absolute}`);
+  let artifact;
+  try {
+    artifact = JSON.parse(readFileSync(absolute, 'utf8'));
+  } catch (e) {
+    throw new Error(`invalid preregistration JSON at ${absolute}: ${e.message}`);
+  }
+  for (const [field, expected] of Object.entries(identity)) {
+    if (artifact[field] !== expected) {
+      throw new Error(
+        `preregistration mismatch for ${field}: expected ${JSON.stringify(expected)}, ` +
+        `got ${JSON.stringify(artifact[field])}`
+      );
+    }
+  }
+  if (artifact.protocol !== 'freeze-and-commit-before-test') {
+    throw new Error('preregistration artifact is missing the frozen-test protocol marker');
+  }
+  const relativePath = relative(SUITE, absolute);
+  if (!relativePath || relativePath.startsWith('..')) {
+    throw new Error('test preregistration must be a committed file inside this repository');
+  }
+  const tracked = spawnSync('git', ['ls-files', '--error-unmatch', '--', relativePath], {
+    cwd: SUITE, encoding: 'utf8',
+  });
+  if (tracked.status !== 0) {
+    throw new Error(`test preregistration is not committed to git: ${relativePath}`);
+  }
+  const unchanged = spawnSync('git', ['diff', '--quiet', 'HEAD', '--', relativePath], {
+    cwd: SUITE, encoding: 'utf8',
+  });
+  if (unchanged.status !== 0) {
+    throw new Error(`test preregistration differs from HEAD; commit it before running test: ${relativePath}`);
+  }
+  const head = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: SUITE, encoding: 'utf8' });
+  if (head.status !== 0) throw new Error('cannot resolve git HEAD for preregistration audit');
+  return {
+    sha256: sha256(readFileSync(absolute, 'utf8')),
+    commit: head.stdout.trim(),
+  };
+}
+
+export async function runTask(task, args) {
+  const runArgs = taskRunArgs(task, args);
+  const cfg = resolveConfig(runArgs);
+  const all = task.load(runArgs);
+  console.log(
+    `[${task.key}] pool=${all.length}${runArgs.split ? ` split=${runArgs.split}` : ''}` +
+    `${task.labels ? ` labels=${task.labels.length}` : ''} profile=${runArgs.promptProfile}`
+  );
+  if (task.assert) task.assert(all, runArgs);
+
+  const splitDefaultSample = task.defaultSamples?.[runArgs.split];
+  const sampleN = runArgs.sample >= 0
+    ? runArgs.sample
+    : (splitDefaultSample ?? task.defaultSample ?? 0);
+  if (runArgs.split === 'test' && sampleN > 0 && sampleN < all.length) {
+    throw new Error(`${task.key}: test protocol requires the full split; remove --sample or use --sample 0`);
+  }
+  let items = sampleN > 0 && sampleN < all.length
+    ? seededShuffle(all, runArgs.seed).slice(0, sampleN)
+    : all;
+
+  const allItems = items;
+  const caseDigests = new Map(allItems.map((item) => [item.id, sha256(canonicalJson(item))]));
+  const datasetManifestSha256 = sha256(allItems.map((item) => caseDigests.get(item.id)).join('\n'));
+  const promptTemplateSha256 = sha256([
+    task.messages.toString(), task.parse.toString(), task.ok?.toString() ?? '',
+    canonicalJson(task.promptFingerprint?.(runArgs) ?? {
+      prompt_profile: runArgs.promptProfile,
+      prompt_version: task.promptVersion ?? null,
+    }),
+  ].join('\n'));
+  const runIdentity = buildRunIdentity(
+    task, runArgs, cfg, sampleN, promptTemplateSha256, datasetManifestSha256
+  );
+
+  if (runArgs.split === 'test' && runArgs.runId === 'run') {
+    throw new Error(`${task.key}: test split requires a non-default --run-id`);
+  }
+  if (runArgs.preparePrereg) {
+    writePreregistration(runArgs.preparePrereg, runIdentity);
     return null;
   }
-
-  const cfg = resolveConfig(args);
-
-  const sampleN = args.sample >= 0 ? args.sample : (task.defaultSample ?? 0);
-  let items = sampleN > 0 && sampleN < all.length ? seededShuffle(all, args.seed).slice(0, sampleN) : all;
+  let preregistrationSha256 = null;
+  let preregistrationCommit = null;
+  if (runArgs.split === 'test') {
+    if (!runArgs.confirmTest) {
+      throw new Error(`${task.key}: test split requires explicit --confirm-test`);
+    }
+    const preregistration = validatePreregistration(runArgs.prereg, runIdentity);
+    preregistrationSha256 = preregistration.sha256;
+    preregistrationCommit = preregistration.commit;
+  }
 
   const outDir = join(SUITE, 'results');
   mkdirSync(outDir, { recursive: true });
-  const outPath = args.resume ||
-    join(outDir, `${task.key}-${cfg.model.replace(/[^\w.-]/g, '_')}-${args.runId}.jsonl`);
+  const scope = [task.key, runArgs.split, runArgs.promptProfile].filter(Boolean).join('-');
+  const outPath = runArgs.resume ||
+    join(outDir, `${scope}-${cfg.model.replace(/[^\w.-]/g, '_')}-${runArgs.runId}.jsonl`);
   const done = new Set();
   const existingResults = [];
-  if (args.resume && existsSync(outPath)) {
+  if (runArgs.resume && existsSync(outPath)) {
     for (const line of readFileSync(outPath, 'utf8').split('\n')) if (line) {
       const row = JSON.parse(line);
       existingResults.push(row);
@@ -335,6 +533,27 @@ export async function runTask(task, args) {
         'This is a legacy non-unique result and cannot be resumed safely; start a new run with normalized task ids.'
       );
     }
+    const expectedResume = {
+      split: runIdentity.split,
+      prompt_profile: runIdentity.prompt_profile,
+      requested_model: runIdentity.requested_model,
+      run_id: runIdentity.run_id,
+      seed: runIdentity.seed,
+      thinking: runIdentity.thinking,
+      reasoning_effort: runIdentity.reasoning_effort,
+      prompt_template_sha256: runIdentity.prompt_template_sha256,
+      dataset_manifest_sha256: runIdentity.dataset_manifest_sha256,
+    };
+    for (const row of existingResults) {
+      for (const [field, expected] of Object.entries(expectedResume)) {
+        if (row[field] !== expected) {
+          throw new Error(
+            `${task.key}: resume metadata mismatch for ${field}; expected ${JSON.stringify(expected)}, ` +
+            `got ${JSON.stringify(row[field])}. Start a new run.`
+          );
+        }
+      }
+    }
     const unknownIds = [...done].filter((id) => !currentIds.has(id));
     if (unknownIds.length) {
       throw new Error(
@@ -344,15 +563,7 @@ export async function runTask(task, args) {
     }
     console.log(`resume: ${done.size} unique ids / ${existingResults.length} existing rows`);
   }
-  const allItems = items;
   items = items.filter((it) => !done.has(it.id));
-
-  const caseDigests = new Map(allItems.map((item) => [item.id, sha256(canonicalJson(item))]));
-  const datasetManifestSha256 = sha256(allItems.map((item) => caseDigests.get(item.id)).join('\n'));
-  const promptTemplateSha256 = sha256([
-    task.messages.toString(), task.parse.toString(), task.ok?.toString() ?? '',
-    canonicalJson({ model: cfg.model, thinking: cfg.thinking || null, reasoning_effort: cfg.reasoningEffort }),
-  ].join('\n'));
 
   if (items.length > 0 && !cfg.apiKey) {
     console.error('ERROR: no dedicated evaluation key. Set EVAL_API_KEY in env;');
@@ -361,7 +572,10 @@ export async function runTask(task, args) {
     process.exit(1);
   }
 
-  console.log(`[${task.key}] evaluating ${items.length} | model=${cfg.model} | out=${outPath}`);
+  console.log(
+    `[${task.key}] evaluating ${items.length} | model=${cfg.model} | ` +
+    `split=${runArgs.split || 'n/a'} | profile=${runArgs.promptProfile} | out=${outPath}`
+  );
   const t0 = Date.now();
   const runStartedAt = new Date(t0).toISOString();
   const results = [];
@@ -373,14 +587,16 @@ export async function runTask(task, args) {
       const s0 = Date.now();
       const requestStartedAt = new Date(s0).toISOString();
       let rec;
-      const r = await chat(cfg, task.messages(it), task.maxTokens ?? 16);
+      const r = await chat(cfg, task.messages(it, runArgs), task.maxTokens ?? 16);
       const common = {
+        split: runArgs.split || null,
+        prompt_profile: runArgs.promptProfile,
         requested_model: cfg.model,
         response_model: r.apiModel ?? null,
         provider: cfg.provider,
         fingerprint: r.fingerprint ?? null,
-        run_id: args.runId,
-        seed: args.seed,
+        run_id: runArgs.runId,
+        seed: runArgs.seed,
         thinking: cfg.thinking || null,
         reasoning_effort: cfg.thinking === 'enabled' ? cfg.reasoningEffort : null,
         attempt: r.attempts ?? null,
@@ -389,6 +605,8 @@ export async function runTask(task, args) {
         case_sha256: caseDigests.get(it.id),
         prompt_template_sha256: promptTemplateSha256,
         dataset_manifest_sha256: datasetManifestSha256,
+        preregistration_sha256: preregistrationSha256,
+        preregistration_commit: preregistrationCommit,
         usage: r.usage ?? null,
       };
       if (r.error) {
@@ -409,27 +627,31 @@ export async function runTask(task, args) {
       }
     }
   }
-  await Promise.all(Array.from({ length: Math.min(args.concurrency, items.length) }, worker));
+  await Promise.all(Array.from({ length: Math.min(runArgs.concurrency, items.length) }, worker));
 
   const combinedResults = [...existingResults, ...results];
   const n = combinedResults.length;
   const correct = combinedResults.filter((r) => r.ok).length;
   const summary = {
     task: task.key, description: task.description, model: cfg.model,
+    split: runArgs.split || null,
+    prompt_profile: runArgs.promptProfile,
     credential_scope: cfg.credentialScope,
     requested_model: cfg.model,
     response_models: [...new Set(combinedResults.map((r) => r.response_model ?? r.api_model).filter(Boolean))],
     provider: cfg.provider,
     thinking: cfg.thinking || null,
     reasoning_effort: cfg.thinking === 'enabled' ? cfg.reasoningEffort : null,
-    run_id: args.runId,
-    seed: args.seed,
+    run_id: runArgs.runId,
+    seed: runArgs.seed,
     sample: sampleN > 0 ? sampleN : 'full',
-    concurrency: args.concurrency,
+    concurrency: runArgs.concurrency,
     started_at: runStartedAt,
     completed_at: new Date().toISOString(),
     prompt_template_sha256: promptTemplateSha256,
     dataset_manifest_sha256: datasetManifestSha256,
+    preregistration_sha256: preregistrationSha256,
+    preregistration_commit: preregistrationCommit,
     api_models: [...new Set(combinedResults.map((r) => r.response_model ?? r.api_model).filter(Boolean))],
     fingerprints: [...new Set(combinedResults.map((r) => r.fingerprint).filter(Boolean))],
     n, correct,

@@ -1,6 +1,6 @@
 # eval-suite — 8 数据集 · 19 任务 · 零样本准确率评测
 
-零依赖 Node.js（≥18）。被测模型 = 任意 OpenAI 兼容 chat API（示例默认显式使用 DeepSeek `deepseek-v4-flash`，不使用即将弃用的 `deepseek-chat` 别名）。公开仓库包含代码与聚合结果；规划中的 CPsyExam V4 Release 仅允许发布去敏的逐行承诺与成对正确性结果。受许可/敏感性约束的原始数据、题目、选项、标签、模型预测和原始输出不随仓库或 Release 发布。
+零依赖 Node.js（≥18）。被测模型 = 任意 OpenAI 兼容 chat API（示例默认显式使用 DeepSeek `deepseek-v4-flash`；runner 会拒绝已经退役/含义不明确的 `deepseek-chat` 和 `deepseek-reasoner` 别名）。公开仓库包含代码与聚合结果；规划中的 CPsyExam V4 Release 仅允许发布去敏的逐行承诺与成对正确性结果。受许可/敏感性约束的原始数据、题目、选项、标签、模型预测和原始输出不随仓库或 Release 发布。
 
 ## 用法
 
@@ -9,15 +9,16 @@ cp .env.example .env                     # 填 API key 和 EVAL_DATASETS_DIR
 node run.mjs list                        # 任务清单
 node run.mjs all --selftest              # 仓库内 19/19 prompt+parser 自检；不读外部数据、不发请求
 node run.mjs all --data-check            # 读取 EVAL_DATASETS_DIR，验证授权数据布局；不发请求
-node run.mjs psysuicide --sample 200     # 单任务，抽样覆盖默认值
+node run.mjs psysuicide --split valid --prompt-profile baseline --model deepseek-v4-pro --run-id valid-baseline-v1
 node run.mjs cpsyexam --model deepseek-v4-pro --thinking enabled --reasoning-effort high --run-id full
 node run.mjs cpsyexam --model deepseek-v4-flash --thinking disabled --run-id paired-control
-node run.mjs all --run-id v1             # 全套顺序跑，汇总写 results/all-v1.summary.json
-node run.mjs imhi-dr --resume results/imhi-dr-deepseek-chat-run.jsonl   # 断点续跑
+node run.mjs all --split valid --run-id v1  # PsySUICIDE 用 valid，其余任务仍用各自固定数据；顺序跑
+node run.mjs imhi-dr --model deepseek-v4-flash --run-id v1 --resume results/imhi-dr-baseline-deepseek-v4-flash-v1.jsonl
 python3 scripts/audit_results.py --selftest  # 检查已发布聚合结果，不冒充逐行重算
 python3 scripts/scoreboard.py --selftest
 python3 scripts/check_baselines.py
 python3 scripts/check_harness_safety.py
+node scripts/check_psysuicide_protocol.mjs
 node emobench-official/eval.mjs --selftest # 无官方数据也可验证 prompt/parser；有数据时再验 400+400
 ```
 
@@ -31,6 +32,50 @@ requested/response model、provider、fingerprint、usage、UTC 时间、case/pr
 
 账户隔离：批量运行只读取专用的 `EVAL_API_KEY`，不会回退读取应用或 shell 中的
 `DEEPSEEK_API_KEY` / `OPENAI_API_KEY`。请为评测设置独立预算、告警和可撤销 key，避免跑分耗尽生产额度。
+
+## PsySUICIDE 模型优化协议
+
+PsySUICIDE 是本套件第一个强制切分隔离的优化模块。开发只允许跑官方 `valid`；`train`
+保留给后续检索示例构建，不作为调参分数；官方 `test` 只能在验证集选出唯一配置后运行一次。
+三种当前提示方案为：
+
+- `baseline`：保留原始直接 11 类提示，作为冻结对照。
+- `taxonomy`：加入 11 类工作定义，重点区分被动/主动/探索、计划/准备/未遂以及意图/行为。
+- `hierarchical`：在 taxonomy 之上要求模型内部按类别族和细粒度层级判断，但仍只输出标签。
+
+验证集实验（每个配置均跑完整 1,459 条，不能删难例）：
+
+```bash
+node run.mjs psysuicide --split valid --prompt-profile baseline \
+  --model deepseek-v4-pro --thinking enabled --reasoning-effort high --run-id valid-baseline-v1
+node run.mjs psysuicide --split valid --prompt-profile taxonomy \
+  --model deepseek-v4-pro --thinking enabled --reasoning-effort high --run-id valid-taxonomy-v1
+node run.mjs psysuicide --split valid --prompt-profile hierarchical \
+  --model deepseek-v4-pro --thinking enabled --reasoning-effort high --run-id valid-hierarchical-v1
+```
+
+按预先写明的主指标 macro-F1 选择唯一验证集配置后，先只生成 test 身份文件；这个命令不调用
+API，也不写结果行：
+
+```bash
+node run.mjs psysuicide --split test --prompt-profile hierarchical \
+  --model deepseek-v4-pro --thinking enabled --reasoning-effort high \
+  --run-id psysuicide-v4pro-frozen-v1 \
+  --prepare-prereg reports/psysuicide-v4pro-frozen-v1.prereg.json
+```
+
+审核并提交预注册文件后，使用完全相同的参数进行一次完整 test。任何 model、profile、seed、
+sample、prompt hash 或 dataset hash 不匹配都会被 runner 拒绝：
+
+```bash
+node run.mjs psysuicide --split test --prompt-profile hierarchical \
+  --model deepseek-v4-pro --thinking enabled --reasoning-effort high \
+  --run-id psysuicide-v4pro-frozen-v1 --confirm-test \
+  --prereg reports/psysuicide-v4pro-frozen-v1.prereg.json
+```
+
+正式 test 前不得把示例中的 `hierarchical` 当成已选赢家；它只是演示，最终配置必须由完整
+valid 结果决定。离线验收定义见 `.claude/evals/psysuicide-model-optimization.md`。
 
 ## CPsyExam V4 全量确认性结果（2026-07-22）
 
@@ -53,7 +98,7 @@ requested/response model、provider、fingerprint、usage、UTC 时间、case/pr
 | emobench-ea | EmoBench EA | 400（全量） | acc（分中英） | GPT-4: 75.50 en / 73.75 zh |
 | emobench-eu | EmoBench EU | 400（全量） | acc，情绪+原因全对 | GPT-4: 59.75 en / 54.12 zh |
 | mdd5k-diagnosis | MDD-5k | 925（抽 400） | acc（5 类，ICD 归并，**本模块自定协议**） | 无统一榜单，横向比模型用 |
-| psysuicide | PsySUICIDE test | 1,464（抽 500） | weighted-F1 / acc（11 类） | 多数类 71.4%；论文微调基线见 `reports/BASELINES.json` |
+| psysuicide | PsySUICIDE train/valid/test | 11,671 / 1,459 / 1,464（valid/test 全量） | macro-F1 主指标；weighted-F1 / acc 次指标（11 类） | 论文微调基线见 `reports/BASELINES.json`；只在冻结配置后比较 test |
 | cbt-cd / pc / fc | CBT-Bench | 146/184/112（全量） | top-1 命中率（金标多标签） | 论文用 multi-label F1，口径不同 |
 | mentalmanip | MentalManip con | 2,915（抽 500） | acc / F1 | 多数类 69.2%；GPT-4 基线见 PDF |
 | imhi-dr 等 9 个 | IMHI test | 405~10,861（各抽 500） | weighted-F1 / acc | 原论文有 10 个 test sets；本 harness 未含 CLP，只能报告 9/10 子集 |
