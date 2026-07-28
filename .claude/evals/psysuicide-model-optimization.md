@@ -7,53 +7,53 @@ hard cases, or tuning on the official test split.
 
 ## Capability evals
 
-- [ ] `psysuicide` requires an explicit `--split` for scored runs.
-- [ ] `train`, `valid`, and `test` load from distinct official files and produce
+- [x] `psysuicide` requires an explicit `--split` for scored runs.
+- [x] `train`, `valid`, and `test` load from distinct official files and produce
       globally unique normalized case IDs.
-- [ ] Authorized-data check rejects exact retained-text overlap across official
+- [x] Authorized-data check rejects exact retained-text overlap across official
       splits.
-- [ ] `baseline`, `taxonomy`, and `hierarchical` prompt profiles pass the
+- [x] `baseline`, `taxonomy`, and `hierarchical` prompt profiles pass the
       standalone prompt/parser selftest without loading licensed data.
-- [ ] Every result row and summary records split, prompt profile, requested
+- [x] Every result row and summary records split, prompt profile, requested
       model, prompt hash, dataset hash, seed, and run ID.
-- [ ] Deprecated DeepSeek routing aliases are rejected before any API call.
-- [ ] A test run is rejected unless `--confirm-test` and a matching frozen
+- [x] Deprecated DeepSeek routing aliases are rejected before any API call.
+- [x] A test run is rejected unless `--confirm-test` and a matching frozen
       preregistration artifact are both supplied.
-- [ ] `--prepare-prereg` writes the exact test-run identity without making an
+- [x] `--prepare-prereg` writes the exact test-run identity without making an
       API call or writing result rows.
-- [ ] Resume rejects rows from a different split, prompt profile, model, seed,
+- [x] Resume rejects rows from a different split, prompt profile, model, seed,
       prompt hash, or dataset hash.
-- [ ] A new run refuses to append to an existing result path unless `--resume`
+- [x] A new run refuses to append to an existing result path unless `--resume`
       is explicit.
-- [ ] The valid-matrix launcher is dry-run by default and requires both
+- [x] The valid-matrix launcher is dry-run by default and requires both
       `--execute` and an approved budget for paid calls.
-- [ ] Full valid launch is rejected until all four fixed 50-case smoke summaries
+- [x] Full valid launch is rejected until all four fixed 50-case smoke summaries
       have zero API errors, exact response-model identity, and matching protocol
       metadata.
-- [ ] The paired analyzer validates identical complete ID/gold sets, reports all
+- [x] The paired analyzer validates identical complete ID/gold sets, reports all
       four arms, runs only the three prespecified contrasts, applies Holm
       correction, and selects by the frozen metric order.
-- [ ] Result summaries aggregate token usage without exposing credentials or
+- [x] Result summaries aggregate token usage without exposing credentials or
       source text.
-- [ ] Confirmatory test is a single frozen campaign containing exactly two
+- [x] Confirmatory test is a single frozen campaign containing exactly two
       arms: A/Flash/baseline as reference and the committed valid winner as
       candidate; each arm runs the full official test exactly once.
-- [ ] Test campaign preparation refuses an uncommitted valid-selection artifact,
+- [x] Test campaign preparation refuses an uncommitted valid-selection artifact,
       a winner equal to the reference, or any mutable/mismatched preregistration.
-- [ ] Test execution is dry-run by default and requires explicit pair
+- [x] Test execution is dry-run by default and requires explicit pair
       confirmation, approved budget, a committed campaign, and both committed
       per-arm preregistrations.
-- [ ] Confirmatory analysis validates complete paired ID/gold/case commitments,
+- [x] Confirmatory analysis validates complete paired ID/gold/case commitments,
       uses macro-F1 as the preregistered primary metric, and does not infer
       significance from an external aggregate baseline.
 
 ## Regression evals
 
-- [ ] All task prompt/parser standalone selftests still pass.
-- [ ] Existing authorized-data checks still pass.
-- [ ] Harness credential isolation and public-path safety checks still pass.
-- [ ] Result audit and scoreboard generation still pass.
-- [ ] Matrix launcher and paired analyzer selftests pass without dataset or API
+- [x] All task prompt/parser standalone selftests still pass.
+- [x] Existing authorized-data checks still pass.
+- [x] Harness credential isolation and public-path safety checks still pass.
+- [x] Result audit and scoreboard generation still pass.
+- [x] Matrix launcher and paired analyzer selftests pass without dataset or API
       access.
 
 ## Model experiment acceptance criteria

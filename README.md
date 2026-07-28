@@ -116,6 +116,29 @@ macro-F1 的成对随机化检验与 paired bootstrap CI；accuracy 的 exact Mc
 没有两臂完整逐题结果就不能宣称显著提升。离线验收定义见
 `.claude/evals/psysuicide-model-optimization.md`。
 
+## PsySUICIDE 模型优化确认性结果（2026-07-28）
+
+本次优化严格使用官方 `valid` 选择配置，再在任何 test 预测产生前提交一次冻结的双臂
+campaign 和两份预注册。验证集从四个固定臂中选出 `DeepSeek V4-Pro + taxonomy`；确认性
+test 将它与 `DeepSeek V4-Flash + baseline` 在同一批 1,464 个保留单标签样本上逐题配对：
+
+| 冻结 test 臂 | Accuracy | Macro-F1 | Weighted-F1 | Invalid / Error |
+|---|---:|---:|---:|---:|
+| V4-Flash + baseline（reference） | 82.86% | 0.5494 | 0.8426 | 0 / 0 |
+| V4-Pro + taxonomy（candidate） | **88.11%** | **0.6371** | **0.8796** | 0 / 0 |
+
+预注册主检验的 macro-F1 差值为 `+0.0878`；20,000 次 paired randomization 的双侧
+`p=0.04830`，20,000 次 paired bootstrap 的 95% CI 为 `[+0.00993, +0.16151]`。
+次要 accuracy 差值为 `+5.26` 个百分点，exact McNemar `p≈6.48×10⁻⁹`。因此可以限定地
+表述：**candidate 在这一次冻结的 PsySUICIDE 官方 test campaign 上，按预注册 macro-F1
+标准显著优于 reference。**这不等于临床有效、跨数据集普遍优越或等价性结论。
+
+可复核的聚合证据见
+[`valid` 选优分析](reports/psyvalid-20260728-valid-analysis.json)、
+[冻结 campaign](reports/psytest-20260728.campaign.json)和
+[确认性分析](reports/psytest-20260728-confirmatory-analysis.json)。原始逐行 licensed
+结果、咨询文本、ID、逐题 gold/prediction、原始模型输出和密钥均不公开。
+
 ## CPsyExam V4 全量确认性结果（2026-07-22）
 
 本次比较在[不可变预注册 Release](https://github.com/AllenLi441/mental-health-llm-eval/releases/tag/cpsyexam-v4-prereg-2026-07-22)之后运行，并对同一批 3,902 道题进行严格配对：
