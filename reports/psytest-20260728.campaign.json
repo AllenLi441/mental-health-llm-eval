@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "campaign_id": "psytest-20260728",
+  "prepared_at": "2026-07-28T16:30:18.817Z",
+  "protocol": "one-frozen-paired-confirmatory-test-campaign",
+  "valid_selection": {
+    "file": "reports/psyvalid-20260728-valid-analysis.json",
+    "sha256": "4a45e1ee323691a4191d7ac4cce3034d21221ff978c8f045bd88d20547f6e6aa",
+    "commit": "60f9dd3c4470ca8d6fcdeb1ce4fc125a407aa3ed",
+    "winner": "C_pro_taxonomy"
+  },
+  "primary_inference": {
+    "metric": "macro_f1",
+    "alpha": 0.05,
+    "paired_randomization_repetitions": 20000,
+    "paired_randomization_seed": 20260727,
+    "paired_bootstrap_repetitions": 20000,
+    "paired_bootstrap_seed": 20260727,
+    "superiority_rule": "candidate delta > 0, two-sided paired-randomization p < 0.05, and paired-bootstrap CI95 lower bound > 0"
+  },
+  "reference": {
+    "arm": "A_flash_baseline",
+    "model": "deepseek-v4-flash",
+    "profile": "baseline",
+    "role": "reference",
+    "run_id": "psytest-20260728-reference",
+    "preregistration": "reports/psytest-20260728.campaign.reference.prereg.json",
+    "preregistration_sha256": "58a2a4d5e2acc6a883be1a5282235d43b60c001b6a559d0e7b1a20f6ec1cd77e"
+  },
+  "candidate": {
+    "arm": "C_pro_taxonomy",
+    "model": "deepseek-v4-pro",
+    "profile": "taxonomy",
+    "role": "candidate",
+    "run_id": "psytest-20260728-candidate",
+    "preregistration": "reports/psytest-20260728.campaign.candidate.prereg.json",
+    "preregistration_sha256": "77fe5c84f4dc7cfc99be120a9295e7d69adf216bfb91eba271c52092d95d4d93"
+  },
+  "test_policy": "reference and candidate each run all 1464 retained single-label test cases once; resumes may only continue the same frozen files",
+  "publishing_boundary": "no counseling text, per-case gold/prediction, raw output, or credential is included"
+}

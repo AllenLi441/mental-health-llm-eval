@@ -1,5 +1,7 @@
 # IMHI zero-shot protocol correction (v3)
 
+> **SUPERSEDED:** 本文件只保留选择性给 dreaddit/MultiWD 加 criteria 的历史过程，不能用于最终胜负结论。最终 IMHI 口径见 `imhi_uniform_v3u.md`，它把同类 criteria 统一应用于全部五个二值任务。
+
 - Date: 2026-07-11
 - Model: `deepseek-chat`
 - Temperature: `0`

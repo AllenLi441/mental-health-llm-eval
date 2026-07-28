@@ -3,7 +3,7 @@
 金标 = 数据集种子 label(4 类,多轮取 per_turn);单元 = id#turn。
 baseline_deepseek = 与标注员 A 同一协议的纯 deepseek-chat 零样本(复用其输出)。
 
-**判官归属:** 判官臂运行当日 Kimi 账户欠费停用,判官调用全部由 DeepSeek 兜底档应答(判官=DeepSeek 兜底档);同一账户状态下的归属探针 10/10 由 DeepSeek 兜底(证据 `results/judge_attrib_probe.jsonl`)。
+**判官归属证据边界:** 历史 `judge.jsonl` 没有逐行 `judgedBy`。同一账户状态下的归属探针 10/10 由 DeepSeek 兜底，只能证明探针当时状态，不能反推全部 344 条历史行。该臂应标为“供应商逐行归属缺失的历史结果”；新运行代码会逐行落盘 `judgedBy`。
 
 **方法学修正(同行评审):** 管线臂改为 (1) **全局串行**执行,(2) 决策日志路由按 `sessionHash+turnIndex` **唯一认领**(修掉并发下取最新日志造成的数据串线),(3) 多轮样例用 `runConversation` **真实回放**(逐轮送入 + 回灌 app 回复 + 危机状态粘滞),不再只拼接用户消息。
 路由认领审计:pipeline_fast: route 唯一相关 343/344 = 99.7% · pipeline_deep: route 唯一相关 344/344 = 100.0%
@@ -18,7 +18,7 @@ baseline_deepseek = 与标注员 A 同一协议的纯 deepseek-chat 零样本(�
 | 词表(单臂) | 24.6% | 9.0% | 8.5% | 10.0% |
 | 纯 DeepSeek 基线 | 97.0% | 7.3% | 78.7% | 98.3% |
 
-**表注:**「passive 单元任意干预率」= passive 金标单元中 4 类投影预测 ≠ none 的比例(即触发了 crisis / suspected / gentle_check 任一干预分支;medication / diagnosis / medical_redflag / normal 等**边界分支投影为 none,不计入干预**)。**该列须与「二值误报率」对照读**:干预率高、误报率也高,只是「宁可错杀」的激进阈值,并非越高越好。管线臂该列偏低的成因见文末〈附录:管线 4 类投影〉的两半机制脚注。
+**表注:**「passive 单元任意干预率」= passive 金标单元中 4 类投影预测 ≠ none 的比例(即触发了 crisis / suspected / gentle_check 任一干预分支;medication / diagnosis / medical_redflag / normal 等**边界分支投影为 none,不计入干预**)。**该列须与「二值误报率」对照读**:干预率高、误报率也高,只是「宁可错杀」的激进阈值,并非越高越好。管线臂的实际放行/分支分布见文末附录。
 
 ## 表 6-B · 干预路由质量(仅管线)
 
@@ -102,16 +102,16 @@ baseline_deepseek = 与标注员 A 同一协议的纯 deepseek-chat 零样本(�
 
 ---
 
-## 附录:管线 4 类投影(参考)
+## 附录:passive 实际路由与管线 4 类投影
 
-**脚注 · passive 投影的两半机制(为何管线 passive 行 P/R/F1 近 0 不等于全数漏检):**
+passive 金标共 60 条；数据设计中 30 条期望 `suspected`、30 条期望 `gentle_check`。这个 30/30 是**预设分层**，不能直接当作模型错误成因。逐行实际输出如下：
 
-passive 金标共 60 条,按数据集 `expected_branch` 恰好分两半 —— 30 条期望 `suspected`、30 条期望 `gentle_check`。
+| 臂 | 实际干预 | 实际放行 | 期望→实际分支 |
+|---|---:|---:|---|
+| 全管线(快速档) | 18/60(30.0%) | 42/60(70.0%) | gentle_check→crisis 2；gentle_check→normal 20；gentle_check→suspected 8；suspected→normal 22；suspected→suspected 8 |
+| 全管线(深度档) | 15/60(25.0%) | 45/60(75.0%) | gentle_check→normal 24；gentle_check→suspected 6；suspected→normal 21；suspected→suspected 9 |
 
-1. **结构假象半(30 条期望 suspected):** 管线正确路由到 `suspected` 时,4 类投影按 `labelFromBranch(suspected)=active_ideation` 记为 active,于是在 passive 行被计为「未召回」—— 这是投影缺 suspected→passive 槽位造成的**结构假象**,并非放行(端到端安全应看表 6-A 的任意干预率)。
-2. **真实漏检半(30 条期望 gentle_check):** 管线几乎不触发 `gentle_check` 分支,这些单元被投影为 none —— 属**真实漏检(放行)**。
-
-两半叠加 → 快速档 passive 行 none=42(约 70% 放行),故该行 precision/recall/F1 近 0;拆半后仅约半数为真实漏检,另一半是投影结构假象。
+4 类投影中没有 `passive_ideation` 输出，是因为当前分支映射没有 passive 专用槽位；这会让 passive 的四分类 recall 变成 0。可是**是否放行必须依据实际 branch/prediction 逐行统计**，不能把 30 条 expected=suspected 自动称为“结构假象”，也不能把 30 条 expected=gentle_check 自动称为“真实漏检”。
 
 ### 全管线(快速档)(pipeline_fast,n=344)
 

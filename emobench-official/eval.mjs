@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { existsSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = dirname(SCRIPT_DIR);
-const DATA_DIR = join(ROOT_DIR, "repo", "data");
+const DATA_DIR = process.env.EMOBENCH_DATA_DIR
+  ? resolve(process.env.EMOBENCH_DATA_DIR)
+  : join(ROOT_DIR, "repo", "data");
 const RESULTS_DIR = join(SCRIPT_DIR, "results");
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -49,10 +52,10 @@ const RESPONSE_CONDITIONS = {
 
 function parseArgs(argv) {
   const args = {
-    base: process.env.DEEPSEEK_BASE_URL || process.env.BASE_URL || "https://api.deepseek.com",
+    base: process.env.EVAL_BASE_URL || "https://api.deepseek.com",
     concurrency: 10,
     lang: "all",
-    model: "deepseek-chat",
+    model: process.env.EVAL_MODEL || "deepseek-v4-flash",
     selftest: false,
     task: "all",
   };
@@ -376,7 +379,7 @@ async function callChatCompletions(args, messages) {
       const response = await fetch(url, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+          Authorization: `Bearer ${process.env.EVAL_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
@@ -425,8 +428,8 @@ async function runWithConcurrency(items, concurrency, worker) {
 }
 
 async function runEval(args) {
-  if (!process.env.DEEPSEEK_API_KEY) {
-    throw new Error("DEEPSEEK_API_KEY is required for API evaluation");
+  if (!process.env.EVAL_API_KEY) {
+    throw new Error("EVAL_API_KEY is required; production API key variables are intentionally ignored");
   }
 
   await mkdir(RESULTS_DIR, { recursive: true });
@@ -452,6 +455,8 @@ async function runEval(args) {
 
     rows.sort((a, b) => a.lang.localeCompare(b.lang) || Number(a.qid) - Number(b.qid));
     const summary = summarize(task, rows);
+    summary.model = args.model;
+    summary.credential_scope = "EVAL_API_KEY";
     finalSummaries[task] = summary;
     await writeFile(paths.summary, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
   }
@@ -503,16 +508,38 @@ function formatPromptForPrint(task, sample) {
 }
 
 async function selftest() {
-  const ea = await loadTask("EA");
-  const eu = await loadTask("EU");
-  const eaCounts = assertTaskCounts("EA", ea);
-  const euCounts = assertTaskCounts("EU", eu);
+  const fixtures = {
+    EA: [
+      { qid: "fixture-ea-en", language: "en", category: "Action", "question type": "Action", scenario: "Alex's friend is upset.", subject: "Alex", choices: ["Listen", "Mock"], label: "Listen" },
+      { qid: "fixture-ea-zh", language: "zh", category: "Response", "question type": "Response", scenario: "小林的朋友很难过。", subject: "小林", choices: ["倾听", "嘲笑"], label: "倾听" },
+    ],
+    EU: [
+      { qid: "fixture-eu-en", language: "en", coarse_category: "joy", finegrained_category: "achievement", scenario: "Alex passed an exam.", subject: "Alex", emotion_choices: ["Joy", "Anger"], emotion_label: "Joy", cause_choices: ["Passed", "Rained"], cause_label: "Passed" },
+      { qid: "fixture-eu-zh", language: "zh", coarse_category: "joy", finegrained_category: "achievement", scenario: "小林通过了考试。", subject: "小林", emotion_choices: ["高兴", "生气"], emotion_label: "高兴", cause_choices: ["通过考试", "下雨"], cause_label: "通过考试" },
+    ],
+  };
 
-  console.log(`SELFTEST counts: EA total=${eaCounts.total} en=${eaCounts.en} zh=${eaCounts.zh}; EU total=${euCounts.total} en=${euCounts.en} zh=${euCounts.zh}`);
-  console.log("");
-  console.log(formatPromptForPrint("EA", ea[0]));
-  console.log("");
-  console.log(formatPromptForPrint("EU", eu[0]));
+  for (const task of TASKS) {
+    for (const sample of fixtures[task]) {
+      const messages = renderMessages(task, sample);
+      if (messages.length !== 2 || messages.some((message) => !message.content)) {
+        throw new Error(`${task} fixture prompt contract failed`);
+      }
+      const content = task === "EA" ? '{"answer":"A"}' : '{"answer_q1":"A","answer_q2":"A"}';
+      const result = resultForSample(task, sample, content);
+      if (!result.correct || result.invalid) throw new Error(`${task} fixture parser contract failed`);
+    }
+  }
+
+  const hasLicensedData = TASKS.every((task) => existsSync(join(DATA_DIR, `${task}.jsonl`)));
+  if (hasLicensedData) {
+    const eaCounts = assertTaskCounts("EA", await loadTask("EA"));
+    const euCounts = assertTaskCounts("EU", await loadTask("EU"));
+    console.log(`official data check PASS: EA ${eaCounts.total} (${eaCounts.en}/${eaCounts.zh}); EU ${euCounts.total} (${euCounts.en}/${euCounts.zh})`);
+  } else {
+    console.log(`official data absent at ${DATA_DIR}; licensed 400+400 count check skipped`);
+  }
+  console.log("EmoBench standalone selftest PASS: prompt + parser fixtures; no API call or result write");
 }
 
 async function main() {
