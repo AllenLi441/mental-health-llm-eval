@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "protocol": "IMHI 9-task uniform v4 matrix; no task-wise cherry-picking",
+  "scope": "developmental same-10 smoke on all nine tasks; 180 paid calls",
+  "batch_id": "imhiv4-20260728a",
+  "execution_commit": "4ad23bd98ffb69f4da5dcac41f463e2a60b24161",
+  "model": "deepseek-v4-pro",
+  "calls": 180,
+  "errors": 0,
+  "invalid": 0,
+  "usage_coverage": 180,
+  "primary_aggregate": "unweighted mean of nine task weighted-F1 values",
+  "advancement_rule": "candidate mean weighted-F1 must exceed control and candidate may not regress by more than 2pp on more than three tasks",
+  "aggregate": {
+    "uniform_control": {
+      "mean_weighted_f1": 0.6391026874360208,
+      "tasks": {
+        "imhi-dr": 0.7600000000000001,
+        "imhi-dreaddit": 0.898989898989899,
+        "imhi-loneliness": 0.6761904761904762,
+        "imhi-irf": 0.4747474747474747,
+        "imhi-multiwd": 0.6703296703296704,
+        "imhi-sad": 0.36,
+        "imhi-cams": 0.43,
+        "imhi-swmh": 0.765,
+        "imhi-t-sid": 0.7166666666666667
+      }
+    },
+    "contrastive_candidate": {
+      "mean_weighted_f1": 0.5689183039183039,
+      "tasks": {
+        "imhi-dr": 0.6761904761904762,
+        "imhi-dreaddit": 0.6703296703296704,
+        "imhi-loneliness": 0.47500000000000003,
+        "imhi-irf": 0.4747474747474747,
+        "imhi-multiwd": 0.4949494949494949,
+        "imhi-sad": 0.36,
+        "imhi-cams": 0.45238095238095233,
+        "imhi-swmh": 0.7999999999999999,
+        "imhi-t-sid": 0.7166666666666667
+      }
+    }
+  },
+  "selection": {
+    "candidate_advances": false,
+    "decision": "REJECT_CONTRASTIVE_V4",
+    "mean_weighted_f1_delta": -0.07018438351771687,
+    "severe_regressions_over_2pp": [
+      "imhi-dr",
+      "imhi-dreaddit",
+      "imhi-loneliness",
+      "imhi-multiwd"
+    ],
+    "full_run_started": false
+  },
+  "total_estimated_usd": 0.07698194999999998,
+  "full_run_gate": {
+    "required_calls": 8638,
+    "smoke_calibrated_required_budget_usd_with_1_5x_reserve": 5.517829840499999,
+    "available_provider_balance_after_smoke": {
+      "currency": "CNY",
+      "amount": 6.32
+    },
+    "status": "REJECTED_BY_UNIFORM_SELECTION_AND_BLOCKED_BY_PROVIDER_BALANCE"
+  },
+  "publishing_boundary": "aggregate smoke evidence only; social-media text, ids, gold/prediction assignments, and model outputs remain ignored"
+}
