@@ -135,4 +135,15 @@ for marker in (
     if marker not in v2_matrix:
         raise SystemExit(f"PsySUICIDE v2 valid matrix missing marker: {marker}")
 
+v2_analyzer = text("scripts/analyze_psysuicide_v2_valid.py")
+for marker in (
+    "paired_randomization_macro_f1",
+    "bootstrap_metric_deltas",
+    "REJECT_TAXONOMY_V2",
+    "resampling parameters were not preregistered",
+    "holdout_scored",
+):
+    if marker not in v2_analyzer:
+        raise SystemExit(f"PsySUICIDE v2 valid analyzer missing marker: {marker}")
+
 print("harness safety check PASS: dedicated credentials, split/profile provenance, frozen test, safe resume, portable runtime, honest claims")
