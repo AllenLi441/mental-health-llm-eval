@@ -100,9 +100,13 @@ macro-F1 `0.7380 ± 0.0386`，weighted-F1 `0.9404 ± 0.0022`（均值 ± sample 
 它通过预注册的 macro-F1 与逐类回退门槛，固定选择 Seed 43（valid macro-F1 `0.7616`）；
 权重及 config/tokenizer 全部以 SHA-256 冻结在
 `reports/psysuicide-roberta-v1-valid-selection.json` 与
-`reports/psysuicide-roberta-v1-holdout-freeze.json`。在冻结资产提交并推送前，2,329 条
-内部 holdout 仍未加载。holdout scorer 默认只做无数据 dry-run，正式评分需独占持久 claim；
-结果只能作一次内部描述性确认，不代替论文 test，也没有预注册配对显著性检验。
+`reports/psysuicide-roberta-v1-holdout-freeze.json`。冻结 commit
+`a531c6c498602e258bf58c98ed71459a4d7b3757` 推送并核验远端后，Seed 43 在 2,329 条
+内部 holdout 的唯一 scorer claim 中得到 accuracy `93.43%`、macro-F1 `0.7275`、
+weighted-F1 `0.9348`。相对同一 checkpoint 的 official-valid 点值分别为 `-0.74pp`、
+`-0.0340`、`-0.0077`，没有出现选择后崩塌，但这只是内部描述性确认：不代替论文 test，
+没有同一 holdout 上的 DeepSeek/Kimi 对照预测，也没有预注册配对显著性或等价性检验。
+公开证据见 `reports/psysuicide-roberta-v1-holdout-result.json`；逐行材料从未持久化。
 
 审核并提交 valid 聚合分析后，生成一次冻结的成对 test campaign。它固定两个臂：
 `A / V4-Flash / baseline` 作为当前控制，以及 valid 选出的唯一赢家作为候选。prepare 会为

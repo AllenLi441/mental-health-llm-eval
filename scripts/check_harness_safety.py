@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Deterministic safety/portability gate for the public benchmark harness."""
+import json
+import math
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -204,6 +206,60 @@ for marker in (
 ):
     if marker not in holdout_freeze:
         raise SystemExit(f"PsySUICIDE holdout freeze missing marker: {marker}")
+
+holdout_freeze_json = json.loads(holdout_freeze)
+holdout_result = json.loads(
+    text("reports/psysuicide-roberta-v1-holdout-result.json")
+)
+if holdout_result.get("status") != "COMPLETED_FROM_EXCLUSIVE_CLAIM":
+    raise SystemExit("PsySUICIDE holdout result has no completed claim")
+if holdout_result.get("protocol_id") != "psysuicide-roberta-v1-holdout-once":
+    raise SystemExit("PsySUICIDE holdout result protocol mismatch")
+if holdout_result.get("freeze_commit") != "a531c6c498602e258bf58c98ed71459a4d7b3757":
+    raise SystemExit("PsySUICIDE holdout result freeze commit mismatch")
+if holdout_result.get("artifacts") != holdout_freeze_json.get("artifacts"):
+    raise SystemExit("PsySUICIDE holdout result artifact manifest mismatch")
+claim_evidence = holdout_result.get("claim_evidence", {})
+if (
+    claim_evidence.get("completed_from_exclusive_claim") is not True
+    or claim_evidence.get("global_exactly_once_proven") is not False
+):
+    raise SystemExit("PsySUICIDE holdout claim evidence is overstated or incomplete")
+if holdout_result.get("configuration", {}).get("predict_call_count") != 1:
+    raise SystemExit("PsySUICIDE holdout predict-call count mismatch")
+per_class = holdout_result.get("metrics", {}).get("per_class", {})
+expected_labels = holdout_freeze_json["inference"]["label_order"]
+if list(per_class) != expected_labels:
+    raise SystemExit("PsySUICIDE holdout label order mismatch")
+support_total = sum(values["support"] for values in per_class.values())
+if support_total != holdout_result["partition"]["holdout_rows"] or support_total != 2329:
+    raise SystemExit("PsySUICIDE holdout support total mismatch")
+class_f1 = []
+weighted_f1 = 0.0
+true_positives = 0.0
+for label, values in per_class.items():
+    support = values["support"]
+    for metric in ("precision", "recall", "f1"):
+        value = values[metric]
+        if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+            raise SystemExit(f"PsySUICIDE holdout {metric} invalid: {label}")
+    class_f1.append(values["f1"])
+    weighted_f1 += values["f1"] * support
+    true_positives += values["recall"] * support
+metrics = holdout_result["metrics"]
+checks = {
+    "accuracy": true_positives / support_total,
+    "macro_f1": sum(class_f1) / len(class_f1),
+    "weighted_f1": weighted_f1 / support_total,
+}
+for metric, recomputed in checks.items():
+    if not math.isclose(
+        metrics[metric],
+        recomputed,
+        rel_tol=0.0,
+        abs_tol=1e-12,
+    ):
+        raise SystemExit(f"PsySUICIDE holdout aggregate mismatch: {metric}")
 
 imhi_matrix = text("scripts/run_imhi_uniform_v4_matrix.mjs")
 for marker in (
