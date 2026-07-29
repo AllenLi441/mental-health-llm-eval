@@ -6,6 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DATASETS } from '../lib.mjs';
+import { baselineValue } from '../lib/baselines.mjs';
 
 const DATA = join(DATASETS, 'EmoBench', 'repo', 'data');
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -52,8 +53,8 @@ const ea = {
   },
   group: (item) => item.lang,
   comparisons: [
-    { method: 'GPT-4 (paper, zero-shot)', metric: 'accuracy en/zh', value: '75.50 / 73.75' },
-    { method: 'ChatGLM3-66B (paper, best open-source)', metric: 'accuracy en/zh', value: '65.50 / 59.12' },
+    { method: 'GPT-4 (paper, zero-shot)', metric: 'accuracy en/zh', value: baselineValue('emobench-ea-gpt4-langs') },
+    { method: 'ChatGLM3-66B (paper, best open-source)', metric: 'accuracy en/zh', value: baselineValue('emobench-ea-chatglm3-66b') },
     { method: 'human average (paper Fig. 5)', metric: 'note', value: 'above all LLMs' },
   ],
 };
@@ -101,8 +102,8 @@ const eu = {
   },
   group: (item) => item.lang,
   comparisons: [
-    { method: 'GPT-4 (paper, zero-shot, emotion+cause both correct)', metric: 'accuracy en/zh', value: '59.75 / 54.12' },
-    { method: 'ChatGLM3-66B (paper)', metric: 'accuracy en/zh', value: '47.45 / 42.86' },
+    { method: 'GPT-4 (paper, zero-shot, emotion+cause both correct)', metric: 'accuracy en/zh', value: baselineValue('emobench-eu-gpt4-langs') },
+    { method: 'ChatGLM3-66B (paper)', metric: 'accuracy en/zh', value: baselineValue('emobench-eu-chatglm3-66b') },
   ],
 };
 

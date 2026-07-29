@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "scope": "one frozen PsySUICIDE train holdout confirmation",
+  "status": "COMPLETED_FROM_EXCLUSIVE_CLAIM",
+  "protocol_id": "psysuicide-roberta-v1-holdout-once",
+  "freeze_commit": "a531c6c498602e258bf58c98ed71459a4d7b3757",
+  "upstream": "origin/codex/benchmark-model-optimization-v2",
+  "scored_at": "2026-07-29T16:46:13.582475+00:00",
+  "claim_evidence": {
+    "claim_id": "7a997498858a4852bd5a958ef2aba672",
+    "claimed_at": "2026-07-29T16:27:38.809825+00:00",
+    "completed_from_exclusive_claim": true,
+    "global_exactly_once_proven": false,
+    "scope_note": "evidence applies to this scorer ledger namespace; local Git cannot prove no out-of-band data access"
+  },
+  "artifacts": {
+    "preregistration": {
+      "path": "reports/psysuicide-roberta-v1.prereg.json",
+      "sha256": "fd47a55c4159af214412d2f7b39b62e286f48cfc899b6dcba01aa156567e4a89"
+    },
+    "partition_commitment": {
+      "path": "reports/psysuicide-v2-train-holdout.commitment.json",
+      "sha256": "02c6776bd369b26bf882f3224f4e86dfc3f03a87e02f92c5e2088e581df6edab"
+    },
+    "base_model_manifest": {
+      "path": "reports/psysuicide-roberta-v1-base-model-manifest.json",
+      "sha256": "06cd3e5467c506028e1fc574aa60d3f2c30cf8fc63c41f0d261ba19d81194475"
+    },
+    "valid_selection": {
+      "path": "reports/psysuicide-roberta-v1-valid-selection.json",
+      "sha256": "f83ed4930627c5fbb69296c92ab30260837e2be1b97a83be1c9039a7b6c0621e"
+    },
+    "selection_reporter": {
+      "path": "scripts/report_psysuicide_roberta.py",
+      "sha256": "7a808bce1dd9e680fc6d27c938dfd990a698a93e27a0d9f4bc5d8ca4fed6a0a7"
+    },
+    "holdout_scorer": {
+      "path": "scripts/score_psysuicide_roberta_holdout.py",
+      "sha256": "1edddb7aef0b7430583d10cdd4459b64605ffe42a0b9c4f6243dcd66b8b3e440"
+    }
+  },
+  "selected_checkpoint": {
+    "seed": 43,
+    "weight_filename": "model.safetensors",
+    "weight_sha256": "9a1cf3c2471dedc2ee8799ba6b8324f10e3d01ce1c0d0898da2b9aa642743e44",
+    "checkpoint_manifest": {
+      "model.safetensors": {
+        "bytes": 1302181756,
+        "sha256": "9a1cf3c2471dedc2ee8799ba6b8324f10e3d01ce1c0d0898da2b9aa642743e44"
+      },
+      "config.json": {
+        "bytes": 1983,
+        "sha256": "6b1e553a1cf0bdc13858240f276ba151f41e63777207cb10cfba5d5ac08335ea"
+      },
+      "tokenizer.json": {
+        "bytes": 439223,
+        "sha256": "1c262607a57d657df584affb5b55560aa01e38d836669660e79931269c065a89"
+      },
+      "tokenizer_config.json": {
+        "bytes": 350,
+        "sha256": "a690ace137dc901c4c2025eddc805e5587d0ec8ee52dce5c3436ec88cb40c84f"
+      },
+      "training_args.bin": {
+        "bytes": 5265,
+        "sha256": "e751495ad29561685f7257052920be4a8545f012308ec872274075e5aa7c909a"
+      }
+    },
+    "weights_published": false
+  },
+  "partition": {
+    "holdout_rows": 2329,
+    "holdout_commitment_sha256": "2691aca6db327d4e8c3b3cefe49b68716506d4181344883ae0f8a3e19a53fe30"
+  },
+  "configuration": {
+    "max_length": 256,
+    "eval_batch": 8,
+    "device": "mps",
+    "dtype": "float32",
+    "predict_call_count": 1
+  },
+  "runtime_seconds": 1111.9663982391357,
+  "metrics": {
+    "accuracy": 0.9343065693430657,
+    "macro_f1": 0.7275306389821616,
+    "weighted_f1": 0.9348403837945589,
+    "per_class": {
+      "与自杀/自伤/攻击行为无关": {
+        "precision": 0.9746611667648792,
+        "recall": 0.9616279069767442,
+        "f1": 0.9681006731050629,
+        "support": 1720
+      },
+      "被动自杀意图": {
+        "precision": 0.8604651162790697,
+        "recall": 0.8767772511848341,
+        "f1": 0.8685446009389671,
+        "support": 211
+      },
+      "主动自杀意图": {
+        "precision": 0.9069767441860465,
+        "recall": 0.9285714285714286,
+        "f1": 0.9176470588235294,
+        "support": 210
+      },
+      "关于自杀的探索": {
+        "precision": 0.6811594202898551,
+        "recall": 0.8103448275862069,
+        "f1": 0.7401574803149606,
+        "support": 58
+      },
+      "自杀计划": {
+        "precision": 0.7916666666666666,
+        "recall": 0.8260869565217391,
+        "f1": 0.8085106382978723,
+        "support": 23
+      },
+      "自杀准备行为": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 2
+      },
+      "自杀未遂": {
+        "precision": 0.7058823529411765,
+        "recall": 0.75,
+        "f1": 0.7272727272727273,
+        "support": 16
+      },
+      "自伤意图": {
+        "precision": 1.0,
+        "recall": 0.75,
+        "f1": 0.8571428571428571,
+        "support": 4
+      },
+      "自伤行为": {
+        "precision": 0.7333333333333333,
+        "recall": 0.7333333333333333,
+        "f1": 0.7333333333333333,
+        "support": 15
+      },
+      "用户攻击行为": {
+        "precision": 0.6470588235294118,
+        "recall": 0.7674418604651163,
+        "f1": 0.7021276595744681,
+        "support": 43
+      },
+      "他人攻击行为": {
+        "precision": 0.7391304347826086,
+        "recall": 0.6296296296296297,
+        "f1": 0.68,
+        "support": 27
+      }
+    }
+  },
+  "inference_policy": {
+    "status": "one-time internal confirmation only",
+    "paper_test_substitute": false,
+    "statistical_claims": "descriptive only; no paired test was preregistered"
+  },
+  "publishing_boundary": "aggregate metrics and hashes only; licensed text, ids, labels, row predictions, logits, weights, and trainer state remain private"
+}

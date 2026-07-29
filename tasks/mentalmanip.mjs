@@ -4,6 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DATASETS, csvObjects } from '../lib.mjs';
+import { baselineValue } from '../lib/baselines.mjs';
 
 const POS = 'yes', NEG = 'no';
 
@@ -48,6 +49,8 @@ export function parse(raw) {
 }
 
 export const comparisons = [
-  { method: 'GPT-4 zero-shot（论文 Table，binary detection）', metric: 'accuracy/F1', value: '论文含 GPT-4/Llama 基线，本地 PDF 可对表' },
-  { method: 'majority class (manipulative, 69.2%)', metric: 'accuracy', value: 69.2 },
+  { method: 'GPT-4-Turbo zero-shot（论文 Table 5）', metric: 'accuracy', value: baselineValue('mentalmanip-gpt4turbo') },
+  { method: 'majority class (manipulative)', metric: 'accuracy', value: baselineValue('mentalmanip-majority') },
+  { method: 'RoBERTa-base fine-tuned', metric: 'accuracy', value: baselineValue('mentalmanip-roberta-base') },
+  { method: 'Llama-2-13B fine-tuned', metric: 'accuracy', value: baselineValue('mentalmanip-llama2-13b') },
 ];

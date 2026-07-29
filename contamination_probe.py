@@ -2,7 +2,7 @@
 """
 CPsyExam 数据污染探针 (guided-instruction memorization test)
 
-假设:若 deepseek-chat 训练时见过 CPsyExam 测试集,给它题干应能凭"记忆"
+假设:若请求模型训练时见过 CPsyExam 测试集,给它题干应能凭"记忆"
 逐字复现选项。做法:抽 100 道测试题,只给题干,要求模型写出该题的全部选项;
 用 difflib 相似度把生成选项与真实选项对齐打分。
 
@@ -12,14 +12,15 @@ CPsyExam 数据污染探针 (guided-instruction memorization test)
   容易被猜中,不作污染证据)
 - 复现率接近 0 → 逐字记忆无法解释 83% 的成绩;复现率高 → 污染实锤,评测作废
 
-用法: set -a; . ../../app/.env.local; set +a; python3 contamination_probe.py
-输出: results/contamination-probe-deepseek-chat.json
+用法: EVAL_API_KEY=... EVAL_MODEL=deepseek-v4-flash python3 contamination_probe.py
+输出: results/contamination-probe-<安全模型 slug>.json
 """
 import json, os, re, glob, random, difflib, urllib.request, concurrent.futures, time
 
-BASE = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
-KEY = os.environ["DEEPSEEK_API_KEY"]
-MODEL = "deepseek-chat"
+BASE = os.environ.get("EVAL_BASE_URL", "https://api.deepseek.com").rstrip("/")
+KEY = os.environ["EVAL_API_KEY"]
+MODEL = os.environ.get("EVAL_MODEL", "deepseek-v4-flash")
+MODEL_SLUG = re.sub(r"[^A-Za-z0-9._-]+", "-", MODEL).strip("-._") or "model"
 N = 100
 SEED = 7
 
@@ -93,7 +94,7 @@ def main():
     }
     outdir = os.path.join(os.path.dirname(__file__), "results")
     os.makedirs(outdir, exist_ok=True)
-    out = os.path.join(outdir, "contamination-probe-deepseek-chat.json")
+    out = os.path.join(outdir, f"contamination-probe-{MODEL_SLUG}.json")
     json.dump({"summary": summary, "items": results}, open(out, "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
     print(json.dumps(summary, ensure_ascii=False, indent=1))

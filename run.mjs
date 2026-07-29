@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 // eval-suite runner.
 //   node run.mjs list
-//   node run.mjs <task-key> [--selftest] [--sample N] [--concurrency C] [--model M] ...
+//   node run.mjs <task-key> [--selftest] [--split valid] [--prompt-profile taxonomy] ...
 //   node run.mjs all [--selftest | flags]        (runs every task sequentially)
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { SUITE, parseArgs, runTask } from './lib.mjs';
+import {
+  SUITE, parseArgs, runTask, selftestTask, dataCheckTask, taskRunArgs,
+} from './lib.mjs';
 
 const MODULES = [
   './tasks/emobench.mjs', './tasks/mdd5k.mjs', './tasks/psysuicide.mjs',
@@ -28,7 +30,14 @@ async function main() {
   const tasks = await registry();
   if (!cmd || cmd === 'list') {
     for (const t of tasks) {
-      console.log(`${t.key.padEnd(18)} sample=${t.defaultSample === 0 ? 'full' : t.defaultSample}  ${t.description}`);
+      const protocol = [
+        t.splits ? `splits=${t.splits.join('|')}` : '',
+        t.promptProfiles ? `profiles=${t.promptProfiles.join('|')}` : '',
+      ].filter(Boolean).join('  ');
+      console.log(
+        `${t.key.padEnd(18)} sample=${t.defaultSample === 0 ? 'full' : t.defaultSample}  ` +
+        `${t.description}${protocol ? `  ${protocol}` : ''}`
+      );
     }
     return;
   }
@@ -38,6 +47,19 @@ async function main() {
     console.error(`unknown task "${cmd}". Use: node run.mjs list`);
     process.exit(2);
   }
+  if (args.selftest) {
+    for (const t of selected) selftestTask(t, args);
+    console.log(`standalone selftest PASS: ${selected.length}/${selected.length} tasks; no dataset read, API call, or result write`);
+    return;
+  }
+  if (args.dataCheck) {
+    for (const t of selected) dataCheckTask(t, args);
+    console.log(`authorized dataset check PASS: ${selected.length}/${selected.length} tasks; no API call or result write`);
+    return;
+  }
+  // Validate every selected task before the first paid request. This prevents `all`
+  // from partially running before discovering a missing split or invalid profile.
+  for (const t of selected) taskRunArgs(t, args);
   const summaries = [];
   for (const t of selected) {
     const s = await runTask(t, args); // sequential: one dataset at a time
