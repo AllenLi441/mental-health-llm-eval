@@ -171,6 +171,40 @@ for marker in (
     if marker not in trainer:
         raise SystemExit(f"PsySUICIDE supervised trainer missing marker: {marker}")
 
+reporter = text("scripts/report_psysuicide_roberta.py")
+for marker in (
+    "verify_execution_commit",
+    "validate_class_weights",
+    "seed accuracy recomputation",
+    "POST_RUN_LOCAL_ARTIFACT_MATCH",
+    "official-valid membership was not cryptographically committed",
+):
+    if marker not in reporter:
+        raise SystemExit(f"PsySUICIDE supervised reporter missing marker: {marker}")
+
+holdout_scorer = text("scripts/score_psysuicide_roberta_holdout.py")
+for marker in (
+    "Dry-run only. Holdout membership remains unopened.",
+    "durable_exclusive_json",
+    "\"ls-remote\"",
+    "CLAIMED_BEFORE_HOLDOUT_LOAD",
+    "global_exactly_once_proven",
+    "descriptive only; no paired test was preregistered",
+):
+    if marker not in holdout_scorer:
+        raise SystemExit(f"PsySUICIDE holdout scorer missing marker: {marker}")
+
+holdout_freeze = text("reports/psysuicide-roberta-v1-holdout-freeze.json")
+for marker in (
+    "psysuicide-roberta-v1-holdout-once",
+    "psysuicide-roberta-v1-valid-selection.json",
+    "score_psysuicide_roberta_holdout.py",
+    "\"row_level_material\": \"not persisted\"",
+    "cannot prove no out-of-band data access",
+):
+    if marker not in holdout_freeze:
+        raise SystemExit(f"PsySUICIDE holdout freeze missing marker: {marker}")
+
 imhi_matrix = text("scripts/run_imhi_uniform_v4_matrix.mjs")
 for marker in (
     "IMHI 9-task uniform v4 matrix",

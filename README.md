@@ -24,6 +24,14 @@ python3 scripts/analyze_psysuicide_valid_matrix.py --selftest
 node scripts/run_psysuicide_test_pair.mjs --selftest
 python3 scripts/analyze_psysuicide_test_pair.py --selftest
 node emobench-official/eval.mjs --selftest # 无官方数据也可验证 prompt/parser；有数据时再验 400+400
+node emobench-official/paper_protocol.mjs --selftest
+node scripts/prepare_psysuicide_v2_partition.mjs --selftest
+node scripts/run_psysuicide_v2_valid_matrix.mjs --selftest
+python3 scripts/analyze_psysuicide_v2_valid.py --selftest
+python3 scripts/train_psysuicide_roberta.py --selftest
+python3 scripts/report_psysuicide_roberta.py --selftest
+python3 scripts/score_psysuicide_roberta_holdout.py --selftest
+node scripts/run_imhi_uniform_v4_matrix.mjs --selftest
 ```
 
 通用协议：零样本、temperature 0、严格标签解析（无同义词映射，解析失败记 invalid 并算错）、
@@ -39,13 +47,18 @@ requested/response model、provider、fingerprint、usage、UTC 时间、case/pr
 
 ## PsySUICIDE 模型优化协议
 
-PsySUICIDE 是本套件第一个强制切分隔离的优化模块。开发只允许跑官方 `valid`；`train`
-保留给后续检索示例构建，不作为调参分数；官方 `test` 只能在验证集选出唯一配置后运行一次。
-三种当前提示方案为：
+PsySUICIDE 是本套件第一个强制切分隔离的优化模块。第一轮提示词开发只允许跑官方 `valid`；
+官方 `test` 只能在验证集选出唯一配置后运行一次。第二轮监督开发在改动模型前把官方 `train`
+按类确定性冻结为 9,342 条 optimization 与 2,329 条内部 holdout；optimization 可用于训练或
+检索，但不作为模型选择分数，holdout 在预注册 valid 门槛通过前禁止读取或评分。
+五种当前提示方案为：
 
 - `baseline`：保留原始直接 11 类提示，作为冻结对照。
 - `taxonomy`：加入 11 类工作定义，重点区分被动/主动/探索、计划/准备/未遂以及意图/行为。
 - `hierarchical`：在 taxonomy 之上要求模型内部按类别族和细粒度层级判断，但仍只输出标签。
+- `taxonomy-v2`：加入更细的相邻类别决策边界；完整 valid 结果证明它发生回退，已拒绝。
+- `fewshot-balanced`：只从 optimization partition 检索每类示例；same-50 smoke 后因效果与成本
+  门槛未通过而停止，没有进入完整 valid。
 
 验证集由一个默认 dry-run 的编排器执行。下面第一条只打印 4 个 smoke 臂、调用量和保守预算，
 不会调用 API：
@@ -81,6 +94,15 @@ python3 scripts/analyze_psysuicide_valid_matrix.py \
 分析器强制同一完整 ID/gold/case-hash 集，输出四臂 macro-F1、weighted-F1、逐类指标、usage、
 成本、三项预指定配对比较、exact McNemar、paired bootstrap 和 Holm 校正，并按冻结规则选出
 唯一候选。输出仍是 valid 开发性结论，不允许写成 test 胜出或临床有效。
+
+监督 RoBERTa v1 已完成三随机种子 official-valid 选优：accuracy 均值 `94.01%`，
+macro-F1 `0.7380 ± 0.0386`，weighted-F1 `0.9404 ± 0.0022`（均值 ± sample SD）。
+它通过预注册的 macro-F1 与逐类回退门槛，固定选择 Seed 43（valid macro-F1 `0.7616`）；
+权重及 config/tokenizer 全部以 SHA-256 冻结在
+`reports/psysuicide-roberta-v1-valid-selection.json` 与
+`reports/psysuicide-roberta-v1-holdout-freeze.json`。在冻结资产提交并推送前，2,329 条
+内部 holdout 仍未加载。holdout scorer 默认只做无数据 dry-run，正式评分需独占持久 claim；
+结果只能作一次内部描述性确认，不代替论文 test，也没有预注册配对显著性检验。
 
 审核并提交 valid 聚合分析后，生成一次冻结的成对 test campaign。它固定两个臂：
 `A / V4-Flash / baseline` 作为当前控制，以及 valid 选出的唯一赢家作为候选。prepare 会为
@@ -194,7 +216,7 @@ mental-health-llm-eval/
 - **v1 主跑分 = 17 个非 EmoBench 任务**(`run-v1.log`,10,142 次调用);**v2(2026-07-07)= 全部 19 任务重跑**,
   17 主任务中 16 项与 v1 精确一致、cbt-fc -0.89pp(1 题输出波动),公开 overview 固化于 `results-summary/all-v2.summary.json`
   (由 `scripts/compare_runs.py v1 v2` 生成,含逐任务差异表)。
-- ⚠ **EmoBench 口径**:报告中的 EmoBench 数字出自独立 harness `../EmoBench/eval/eval.mjs`（复用官方数据、提示词和单次评分，但当前是 temp-0 单次 proxy；论文是每题 5 次采样多数票 × 4 个选项排列后取均值，不能称完全同协议）。套件内置 `emobench-ea/eu` 用的是简化提示词:EA 与独立 proxy 接近(71.5 vs 72.0),
+- ⚠ **EmoBench 口径**:当前 scoreboard 的 EmoBench 数字仍出自独立 temp-0 单次 proxy，不能称完全同协议。`emobench-official/paper_protocol.mjs` 已实现论文所述的每题 5 次采样多数票 × 4 个选项排列取均值，并完成 160-call 完整性 smoke；8,000-call 全量在预算门禁处停止，因此没有用 smoke 数字替换 benchmark。套件内置 `emobench-ea/eu` 用的是简化提示词:EA 与独立 proxy 接近(71.5 vs 72.0),
   但 **EU 仅 39.3 vs 官方协议 57.8**——提示词差异对 EU 影响巨大,内置版数字不得与论文对比,仅作内部追踪。
 - 独立重算对账：在持有授权逐行 JSONL 的本地环境运行 `python3 scripts/audit_results.py`；公开包没有原始行，`--selftest` 只验证聚合文件结构并明确标注边界。
 - 授权环境可运行 `python3 scripts/audit_results.py --results-dir /authorized/results --manifest-out /review/authorized-run.manifest.json --audit-out /review/audit-recompute.json` 生成不含文本、输出和行 ID 的证据清单（文件 SHA-256、行数/唯一数/重复数、错误数、字段覆盖、模型/供应商聚合）。它能暴露续跑碰撞和 provenance 缺字段，但**不能替代获许可的逐行结果发布**。
