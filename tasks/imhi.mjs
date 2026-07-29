@@ -71,23 +71,35 @@ const TASKS = [
     question: 'What is the cause of the poster\'s stress?',
     labels: ['school', 'financial problem', 'family issues', 'social relationships', 'work',
       'health issues', 'emotional turmoil', 'everyday decision making', 'other causes'],
+    candidateGuide: 'school = academic demands or study; financial problem = money, debt, bills, or basic costs; family issues = relatives or household conflict; social relationships = friends, partners, rejection, or interpersonal conflict outside the family; work = job or workplace demands; health issues = physical or mental health; emotional turmoil = internal emotional distress without a more direct listed cause; everyday decision making = ordinary choices or daily organization; other causes = only when none of the specific causes is directly supported.',
   },
   {
     name: 'CAMS', file: 'CAMS.csv', type: 'multi',
     question: 'What is the cause of the poster\'s mental disorder? (answer "none" if no cause is shown)',
     labels: ['bias or abuse', 'jobs and career', 'medication', 'relationship', 'alienation', 'none'],
+    candidateGuide: 'bias or abuse = discrimination, harassment, violence, or maltreatment; jobs and career = employment, workplace, or career pressure; medication = psychiatric or other medicine effects, withdrawal, or treatment; relationship = conflict, loss, or difficulty with a partner, family member, or friend; alienation = isolation, exclusion, or disconnection; none = the post does not state a cause. Prefer the most directly stated cause and do not infer one from symptoms alone.',
   },
   {
     name: 'swmh', file: 'swmh.csv', type: 'multi',
     question: 'Which mental disorder symptoms does this post show?',
     labels: ['depression', 'suicide', 'anxiety', 'bipolar disorder', 'no mental disorders'],
+    candidateGuide: 'depression = sustained depressed mood, anhedonia, hopelessness, or related depressive symptoms; suicide = suicidal thought, plan, attempt, or self-harm tendency; anxiety = persistent fear, worry, panic, or physiological anxiety; bipolar disorder = explicit mania/hypomania or bipolar diagnosis, not ordinary mood change; no mental disorders = no direct evidence for the listed symptom groups. Use only evidence in the post.',
   },
   {
     name: 't-sid', file: 't-sid.csv', type: 'multi',
     question: 'Which mental disorder symptoms does this post show?',
     labels: ['depression', 'suicide or self-harm tendency', 'ptsd', 'no mental disorders'],
+    candidateGuide: 'depression = sustained depressed mood, anhedonia, hopelessness, or related depressive symptoms; suicide or self-harm tendency = suicidal or deliberate self-injury thought, intent, plan, attempt, or behavior; ptsd = trauma-linked intrusion, avoidance, hyperarousal, or explicit PTSD; no mental disorders = no direct evidence for the listed groups. Do not infer a diagnosis from a negative event alone.',
   },
 ];
+
+const EVIDENCE_PROTOCOL_V4 = [
+  'Identify the exact phrase or behavior that supports each plausible label.',
+  'Actively test the closest alternative label and reject labels supported only by topic, negativity, or speculation.',
+  'For binary questions, answer yes only when the named construct is substantively present; otherwise answer no.',
+  'For multiclass questions, choose the single most directly supported label and use the fallback label only when no specific label is evidenced.',
+  'Perform this comparison internally, then output only the exact allowed label.',
+].join(' ');
 
 function extractPost(query) {
   const m = query.match(/(?:consider this post:|post:)\s*"?([\s\S]*?)"?\s*question:/i);
@@ -124,6 +136,8 @@ function makeVariant(t) {
     labels,
     defaultSample: 500,
     maxTokens: t.type === 'binary' ? 4 : 16,
+    promptProfiles: ['uniform-v3u', 'contrastive-v4'],
+    defaultPromptProfile: 'uniform-v3u',
     load() {
       const rows = csvObjects(readFileSync(join(DIR, t.file), 'utf8'));
       const items = [];
@@ -142,8 +156,20 @@ function makeVariant(t) {
       if (dropped / rows.length > 0.05) throw new Error(`imhi-${t.name}: too many dropped rows`);
       return items;
     },
-    messages(item) {
+    messages(item, args = {}) {
+      const profile = args.promptProfile || 'uniform-v3u';
       const guide = t.decisionGuide ? `\nDecision criteria: ${t.decisionGuide}` : '';
+      if (profile === 'contrastive-v4') {
+        const candidateGuide = t.decisionGuide || t.candidateGuide;
+        const inst = t.type === 'binary'
+          ? `${item.question}\nConstruct definition: ${candidateGuide}\nUnified evidence protocol: ${EVIDENCE_PROTOCOL_V4}\nAnswer with only "yes" or "no".`
+          : `${item.question}\nLabel boundaries: ${candidateGuide}\nUnified evidence protocol: ${EVIDENCE_PROTOCOL_V4}\nAnswer with exactly one of: ${labels.join('; ')}. No explanation.`;
+        return [
+          { role: 'system', content: 'You are a benchmark labeler. Apply the same evidence-first contrastive decision process to every IMHI task. Do not diagnose or add facts absent from the post.' },
+          { role: 'user', content: `Post: "${item.post}"\n\n${inst}` },
+        ];
+      }
+      if (profile !== 'uniform-v3u') throw new Error(`unsupported IMHI prompt profile: ${profile}`);
       const inst = t.type === 'binary'
         ? `${item.question}${guide}\nAnswer with only "yes" or "no".`
         : `${item.question} Answer with exactly one of: ${labels.join('; ')}. No explanation.`;
@@ -151,6 +177,21 @@ function makeVariant(t) {
         { role: 'system', content: 'You are an expert in mental health analysis of social media posts.' },
         { role: 'user', content: `Post: "${item.post}"\n\n${inst}` },
       ];
+    },
+    promptFingerprint(args = {}) {
+      const profile = args.promptProfile || 'uniform-v3u';
+      return {
+        prompt_version: 'imhi-uniform-protocols-v1',
+        prompt_profile: profile,
+        subtask: t.name,
+        labels,
+        decision_guide: profile === 'contrastive-v4'
+          ? (t.decisionGuide || t.candidateGuide)
+          : (t.decisionGuide || null),
+        unified_evidence_protocol: profile === 'contrastive-v4'
+          ? EVIDENCE_PROTOCOL_V4
+          : null,
+      };
     },
     parse(raw) {
       const s = (raw || '').trim().toLowerCase();

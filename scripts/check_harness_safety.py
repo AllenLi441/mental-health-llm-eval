@@ -171,4 +171,17 @@ for marker in (
     if marker not in trainer:
         raise SystemExit(f"PsySUICIDE supervised trainer missing marker: {marker}")
 
+imhi_matrix = text("scripts/run_imhi_uniform_v4_matrix.mjs")
+for marker in (
+    "IMHI 9-task uniform v4 matrix",
+    "no task-wise cherry-picking",
+    "uniform-control",
+    "contrastive-candidate",
+    "unweighted mean of nine task weighted-F1 values",
+    "--approved-budget-usd",
+    "Dry-run only",
+):
+    if marker not in imhi_matrix:
+        raise SystemExit(f"IMHI uniform v4 matrix missing marker: {marker}")
+
 print("harness safety check PASS: dedicated credentials, split/profile provenance, frozen test, safe resume, portable runtime, honest claims")
