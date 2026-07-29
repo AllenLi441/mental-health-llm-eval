@@ -103,4 +103,4 @@ expectThrow(
   /committed file inside this repository/,
 );
 
-console.log('PsySUICIDE protocol check PASS: split isolation, 3 prompt profiles, legacy-model block, exact committed preregistration, usage aggregation');
+console.log('PsySUICIDE protocol check PASS: split isolation, 5 prompt profiles, legacy-model block, exact committed preregistration, usage aggregation');

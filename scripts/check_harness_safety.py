@@ -64,7 +64,8 @@ psysuicide = text("tasks/psysuicide.mjs")
 for marker in (
     "export const splits = ['train', 'valid', 'test']",
     "export const runSplits = ['valid', 'test']",
-    "export const promptProfiles = ['baseline', 'taxonomy', 'hierarchical']",
+    "export const promptProfiles = ['baseline', 'taxonomy', 'hierarchical', 'taxonomy-v2', 'fewshot-balanced']",
+    "fingerprint.holdout_excluded = true",
 ):
     if marker not in psysuicide:
         raise SystemExit(f"PsySUICIDE protocol missing marker: {marker}")
@@ -122,5 +123,16 @@ for marker in (
 ):
     if marker not in partition:
         raise SystemExit(f"PsySUICIDE v2 partition freezer missing marker: {marker}")
+
+v2_matrix = text("scripts/run_psysuicide_v2_valid_matrix.mjs")
+for marker in (
+    "Dry-run by default",
+    "--approved-budget-usd",
+    "validateSmokeGate",
+    "frozen train holdout excluded",
+    "fewshot-balanced",
+):
+    if marker not in v2_matrix:
+        raise SystemExit(f"PsySUICIDE v2 valid matrix missing marker: {marker}")
 
 print("harness safety check PASS: dedicated credentials, split/profile provenance, frozen test, safe resume, portable runtime, honest claims")
