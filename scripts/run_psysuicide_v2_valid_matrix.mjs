@@ -12,6 +12,7 @@ const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const RESULTS = join(ROOT, 'results');
 const PRICING_PATH = join(ROOT, 'lib', 'deepseek_v4_pricing_2026-07-27.json');
 const RETRY_RESERVE_FACTOR = 1.25;
+const FULL_SMOKE_CALIBRATION_FACTOR = 1.5;
 const REASONING_OUTPUT_TOKEN_UPPER_BOUND = 2048;
 const ARMS = [
   { key: 'taxonomy-control', model: 'deepseek-v4-pro', profile: 'taxonomy' },
@@ -26,6 +27,7 @@ function parseArgs(argv) {
     smokeBatchId: '',
     concurrency: 8,
     approvedBudgetUsd: 0,
+    armKeys: [],
     execute: false,
     selftest: false,
   };
@@ -37,6 +39,7 @@ function parseArgs(argv) {
     else if (flag === '--smoke-batch-id') args.smokeBatchId = next();
     else if (flag === '--concurrency') args.concurrency = Number(next());
     else if (flag === '--approved-budget-usd') args.approvedBudgetUsd = Number(next());
+    else if (flag === '--arms') args.armKeys = next().split(',').filter(Boolean);
     else if (flag === '--execute') args.execute = true;
     else if (flag === '--selftest') args.selftest = true;
     else throw new Error(`unknown flag: ${flag}`);
@@ -57,6 +60,8 @@ function parseArgs(argv) {
   if (args.phase === 'full' && !args.smokeBatchId) {
     throw new Error('--phase full requires --smoke-batch-id');
   }
+  const unknownArms = args.armKeys.filter((key) => !ARMS.some((arm) => arm.key === key));
+  if (unknownArms.length) throw new Error(`unknown --arms values: ${unknownArms.join(', ')}`);
   return args;
 }
 
@@ -110,7 +115,10 @@ function estimateArm(arm, items, pricing) {
 function buildPlan(args, allItems) {
   const items = args.phase === 'smoke' ? seededShuffle(allItems, 42).slice(0, 50) : allItems;
   const pricing = loadPricing();
-  const arms = ARMS.map((arm) => {
+  const selectedArms = args.armKeys.length
+    ? ARMS.filter((arm) => args.armKeys.includes(arm.key))
+    : ARMS;
+  const arms = selectedArms.map((arm) => {
     const id = runId(args.batchId || 'DRY_RUN', args.phase, arm);
     return {
       ...arm,
@@ -135,6 +143,17 @@ function buildPlan(args, allItems) {
     (total, arm) => total + arm.estimate.single_attempt_upper_usd,
     0,
   );
+  let requiredApprovedBudgetUsd = singleAttemptUpperUsd * RETRY_RESERVE_FACTOR;
+  let budgetBasis = 'static conservative upper bound with retry reserve';
+  if (args.phase === 'full') {
+    requiredApprovedBudgetUsd = arms.reduce((total, arm) => {
+      const smokeId = runId(args.smokeBatchId, 'smoke', arm);
+      const smoke = readAndValidateSummary(summaryPath(arm, smokeId), arm, smokeId, 50);
+      const observed = actualCost(smoke, pricing, arm.model);
+      return total + observed * (items.length / 50) * FULL_SMOKE_CALIBRATION_FACTOR;
+    }, 0);
+    budgetBasis = `same-50 observed usage extrapolated to full n with ${FULL_SMOKE_CALIBRATION_FACTOR}x reserve`;
+  }
   return {
     schema_version: 1,
     protocol: 'PsySUICIDE v2 prompt selection on official valid; frozen train holdout excluded',
@@ -146,7 +165,9 @@ function buildPlan(args, allItems) {
     estimate_method: 'UTF-8 input bytes as conservative token bound; all cache-miss; 2048 reasoning/output tokens per request',
     single_attempt_upper_usd: singleAttemptUpperUsd,
     retry_reserve_factor: RETRY_RESERVE_FACTOR,
-    required_approved_budget_usd: singleAttemptUpperUsd * RETRY_RESERVE_FACTOR,
+    full_smoke_calibration_factor: FULL_SMOKE_CALIBRATION_FACTOR,
+    budget_basis: budgetBasis,
+    required_approved_budget_usd: requiredApprovedBudgetUsd,
     arms,
   };
 }
@@ -171,8 +192,8 @@ function readAndValidateSummary(path, arm, id, expectedN) {
   return summary;
 }
 
-function validateSmokeGate(smokeBatchId) {
-  for (const arm of ARMS) {
+function validateSmokeGate(smokeBatchId, arms) {
+  for (const arm of arms) {
     const id = runId(smokeBatchId, 'smoke', arm);
     readAndValidateSummary(summaryPath(arm, id), arm, id, 50);
   }
@@ -200,7 +221,7 @@ function executePlan(args, plan) {
       + `$${plan.required_approved_budget_usd.toFixed(4)}`,
     );
   }
-  if (args.phase === 'full') validateSmokeGate(args.smokeBatchId);
+  if (args.phase === 'full') validateSmokeGate(args.smokeBatchId, plan.arms);
   mkdirSync(RESULTS, { recursive: true });
   const planPath = join(RESULTS, `psysuicide-v2-${args.batchId}-${args.phase}.plan.json`);
   writeFileSync(planPath, `${JSON.stringify(plan, null, 2)}\n`);

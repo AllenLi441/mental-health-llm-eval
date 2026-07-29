@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "protocol": "freeze-before-full-valid-selection",
+  "task": "psysuicide",
+  "split": "valid",
+  "sample": "full",
+  "expected_n": 1459,
+  "seed": 42,
+  "candidate": {
+    "requested_model": "deepseek-v4-pro",
+    "prompt_profile": "taxonomy-v2",
+    "thinking": "enabled",
+    "reasoning_effort": "high",
+    "prompt_template_sha256": "a72b42c75f180f0b7ef27617ea53fca64ddc7aedbe506f8856513269a8002805"
+  },
+  "reference": {
+    "requested_model": "deepseek-v4-pro",
+    "prompt_profile": "taxonomy",
+    "rows": 1459,
+    "result_sha256": "761e3368b333841c072f5246263eb9b9c2d2c58323867b919be7bd6f916e7c34",
+    "macro_f1": 0.5314999909201558
+  },
+  "dataset_manifest_sha256": "89bb98ae101f176c1e125a60a6d7ab23f7467c22a77698a0d9668c665dfffc59",
+  "primary_metric": "macro_f1",
+  "selection_rule": "advance taxonomy-v2 to the frozen train holdout only if full-valid macro-F1 is strictly greater than the committed taxonomy reference, errors equal zero, invalid outputs do not increase, and paired analysis does not reveal a severe rare-class regression",
+  "holdout_policy": "the 2,329-row frozen train holdout remains unopened and unscored during this run",
+  "publishing_boundary": "aggregate valid analysis only; row-level files remain private and ignored"
+}
