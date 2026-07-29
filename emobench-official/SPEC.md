@@ -6,6 +6,11 @@ prompt wording and scoring logic in a light standalone script (NO langchain/torc
 uses majority vote, repeats under four option orderings, and averages the four runs; this
 harness uses one deterministic temperature-0 call per row unless that full protocol is added.
 
+The separate `paper_protocol.mjs` now implements the closest executable 5×4
+protocol. It explicitly records three assumptions that are not specified by the
+paper and are absent from the released aggregation code: deterministic
+permutation seed, per-field EU majority voting, and the tie rule.
+
 ## Output
 Write `eval.mjs` (Node, stdlib only, zero deps — same style as
 the sibling harness style). Node >= 18 (global fetch).

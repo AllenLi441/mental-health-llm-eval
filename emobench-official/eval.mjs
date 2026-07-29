@@ -110,7 +110,7 @@ async function readJsonl(filePath) {
     });
 }
 
-async function loadTask(task) {
+export async function loadTask(task) {
   return readJsonl(join(DATA_DIR, `${task}.jsonl`));
 }
 
@@ -193,7 +193,7 @@ ${sample.subject}为什么会在这种情况下感受到这些情绪？
 ${causeChoices}`;
 }
 
-function renderMessages(task, sample) {
+export function renderMessages(task, sample) {
   return [
     { role: "system", content: systemPrompt(task, sample.language) },
     { role: "user", content: renderUserPrompt(task, sample) },
@@ -262,7 +262,7 @@ function parsePrediction(task, content, sample) {
   };
 }
 
-function resultForSample(task, sample, content) {
+export function resultForSample(task, sample, content) {
   const pred = parsePrediction(task, content, sample);
   if (task === "EA") {
     const label = goldLetter(sample.choices, sample.label);
@@ -551,7 +551,9 @@ async function main() {
   await runEval(args);
 }
 
-main().catch((error) => {
-  console.error(error.stack || error.message);
-  process.exitCode = 1;
-});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error.stack || error.message);
+    process.exitCode = 1;
+  });
+}

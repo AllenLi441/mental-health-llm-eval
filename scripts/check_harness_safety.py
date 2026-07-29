@@ -59,6 +59,19 @@ if "赢过" in scoreboard or "同口径对照" in scoreboard:
 emo_spec = text("emobench-official/SPEC.md")
 if "faithful reproduction" in emo_spec or "Reproduce the OFFICIAL protocol exactly" in emo_spec:
     raise SystemExit("EmoBench deterministic proxy is mislabeled as an exact paper-protocol reproduction")
+emo_paper = text("emobench-official/paper_protocol.mjs")
+for marker in (
+    "Closest executable EmoBench paper protocol",
+    "5 stochastic samples",
+    "PERMUTATIONS = 4",
+    "REPEATS = 5",
+    "temperature: 0.6",
+    "implementation_assumptions",
+    "--approved-budget-usd",
+    "Dry-run only",
+):
+    if marker not in emo_paper:
+        raise SystemExit(f"EmoBench paper protocol missing marker: {marker}")
 
 psysuicide = text("tasks/psysuicide.mjs")
 for marker in (
