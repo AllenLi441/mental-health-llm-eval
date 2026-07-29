@@ -199,6 +199,9 @@ class BalancedTrainer(Trainer):
 
 def class_and_sample_weights(label_ids: list[int]) -> tuple[torch.Tensor, list[float]]:
     counts = Counter(label_ids)
+    missing = [LABELS[index] for index in range(len(LABELS)) if counts[index] == 0]
+    if missing:
+        raise ValueError(f"training split is missing declared labels: {missing}")
     # Split imbalance correction between the loss and sampler. Each component
     # uses inverse fourth-root frequency, so their combined pressure is roughly
     # inverse square-root rather than the unstable full inverse frequency.
@@ -209,6 +212,33 @@ def class_and_sample_weights(label_ids: list[int]) -> tuple[torch.Tensor, list[f
     raw = np.clip(raw / raw.mean(), 0.35, 4.0)
     sample_weights = [float(raw[label_id]) for label_id in label_ids]
     return torch.tensor(raw, dtype=torch.float32), sample_weights
+
+
+def stratified_smoke_rows(rows: list[dict], seed: int, total: int, minimum_per_label: int) -> list[dict]:
+    selected = []
+    selected_digests = set()
+    for label in LABELS:
+        group = sorted(
+            (row for row in rows if row["labels"][0] == label),
+            key=lambda row: sha256_bytes(f"{seed}\0{canonical_row(row)}".encode()),
+        )
+        if len(group) < minimum_per_label:
+            raise ValueError(f"not enough rows for smoke minimum: {label}")
+        for row in group[:minimum_per_label]:
+            digest = sha256_bytes(canonical_row(row).encode())
+            selected.append(row)
+            selected_digests.add(digest)
+    remainder = sorted(
+        (
+            row for row in rows
+            if sha256_bytes(canonical_row(row).encode()) not in selected_digests
+        ),
+        key=lambda row: sha256_bytes(f"{seed}\0remainder\0{canonical_row(row)}".encode()),
+    )
+    selected.extend(remainder[:total - len(selected)])
+    if len(selected) != total:
+        raise ValueError(f"expected {total} smoke rows, got {len(selected)}")
+    return selected
 
 
 def focal_loss(class_weights: torch.Tensor, gamma: float):
@@ -259,6 +289,10 @@ def train_seed(args, seed, optimization, valid_rows, manifest):
         num_labels=len(LABELS),
         id2label={index: label for index, label in enumerate(LABELS)},
         label2id={label: index for index, label in enumerate(LABELS)},
+        # Pretraining/task checkpoints may contain a classifier head with a
+        # different label count. Reinitialize only mismatched tensors while
+        # retaining every compatible encoder weight.
+        ignore_mismatched_sizes=True,
     )
     model_commit = getattr(model.config, "_commit_hash", None)
     train_rows = optimization
@@ -266,15 +300,14 @@ def train_seed(args, seed, optimization, valid_rows, manifest):
     max_steps = -1
     epochs = args.epochs
     if args.mode == "smoke":
-        # Deterministic balanced-ish subset without exposing any row.
-        train_rows = sorted(
-            optimization,
-            key=lambda row: sha256_bytes(f"{seed}\0{canonical_row(row)}".encode()),
-        )[:128]
-        eval_rows = sorted(
-            valid_rows,
-            key=lambda row: sha256_bytes(f"{seed}\0{canonical_row(row)}".encode()),
-        )[:64]
+        # Deterministic stratified subsets exercise every declared output head
+        # without exposing row content or consulting the frozen holdout.
+        train_rows = stratified_smoke_rows(
+            optimization, seed=seed, total=128, minimum_per_label=8
+        )
+        eval_rows = stratified_smoke_rows(
+            valid_rows, seed=seed, total=64, minimum_per_label=2
+        )
         max_steps = 2
         epochs = 1.0
     train_dataset = TextDataset(train_rows, tokenizer, args.max_length)
@@ -389,6 +422,9 @@ def selftest():
     loss = focal_loss(weights, 1.5)(type("Output", (), {"logits": logits}), labels)
     assert torch.isfinite(loss)
     loss.backward()
+    smoke_rows = stratified_smoke_rows(rows, seed=42, total=44, minimum_per_label=2)
+    assert len(smoke_rows) == 44
+    assert set(row["labels"][0] for row in smoke_rows) == set(LABELS)
     print("PsySUICIDE RoBERTa trainer selftest PASS: exact partition, balanced sampler weights, focal loss, no model download")
 
 
