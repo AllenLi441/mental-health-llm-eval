@@ -146,4 +146,16 @@ for marker in (
     if marker not in v2_analyzer:
         raise SystemExit(f"PsySUICIDE v2 valid analyzer missing marker: {marker}")
 
+trainer = text("scripts/train_psysuicide_roberta.py")
+for marker in (
+    "hfl/chinese-roberta-wwm-ext-large",
+    "full protocol requires exactly --seeds 42,43,44",
+    "holdout rows not returned, tokenized, sampled, scored, or selected on",
+    "WeightedRandomSampler",
+    "class-weighted focal loss",
+    "Dry-run only",
+):
+    if marker not in trainer:
+        raise SystemExit(f"PsySUICIDE supervised trainer missing marker: {marker}")
+
 print("harness safety check PASS: dedicated credentials, split/profile provenance, frozen test, safe resume, portable runtime, honest claims")
