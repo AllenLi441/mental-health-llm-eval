@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "partition_id": "psysuicide-train-opt-holdout-v2",
+  "seed": "psysuicide-model-optimization-v2-2026-07-28",
+  "holdout_fraction": 0.2,
+  "selection_rule": "within each label, sort by sha256(seed + NUL + canonical-row-sha256), then take floor(label_n * holdout_fraction)",
+  "retained_single_label_rows": 11671,
+  "optimization_rows": 9342,
+  "holdout_rows": 2329,
+  "dropped_multi_label_rows": 164,
+  "dropped_unknown_label_rows": 0,
+  "per_label": {
+    "与自杀/自伤/攻击行为无关": {
+      "retained": 8603,
+      "optimization": 6883,
+      "holdout": 1720
+    },
+    "被动自杀意图": {
+      "retained": 1057,
+      "optimization": 846,
+      "holdout": 211
+    },
+    "主动自杀意图": {
+      "retained": 1054,
+      "optimization": 844,
+      "holdout": 210
+    },
+    "关于自杀的探索": {
+      "retained": 292,
+      "optimization": 234,
+      "holdout": 58
+    },
+    "自杀计划": {
+      "retained": 116,
+      "optimization": 93,
+      "holdout": 23
+    },
+    "自杀准备行为": {
+      "retained": 14,
+      "optimization": 12,
+      "holdout": 2
+    },
+    "自杀未遂": {
+      "retained": 81,
+      "optimization": 65,
+      "holdout": 16
+    },
+    "自伤意图": {
+      "retained": 22,
+      "optimization": 18,
+      "holdout": 4
+    },
+    "自伤行为": {
+      "retained": 77,
+      "optimization": 62,
+      "holdout": 15
+    },
+    "用户攻击行为": {
+      "retained": 216,
+      "optimization": 173,
+      "holdout": 43
+    },
+    "他人攻击行为": {
+      "retained": 139,
+      "optimization": 112,
+      "holdout": 27
+    }
+  },
+  "all_rows_commitment_sha256": "77e0e8d58aae55da70af8c5b6eb4b65047cf65749ba8ba895ed4abc87072033e",
+  "optimization_commitment_sha256": "0c3cbf98db02c609d500b4f9ef9bf95518b617bd4dffd1f4cde8a5c5e85a8dd9",
+  "holdout_commitment_sha256": "2691aca6db327d4e8c3b3cefe49b68716506d4181344883ae0f8a3e19a53fe30",
+  "source": "licensed PsySUICIDE official train split; raw rows excluded from public repository",
+  "dataset_file_sha256": "6b84d36515c734963b7f43275756fe09a493b1c5cff16d15f2b27068f0c7979c",
+  "publishing_boundary": [
+    "public: this aggregate commitment artifact and portable partition code",
+    "private: raw text, source ids, row-level labels, partition membership, predictions, and model outputs"
+  ],
+  "freeze_policy": "commit and push this artifact before inspecting optimization rows, changing prompts, training models, or evaluating the holdout"
+}

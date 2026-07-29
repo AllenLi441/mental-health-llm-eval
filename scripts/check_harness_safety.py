@@ -113,4 +113,14 @@ for marker in (
     if marker not in test_analyzer:
         raise SystemExit(f"PsySUICIDE confirmatory analyzer missing marker: {marker}")
 
+partition = text("scripts/prepare_psysuicide_v2_partition.mjs")
+for marker in (
+    "cryptographic commitments",
+    "never text, source ids, row-level labels, or membership",
+    "refusing to overwrite frozen commitment artifact",
+    "commit and push this artifact before inspecting optimization rows",
+):
+    if marker not in partition:
+        raise SystemExit(f"PsySUICIDE v2 partition freezer missing marker: {marker}")
+
 print("harness safety check PASS: dedicated credentials, split/profile provenance, frozen test, safe resume, portable runtime, honest claims")
