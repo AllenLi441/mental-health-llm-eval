@@ -1,147 +1,269 @@
 #!/usr/bin/env python3
-"""Honest scoreboard generated from aggregate summaries and reports/BASELINES.json."""
+"""Current, metric-matched scoreboard from pinned aggregate evidence.
+
+This script intentionally does not scan for the lexicographically latest result.
+Every source below is a named, reviewed protocol artifact. External paper rows
+are descriptive point comparisons unless the report explicitly contains paired
+predictions and a preregistered test.
+"""
 import argparse
 import glob
 import json
-import os
+from pathlib import Path
 
-SUITE = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-SUMMARY_DIR = os.path.join(SUITE, "results") if os.path.exists(os.path.join(SUITE, "results", "all-v2.summary.json")) else os.path.join(SUITE, "results-summary")
+ROOT = Path(__file__).resolve().parents[1]
+SUMMARY = ROOT / "results-summary"
+REPORTS = ROOT / "reports"
+
 
 def read_json(path):
-    with open(path, encoding="utf-8") as handle:
+    with Path(path).open(encoding="utf-8") as handle:
         return json.load(handle)
 
-registry = read_json(os.path.join(SUITE, "reports", "BASELINES.json"))
+
+registry = read_json(REPORTS / "BASELINES.json")
 BASE = {row["id"]: row for row in registry["baselines"]}
 
-def value(baseline_id):
-    return BASE[baseline_id]["value"]
 
-def build_published():
-    imhi = BASE["imhi-weighted-f1"]["subtasks"]
-    out = {}
-    for subtask, row in imhi.items():
-        key = "imhi-" + subtask.lower()
-        out[key] = [
-            ("ChatGPT-zs", "zsllm", row["chatgpt_zs"]),
-            ("MentaLLaMA-13B", "domainllm", row["mentallama13b"]),
-            (row["best_finetuned"]["name"] + "-ft", "finetuned", row["best_finetuned"]["value"]),
-        ]
-    out.update({
-        "cpsyexam": [
-            ("ChatGPT mixed-best-of", "mixed", value("cpsyexam-chatgpt-avg")),
-            ("GPT-4 strict-zs derived", "zsllm", value("cpsyexam-gpt4-zeroshot-weighted")),
-        ],
-        "psysuicide": [
-            ("majority", "baseline", value("psysuicide-majority")),
-            ("GPT-4-preview-zs", "zsllm", value("psysuicide-gpt4-preview-acc")),
-            ("RoBERTa-large-ft", "finetuned", value("psysuicide-roberta-large-acc")),
-        ],
-        "mentalmanip": [
-            ("majority", "baseline", value("mentalmanip-majority")),
-            ("GPT-4-Turbo-zs", "zsllm", value("mentalmanip-gpt4turbo")),
-            ("RoBERTa-base-ft", "finetuned", value("mentalmanip-roberta-base")),
-            ("Llama-2-13B-ft", "finetuned", value("mentalmanip-llama2-13b")),
-        ],
-        "eatd-depression": [],  # published F1 is not comparable to this script's accuracy
+def baseline(baseline_id):
+    return BASE[baseline_id]
+
+
+def percent(value):
+    return float(value) * 100
+
+
+def add_comparison(rows, *, task, protocol, n, metric, score, baseline_id,
+                   model, evidence, note=""):
+    ref = baseline(baseline_id)
+    normalized_result_metric = metric.lower().replace("accuracy", "acc").replace("-", "")
+    normalized_reference_metric = ref["metric"].lower().replace("accuracy", "acc").replace("-", "")
+    if normalized_result_metric not in normalized_reference_metric:
+        raise ValueError(
+            f"metric mismatch for {task}: result={metric!r}, "
+            f"baseline={ref['metric']!r}"
+        )
+    if not isinstance(ref["value"], (int, float)):
+        raise ValueError(f"baseline {baseline_id} is not a scalar point estimate")
+    rows.append({
+        "task": task,
+        "protocol": protocol,
+        "n": int(n),
+        "metric": metric,
+        "score": float(score),
+        "model": model,
+        "comparator": ref["method"],
+        "comparator_score": float(ref["value"]),
+        "comparator_scope": ref["scope"],
+        "delta_pp": float(score) - float(ref["value"]),
+        "evidence": evidence,
+        "note": note,
     })
-    return out
 
-REFERENCE_POINTS = build_published()
-IMHI_F1 = {task for task in REFERENCE_POINTS if task.startswith("imhi-")} | {"psysuicide"}
-allv2 = {row["task"]: row for row in read_json(os.path.join(SUMMARY_DIR, "all-v2.summary.json"))}
 
-def numeric(task, model):
-    if model == "chat":
-        data = allv2.get(task)
-    else:
-        candidates = sorted(glob.glob(os.path.join(SUMMARY_DIR, f"{task}-deepseek-reasoner-*.summary.json")))
-        data = read_json(candidates[-1]) if candidates else None
-    if not data:
-        return None
-    metric_name = "wF1" if task in IMHI_F1 and data.get("weightedF1") is not None else "acc"
-    metric = data["weightedF1"] * 100 if metric_name == "wF1" else data["accuracy"] * 100
-    return metric, metric_name, data["n"]
+def current_rows():
+    rows = []
 
-def emo(task, model):
-    path = os.path.join(SUMMARY_DIR, f"deepseek-{model}-{task}.summary.json")
-    if not os.path.exists(path):
-        return None
-    return read_json(path)["combined"]["accuracy"] * 100
+    # CPsyExam: the full 3,902-item paired V4 artifact supersedes the 599-item pilot.
+    cpsy = read_json(SUMMARY / "cpsyexam-v4-full-paired.summary.json")
+    pro = cpsy["arms"]["v4_pro"]
+    if pro["requested_models"] != ["deepseek-v4-pro"] or pro["rows"] != 3902:
+        raise ValueError("unexpected CPsyExam V4 Pro identity or denominator")
+    add_comparison(
+        rows,
+        task="cpsyexam",
+        protocol="full-paired-v4",
+        n=pro["rows"],
+        metric="accuracy",
+        score=100 * pro["correct"] / pro["rows"],
+        baseline_id="cpsyexam-gpt4-zeroshot-weighted",
+        model="deepseek-v4-pro",
+        evidence="internal Pro-vs-Flash claim is paired; paper comparison is cross-protocol descriptive",
+        note="599-item pilot excluded; GPT-4 value is a derived strict-zero-shot weighted mean",
+    )
+
+    # EmoBench: exact current V4 Pro deterministic proxy, not the older chat/reasoner files.
+    emo = read_json(SUMMARY / "v4-pro-pilot-terminal.audit.json")
+    if emo.get("model") != "deepseek-v4-pro":
+        raise ValueError("unexpected EmoBench V4 Pro identity")
+    for key, baseline_id, task in (
+        ("emobench_ea", "emobench-ea-gpt4-mean", "emobench-ea"),
+        ("emobench_eu", "emobench-eu-gpt4-mean", "emobench-eu"),
+    ):
+        result = emo[key]
+        if result["n"] != 400:
+            raise ValueError(f"{task} is not the full 400-item proxy")
+        add_comparison(
+            rows,
+            task=task,
+            protocol="temp0-single-proxy",
+            n=result["n"],
+            metric="accuracy",
+            score=percent(result["accuracy"]),
+            baseline_id=baseline_id,
+            model="deepseek-v4-pro",
+            evidence="cross-protocol descriptive",
+            note="paper uses repeated sampling and option permutations; comparator is paper en/zh mean",
+        )
+
+    # PsySUICIDE: use the preregistered official-test candidate, with same-metric
+    # paper references. Accuracy and macro-F1 are deliberately separate rows.
+    psy = read_json(REPORTS / "psytest-20260728-confirmatory-analysis.json")
+    candidate = psy["candidate"]
+    if (
+        psy["scope"] != "one frozen paired PsySUICIDE official test campaign"
+        or candidate["model"] != "deepseek-v4-pro"
+        or candidate["rows"] != 1464
+    ):
+        raise ValueError("unexpected PsySUICIDE confirmation identity or denominator")
+    add_comparison(
+        rows,
+        task="psysuicide",
+        protocol="official-test-taxonomy",
+        n=candidate["rows"],
+        metric="accuracy",
+        score=percent(candidate["accuracy"]),
+        baseline_id="psysuicide-gpt4-preview-acc",
+        model=candidate["model"],
+        evidence="cross-protocol descriptive",
+        note="same metric; paper baseline has no row-level predictions for a paired test",
+    )
+    add_comparison(
+        rows,
+        task="psysuicide",
+        protocol="official-test-taxonomy",
+        n=candidate["rows"],
+        metric="accuracy",
+        score=percent(candidate["accuracy"]),
+        baseline_id="psysuicide-roberta-large-acc",
+        model=candidate["model"],
+        evidence="cross-protocol descriptive",
+        note="zero-shot prompted model versus supervised fine-tuned classifier",
+    )
+    add_comparison(
+        rows,
+        task="psysuicide",
+        protocol="official-test-taxonomy",
+        n=candidate["rows"],
+        metric="macro-F1",
+        score=percent(candidate["macro_f1"]),
+        baseline_id="psysuicide-roberta-large-macrof1",
+        model=candidate["model"],
+        evidence="cross-protocol descriptive",
+        note="primary metric matched; supervised fine-tuned comparator",
+    )
+
+    # IMHI: v3u is the only uniform, non-selective prompt protocol. Take the
+    # reported best arm within that already-declared protocol, never v1/v2/v3.
+    imhi_registry = baseline("imhi-weighted-f1")["subtasks"]
+    for subtask, published in imhi_registry.items():
+        task = f"imhi-{subtask.lower()}"
+        candidates = []
+        for path in sorted(glob.glob(str(SUMMARY / f"{task}-*-v3u.summary.json"))):
+            data = read_json(path)
+            api_models = data.get("api_models", [])
+            if api_models != ["deepseek-v4-flash"]:
+                raise ValueError(f"{path}: unverified IMHI response model identity")
+            if data.get("errors") != 0:
+                raise ValueError(f"{path}: IMHI v3u contains API errors")
+            candidates.append((data["weightedF1"], data, Path(path).name))
+        if not candidates:
+            raise ValueError(f"missing uniform v3u result for {task}")
+        _, result, source_name = max(candidates, key=lambda row: row[0])
+        for method, scope, score in (
+            ("ChatGPT", "zero-shot", published["chatgpt_zs"]),
+            ("MentaLLaMA-chat-13B", "domain-llm", published["mentallama13b"]),
+            (published["best_finetuned"]["name"], "fine-tuned",
+             published["best_finetuned"]["value"]),
+        ):
+            rows.append({
+                "task": task,
+                "protocol": "uniform-v3u-reported-best-arm",
+                "n": int(result["n"]),
+                "metric": "weighted-F1",
+                "score": percent(result["weightedF1"]),
+                "model": "deepseek-v4-flash",
+                "comparator": method,
+                "comparator_score": float(score),
+                "comparator_scope": scope,
+                "delta_pp": percent(result["weightedF1"]) - float(score),
+                "evidence": "cross-protocol descriptive",
+                "note": f"9/10 paper test-set subset; source={source_name}",
+            })
+
+    return rows
+
 
 def selftest():
     required = {
-        "cpsyexam-gpt4-zeroshot-weighted", "emobench-ea-gpt4-mean", "emobench-eu-gpt4-mean",
-        "psysuicide-majority", "mentalmanip-majority", "imhi-weighted-f1",
+        "cpsyexam-gpt4-zeroshot-weighted",
+        "emobench-ea-gpt4-mean",
+        "emobench-eu-gpt4-mean",
+        "psysuicide-gpt4-preview-acc",
+        "psysuicide-roberta-large-acc",
+        "psysuicide-roberta-large-macrof1",
+        "imhi-weighted-f1",
     }
     missing = sorted(required - BASE.keys())
     if missing:
         raise SystemExit(f"missing baseline ids: {missing}")
-    if len(allv2) != 19:
-        raise SystemExit(f"expected 19 all-v2 summaries, got {len(allv2)}")
-    print(f"scoreboard selftest PASS: baselines={len(BASE)}, summaries={len(allv2)}, source={SUMMARY_DIR}")
+    rows = current_rows()
+    if len(rows) != 33:
+        raise SystemExit(f"expected 33 metric-matched comparison rows, got {len(rows)}")
+    if any(row["metric"] == "weighted-F1" and row["task"] == "psysuicide" for row in rows):
+        raise SystemExit("PsySUICIDE weighted-F1 must not be compared with an accuracy baseline")
+    imhi = [row for row in rows if row["task"].startswith("imhi-")]
+    scopes = {row["comparator_scope"] for row in imhi}
+    if scopes != {"zero-shot", "domain-llm", "fine-tuned"}:
+        raise SystemExit(f"IMHI comparator scopes are incomplete: {scopes}")
+    print(
+        "scoreboard selftest PASS: pinned current artifacts, full denominators, "
+        "same-metric comparisons, IMHI uniform-v3u only"
+    )
+
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--selftest", action="store_true")
+    parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     if args.selftest:
         selftest()
         return
 
-    print("# 被测模型 vs 公开参考点（chat=非思考，reasoner=思考）\n")
-    print("只比较已记录的点估计；不代表统计显著，采样、提示和协议差异须回到对应报告核对。\n")
-    print(f"{'task':16s}{'chat':>7s}{'reas':>7s}{'best':>7s}{'cfg':>6s}{'metric':>7s} | 描述性参考差值")
-    print("-" * 108)
-    above, below = [], []
+    rows = current_rows()
+    if args.json:
+        print(json.dumps(rows, ensure_ascii=False, indent=2))
+        return
 
-    def evaluate(task, label=None):
-        chat, reasoner = numeric(task, "chat"), numeric(task, "reasoner")
-        if not chat and not reasoner:
-            return
-        chat_value = chat[0] if chat else None
-        reasoner_value = reasoner[0] if reasoner else None
-        metric_name = (chat or reasoner)[1]
-        best = max(value for value in (chat_value, reasoner_value) if value is not None)
-        config = "reas" if reasoner_value is not None and reasoner_value == best else "chat"
-        fair = [row for row in REFERENCE_POINTS.get(task, []) if row[1] in ("zsllm", "domainllm", "baseline")]
-        finetuned = [row for row in REFERENCE_POINTS.get(task, []) if row[1] == "finetuned"]
-        fair_best = max(fair, key=lambda row: row[2]) if fair else None
-        ft_best = max(finetuned, key=lambda row: row[2]) if finetuned else None
-        if fair_best and best >= fair_best[2]:
-            verdict = f"点估计高于 {fair_best[0]}={fair_best[2]:.1f} (Δ{best-fair_best[2]:+.1f})"
-            if ft_best and best < ft_best[2]: verdict += f"；仍低于微调 {ft_best[2]:.1f}"
-            above.append(task)
-        elif fair_best:
-            verdict = f"点估计低于 {fair_best[0]}={fair_best[2]:.1f} (Δ{best-fair_best[2]:+.1f})"
-            below.append(task)
-        else:
-            verdict = "无同指标公开参考，不判高低"
-        cstr = f"{chat_value:6.1f}" if chat_value is not None else "   -  "
-        rstr = f"{reasoner_value:6.1f}" if reasoner_value is not None else "   -  "
-        print(f"{(label or task):16s}{cstr}{rstr}{best:7.1f}{config:>6s}{metric_name:>7s} | {verdict}")
+    print("# 当前证据 scoreboard（固定聚合资产；同指标比较）\n")
+    print("所有论文比较均为跨协议点估计；只有各自报告中明确预注册且有逐行配对的内部模型比较可以作显著性结论。\n")
+    print(f"{'task':17s} {'protocol':27s} {'n':>5s} {'metric':>11s} {'ours':>7s} {'reference(scope)':34s} {'delta':>8s}")
+    print("-" * 122)
+    for row in rows:
+        reference = f"{row['comparator']}({row['comparator_scope']})"
+        print(
+            f"{row['task']:17.17s} {row['protocol']:27.27s} {row['n']:5d} "
+            f"{row['metric']:>11.11s} {row['score']:7.2f} "
+            f"{reference:34.34s} {row['delta_pp']:+7.2f}pp"
+        )
 
-    for task in ("EA", "EU"):
-        chat, reasoner = emo(task, "chat"), emo(task, "reasoner")
-        if chat is None and reasoner is None:
-            continue
-        best = max(value for value in (chat, reasoner) if value is not None)
-        config = "reas" if reasoner is not None and reasoner == best else "chat"
-        baseline_id = "emobench-ea-gpt4-mean" if task == "EA" else "emobench-eu-gpt4-mean"
-        gpt4 = value(baseline_id)
-        relation = "高于" if best >= gpt4 else "低于"
-        verdict = f"点估计{relation} GPT-4论文中英均值={gpt4:.1f} (Δ{best-gpt4:+.1f})"
-        (above if best >= gpt4 else below).append("emobench-" + task.lower())
-        print(f"{'emobench-'+task.lower():16s}{chat or 0:6.1f}{reasoner or 0:6.1f}{best:7.1f}{config:>6s}{'acc':>7s} | {verdict}")
-
-    for task in ["cpsyexam", "imhi-dr", "imhi-dreaddit", "imhi-loneliness", "imhi-irf", "imhi-multiwd",
-                 "imhi-sad", "imhi-cams", "imhi-swmh", "imhi-t-sid", "psysuicide", "mentalmanip", "eatd-depression"]:
-        evaluate(task)
+    imhi = [row for row in rows if row["task"].startswith("imhi-")]
+    counts = {}
+    for scope in ("zero-shot", "domain-llm", "fine-tuned"):
+        subset = [row for row in imhi if row["comparator_scope"] == scope]
+        counts[scope] = sum(row["delta_pp"] > 0 for row in subset)
     print(
-        f"\n点估计高于参考：{len(above)}；低于参考：{len(below)}。"
-        "这是描述性盘点，不是显著性检验或跨协议胜负。数值来源：reports/BASELINES.json"
+        "\nIMHI uniform-v3u 9/10 子集的描述性点值："
+        f"{counts['zero-shot']}/9 高于 ChatGPT zero-shot，"
+        f"{counts['domain-llm']}/9 高于 MentaLLaMA-13B，"
+        f"{counts['fine-tuned']}/9 高于 fine-tuned 判别式。"
     )
+    print(
+        "PsySUICIDE：accuracy 比 GPT-4-preview zero-shot 高，但 accuracy 与 macro-F1 "
+        "仍低于 RoBERTa-large fine-tuned；未把 weighted-F1 错配到 accuracy。"
+    )
+
 
 if __name__ == "__main__":
     main()
