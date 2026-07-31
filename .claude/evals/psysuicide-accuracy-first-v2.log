@@ -59,3 +59,14 @@ Expected blocking result:
 - NOT CLAIMED: v2 accuracy improvement, holdout improvement, another benchmark improvement, or deployment benefit
 
 Status: PROTOCOL_CODE_PREPARED / DATA_BOUNDARY_BLOCKED / NO_V2_METRICS
+
+AUTHORIZED ONE-TIME EXPORT PRE-EXECUTION — 2026-07-31
+- PASS: explicit user authorization received for one audited optimization-only export
+- PASS: exporter dry-run completed without opening the supplied source/output paths
+- PASS: exporter synthetic selftest passed under normal Python and python -O
+- PASS: source SHA, frozen partition algorithm, three partition commitments,
+  exact counts, strict three-field output, 0600 files, and no-overwrite gates are coded
+- PASS: a private O_EXCL-style claim is created before the licensed source is read;
+  a failed attempt cannot silently retry
+- PENDING: exporter code must be committed, pushed, and remote-SHA verified before execution
+- NOT RUN: licensed source read or optimization artifact creation

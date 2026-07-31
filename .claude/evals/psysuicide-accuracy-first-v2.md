@@ -26,6 +26,26 @@ claiming that one task-specific model improves any other benchmark.
 
 ## Capability evals
 
+### Authorized one-time optimization export
+
+- [ ] Export is dry-run by default and dry-run opens neither the licensed train
+      file nor any valid/test file.
+- [ ] Execution requires an explicit one-time authorization flag, the exact
+      frozen source-file SHA-256, and the already committed v1 partition
+      algorithm and seed.
+- [ ] The exporter necessarily parses the authorized full train bytes once but
+      never creates a separate holdout-row collection and never writes, prints,
+      tokenizes, scores, or returns holdout rows; only their aggregate count and
+      digest commitment may be recomputed for source-partition verification.
+- [ ] The only row-level output contains exactly the 9,342 optimization rows
+      with fields `idx`, `labels`, and `text`; its commitment must equal
+      `0c3cbf98db02c609d500b4f9ef9bf95518b617bd4dffd1f4cde8a5c5e85a8dd9`.
+- [ ] Output and one-time receipt are repository-external, permission `0600`,
+      created without overwrite, and never displayed or added to Git.
+- [ ] The receipt and public audit contain only counts, commitments, file
+      hashes, code/Git identity, UTC time, and basenames—never text, row IDs,
+      membership, local absolute paths, or secrets.
+
 - [ ] The trainer accepts only a repository-external, permission-`0600`,
       optimization-only file. It cannot accept a dataset root or reconstruct
       optimization by opening the licensed full train file.
