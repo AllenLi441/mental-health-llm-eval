@@ -160,6 +160,32 @@ prediction 与 logits 均未持久化。这个证据只证明本 scorer ledger n
 一次 claim，不能证明不存在绕过工具的历史访问，也不能用于显著胜出、统计平手或等价结论。
 <!-- SUPERVISED_RESULT_END -->
 
+### Accuracy-first v2 冻结状态（2026-07-31）
+
+v2 没有回看或重复评分 v1 已消费的 frozen holdout，也没有使用 official valid/test 调参。
+在一次明确授权下，固定 exporter 对既有 full-train 文件做了一次内容读取和分区复现：源文件
+SHA-256、11,671 条保留行、9,342 条 optimization、2,329 条 holdout 以及三套 commitment
+均与 Stage A 公开承诺精确一致。只有 optimization 行被写到仓库外 `0600` 文件；holdout
+没有形成单独的行集合或输出，公开仓库只保存聚合审计。
+
+optimization-only 文件随后确定性冻结为：
+
+| v2 分区 | 行数 | commitment SHA-256 |
+|---|---:|---|
+| inner-train | 7,479 | `bb14eb605af3655fd951c9e59c51536e979330b814c6982efed09c8db4ebf1c8` |
+| inner-dev | 1,863 | `b229ae62d034ca2926ae8e0b8cd00f4aed18493422432a08ab38b7b52b7b75d7` |
+
+两者 row-digest 重叠为 0，11 个 inner-dev 标签分层 commitment 已写入最终预注册。最终
+协议保持四个固定臂：自然采样+CE、加权采样+CE、自然采样+weighted focal、加权采样+
+weighted focal；10 epochs、逐 epoch 验证并按未舍入 accuracy 保存最佳 checkpoint。
+
+此处完成的是数据边界和预注册冻结，不是模型效果。当前尚未运行 code smoke、Seed 42
+四臂 screen 或 Seeds 43/44/45 confirmation，因此不能宣称 v2 提高了 accuracy、macro-F1、
+其他 benchmark 或静室路由。公开证据为
+`reports/psysuicide-roberta-v2-optimization-export.audit.json`、
+`reports/psysuicide-roberta-v2-accuracy-first.split-freeze.json` 与
+`reports/psysuicide-roberta-v2-accuracy-first.prereg.json`。
+
 ## 7. 现在该怎么继续
 
 优先级不是再同时发散多个 prompt，而是按证据分层：

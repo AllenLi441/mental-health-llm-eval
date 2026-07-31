@@ -65,10 +65,12 @@ PsySUICIDE 是本套件第一个强制切分隔离的优化模块。第一轮提
 监督 v1 已按预注册完成三随机种子和一次性内部 holdout 评分；其结果只属于内部
 PsySUICIDE 单标签分类证据。Accuracy-first v2 在独立分支中采用“先从 9,342 条
 optimization 再冻结 7,479/1,863 inner-train/inner-dev”的新协议，禁止读取 official
-valid/test 或已消费的内部 holdout。当前只完成不可执行的预注册草案、
-optimization-only 训练器和确定性的筛选/配对 bootstrap 分析器自测；本地尚无可验证的
-optimization-only 私有输入，因此 `training_allowed=false`，没有 v2 smoke、四臂或
-准确率结果。真实状态与下一门禁见
+valid/test 或已消费的内部 holdout。经一次明确授权，导出器只对冻结 full-train 字节做了
+一次分区复现，写出 9,342 条 optimization；2,329 条 holdout 只保留聚合数量与承诺，
+没有单独收集或写出 holdout 行。随后已冻结 7,479/1,863 的 train/inner-dev 承诺与最终
+预注册，`training_allowed=true` 只表示推送并通过运行时门禁后允许开始预注册实验，
+不代表已有 v2 分数。当前仍没有 v2 smoke、四臂 screen、确认性准确率结果或部署证据。
+公开导出审计、split freeze 与真实状态见
 `reports/model_optimization_accuracy_first_v2_20260731.md`。
 
 验证集由一个默认 dry-run 的编排器执行。下面第一条只打印 4 个 smoke 臂、调用量和保守预算，

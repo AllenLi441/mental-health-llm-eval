@@ -80,3 +80,27 @@ AUTHORIZED ONE-TIME EXPORT PRE-EXECUTION — 2026-07-31
   verified before the global claim and source read
 - PENDING: exporter code must be committed, pushed, and remote-SHA verified before execution
 - NOT RUN: licensed source read or optimization artifact creation
+
+AUTHORIZED ONE-TIME EXPORT AND SPLIT FREEZE — 2026-07-31
+- PASS: hardened exporter commit 66cab405cdae2019c9542e2f968b9bc60e4f6a01
+  matched local HEAD, upstream, live origin, and Draft PR #4 before execution
+- PASS: the per-account global claim was created once with permission 0600
+- PASS: source SHA, all/optimization/holdout commitments, exact counts, and all
+  11 per-label counts reproduced the previously frozen Stage A values
+- PASS: exactly 9,342 optimization rows were written repository-external with
+  permission 0600 and exact readback verification
+- PASS: no separate holdout-row collection or output was created; only aggregate
+  holdout counts and commitment were retained publicly
+- PASS: private receipt is permission 0600; public audit is aggregate-only
+- PASS: optimization-only split freeze produced 7,479 train and 1,863 inner-dev
+  rows, zero digest overlap, and exact whole/per-label commitments
+- PASS: final preregistration changes 18 allowed machine fields plus 3
+  contract-excluded status-note values, preserves key order, and retains
+  protocol contract SHA-256
+  7ee7688f630eca9339ea02be1d374784a434ff8a348740eb12811ebcb6dda4fa
+- PASS: 25/25 offline public regression commands passed with no API, model
+  download, or external dataset access
+- PASS: all 7 public commit candidates passed secrets/raw-row/local-path/
+  prediction/logit/weight boundary scans; private artifacts remain untracked
+- NOT RUN: model smoke, four-arm Seed-42 screen, Seeds 43/44/45 confirmation
+- NOT CLAIMED: v2 accuracy improvement, cross-benchmark improvement, or deployment benefit

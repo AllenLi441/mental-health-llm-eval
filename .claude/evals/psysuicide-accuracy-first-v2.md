@@ -28,39 +28,39 @@ claiming that one task-specific model improves any other benchmark.
 
 ### Authorized one-time optimization export
 
-- [ ] Export is dry-run by default and dry-run opens neither the licensed train
+- [x] Export is dry-run by default and dry-run opens neither the licensed train
       file nor any valid/test file.
-- [ ] Execution requires an explicit one-time authorization flag, the exact
+- [x] Execution requires an explicit one-time authorization flag, the exact
       frozen source-file SHA-256, and the already committed v1 partition
       algorithm and seed.
-- [ ] The exporter necessarily parses the authorized full train bytes once but
+- [x] The exporter necessarily parses the authorized full train bytes once but
       never creates a separate holdout-row collection and never writes, prints,
       tokenizes, scores, or returns holdout rows; only their aggregate count and
       digest commitment may be recomputed for source-partition verification.
-- [ ] The only row-level output contains exactly the 9,342 optimization rows
+- [x] The only row-level output contains exactly the 9,342 optimization rows
       with fields `idx`, `labels`, and `text`; its commitment must equal
       `0c3cbf98db02c609d500b4f9ef9bf95518b617bd4dffd1f4cde8a5c5e85a8dd9`.
-- [ ] Output and one-time receipt are repository-external, permission `0600`,
+- [x] Output and one-time receipt are repository-external, permission `0600`,
       created without overwrite, and never displayed or added to Git.
-- [ ] A fixed per-account machine-global claim path, independent of checkout,
+- [x] A fixed per-account machine-global claim path, independent of checkout,
       environment-home, and every CLI source/output value, is atomically created
       before the first source-content read and persists after any failed attempt;
       a second or concurrent attempt must fail closed.
-- [ ] Private output basenames are fixed safe constants, and claim, optimization
+- [x] Private output basenames are fixed safe constants, and claim, optimization
       output, receipt, and public audit are read back with no symlink following,
       exact permissions, stable file identity, and byte/hash verification.
-- [ ] The receipt and public audit contain only counts, commitments, file
+- [x] The receipt and public audit contain only counts, commitments, file
       hashes, code/Git identity, UTC time, and basenames—never text, row IDs,
       membership, local absolute paths, or secrets.
 
-- [ ] The trainer accepts only a repository-external, permission-`0600`,
+- [x] The trainer accepts only a repository-external, permission-`0600`,
       optimization-only file. It cannot accept a dataset root or reconstruct
       optimization by opening the licensed full train file.
-- [ ] A split-freeze mode reads only that verified optimization-only file and
+- [x] A split-freeze mode reads only that verified optimization-only file and
       emits counts and cryptographic commitments, never row content.
-- [ ] The inner split is deterministic, label-stratified, mutation-sensitive,
+- [x] The inner split is deterministic, label-stratified, mutation-sensitive,
       and has no row-digest overlap between train and inner-dev.
-- [ ] The trainer never opens official `valid.json` or `test.json` and never
+- [x] The trainer never opens official `valid.json` or `test.json` and never
       returns, tokenizes, samples, or scores the frozen internal holdout.
 - [ ] Execution is dry-run by default and requires an exact committed
       preregistration whose trainer SHA-256 matches the executing bytes.
@@ -145,8 +145,8 @@ claiming that one task-specific model improves any other benchmark.
 - [x] Synthetic confirmation recomputes the screen winner and validates the
       paired six-run identity before the fixed hierarchical bootstrap.
 - [x] Existing public repository regression selftests pass.
-- [ ] No real split freeze, smoke, screen, confirmation, or accuracy claim is
-      complete while the verified optimization-only input is absent.
+- [x] Real optimization-only export and split freeze are complete; no smoke,
+      screen, confirmation, or accuracy claim is complete yet.
 
 ## Human review required
 
