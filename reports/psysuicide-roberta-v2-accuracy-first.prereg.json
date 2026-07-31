@@ -20,10 +20,10 @@
   },
   "implementation": {
     "trainer_script": "scripts/train_psysuicide_roberta_accuracy_v2.py",
-    "trainer_sha256": "5ee851780c9c9af27397e6e2cb8645a7a6d854c2b092354b52fa6309085bf34a",
+    "trainer_sha256": "b50bdf1733220f8b0e46ca0b6b5d00852124e756ce43fc8128d3bcae545ec97d",
     "analyzer_script": "scripts/analyze_psysuicide_roberta_accuracy_v2.py",
     "analyzer_sha256": "e8d09c5825b555f42d9f78cf8abb4394c75b43f10c320513548d3ada02b191c2",
-    "execution_base_commit": "bc5082cf30e80b6ddf4a12c83a5a133501f23796",
+    "execution_base_commit": "b4dc2b8e1d884bcbad4b13a007d4b68d9ffc3217",
     "base_model": "hfl/chinese-roberta-wwm-ext-large",
     "base_model_revision": "a25cc9e05974bd9687e528edd516f2cfdb3f5db9",
     "base_model_manifest": "reports/psysuicide-roberta-v1-base-model-manifest.json",
