@@ -1,0 +1,61 @@
+EVAL REPORT: PsySUICIDE accuracy-first supervised v2 protocol/code base
+Date: 2026-07-31
+Scope: implementation integrity only; no licensed rows or model metrics opened
+
+Protocol boundary:
+- PASS: draft status remains PARTITION_FREEZE_PENDING
+- PASS: training_allowed remains false
+- PASS: trainer is dry-run by default
+- PASS: metric execution requires a final tracked, clean, pushed preregistration
+- PASS: only a repository-external permission-0600 optimization-only file is accepted
+- PASS: full train, valid, test, holdout, dataset-root, symlink, and repository paths are rejected
+- PASS: source rows must contain exactly idx, labels, and text
+- PASS: expected row count, label counts, and optimization commitment are exact
+- PASS: deterministic 7479/1863 inner split emits aggregate commitments only
+- PASS: whole and 11 per-label inner-dev commitments bind diagnostics to frozen gold strata
+
+Trainer/analyzer integrity:
+- PASS: fixed A/B/C/D imbalance-treatment arms
+- PASS: 10-epoch, per-epoch evaluation/save, unrounded accuracy checkpoint selection
+- PASS: Seed-42 screen and fresh Seeds 43/44/45 confirmation declarations
+- PASS: complete checkpoint marker validates exact files, resume state, model weights, sizes, and hashes
+- PASS: resume identity binds split, code, preregistration, base model, software, device, and remote Git state
+- PASS: safe run-ID containment and Git-ignore gates
+- PASS: private diagnostics validate exact fields, shapes, probabilities, confusion, metrics, calibration, and commitments
+- PASS: screen recomputes all four aggregate metrics from private diagnostics and binds their hashes
+- PASS: confirmation recomputes the frozen screen decision before accepting challenger/control runs
+- PASS: fixed paired hierarchical bootstrap and all prespecified decision gates
+- PASS: public analyzer artifacts exclude rows, text, source IDs, logits, labels, predictions, and confusion
+
+Direct tests:
+- PASS: Python compilation for both new scripts
+- PASS: trainer selftest under normal Python
+- PASS: trainer selftest under python -O
+- PASS: analyzer selftest under normal Python
+- PASS: analyzer selftest under python -O
+- PASS: digest-set mutation rejection
+- PASS: same digest-set with cross-label digest remapping rejection
+- PASS: incomplete or extra-file checkpoint marker rejection
+- PASS: hand-edited screen-selection rejection
+- PASS: independent final code review found no known P0/P1/P2 blocker
+
+Repository regression:
+- PASS: standalone 19/19 task prompt/parser selftests
+- PASS: aggregate audit, 76 summary files and overview=19
+- PASS: scoreboard, 19 pinned summaries
+- PASS: baseline registry, 22 unique entries
+- PASS: harness safety
+- PASS: PsySUICIDE protocol, matrix, paired analyzer, v2 partition, v2 matrix,
+  v2 analyzer, v1 RoBERTa trainer/reporter/holdout-scorer selftests
+- PASS: EmoBench standalone and paper-protocol selftests
+- PASS: IMHI uniform v4 matrix, nine tasks and two fixed arms
+
+Expected blocking result:
+- BLOCKED: no verified optimization-only private artifact is present
+- NOT RUN: real split freeze
+- NOT RUN: code smoke
+- NOT RUN: four-arm Seed-42 screen
+- NOT RUN: Seeds 43/44/45 confirmation
+- NOT CLAIMED: v2 accuracy improvement, holdout improvement, another benchmark improvement, or deployment benefit
+
+Status: PROTOCOL_CODE_PREPARED / DATA_BOUNDARY_BLOCKED / NO_V2_METRICS

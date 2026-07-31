@@ -31,6 +31,8 @@ python3 scripts/analyze_psysuicide_v2_valid.py --selftest
 python3 scripts/train_psysuicide_roberta.py --selftest
 python3 scripts/report_psysuicide_roberta.py --selftest
 python3 scripts/score_psysuicide_roberta_holdout.py --selftest
+python3 scripts/train_psysuicide_roberta_accuracy_v2.py --selftest
+python3 scripts/analyze_psysuicide_roberta_accuracy_v2.py --selftest
 node scripts/run_imhi_uniform_v4_matrix.mjs --selftest
 ```
 
@@ -59,6 +61,15 @@ PsySUICIDE 是本套件第一个强制切分隔离的优化模块。第一轮提
 - `taxonomy-v2`：加入更细的相邻类别决策边界；完整 valid 结果证明它发生回退，已拒绝。
 - `fewshot-balanced`：只从 optimization partition 检索每类示例；same-50 smoke 后因效果与成本
   门槛未通过而停止，没有进入完整 valid。
+
+监督 v1 已按预注册完成三随机种子和一次性内部 holdout 评分；其结果只属于内部
+PsySUICIDE 单标签分类证据。Accuracy-first v2 在独立分支中采用“先从 9,342 条
+optimization 再冻结 7,479/1,863 inner-train/inner-dev”的新协议，禁止读取 official
+valid/test 或已消费的内部 holdout。当前只完成不可执行的预注册草案、
+optimization-only 训练器和确定性的筛选/配对 bootstrap 分析器自测；本地尚无可验证的
+optimization-only 私有输入，因此 `training_allowed=false`，没有 v2 smoke、四臂或
+准确率结果。真实状态与下一门禁见
+`reports/model_optimization_accuracy_first_v2_20260731.md`。
 
 验证集由一个默认 dry-run 的编排器执行。下面第一条只打印 4 个 smoke 臂、调用量和保守预算，
 不会调用 API：
