@@ -179,9 +179,10 @@ optimization-only 文件随后确定性冻结为：
 协议保持四个固定臂：自然采样+CE、加权采样+CE、自然采样+weighted focal、加权采样+
 weighted focal；10 epochs、逐 epoch 验证并按未舍入 accuracy 保存最佳 checkpoint。
 
-此处完成的是数据边界和预注册冻结，不是模型效果。首次 code smoke 已发现并阻断
-Transformers 5 checkpoint LayerNorm 键名兼容问题，尚无通过完整性门禁的 smoke、Seed 42
-四臂 screen 或 Seeds 43/44/45 confirmation，因此不能宣称 v2 提高了 accuracy、macro-F1、
+此处完成的是数据边界、预注册冻结与四臂完整性 smoke，不是模型效果。首次 code smoke
+发现的 Transformers 5 checkpoint LayerNorm 键名兼容问题已修复、重新冻结，并由全新
+run ID 的 A/B/C/D 四臂 smoke 验证；smoke 指标不可用于选择。尚无 Seed 42 四臂 screen 或
+Seeds 43/44/45 confirmation，因此不能宣称 v2 提高了 accuracy、macro-F1、
 其他 benchmark 或静室路由。公开证据为
 `reports/psysuicide-roberta-v2-optimization-export.audit.json`、
 `reports/psysuicide-roberta-v2-accuracy-first.split-freeze.json` 与

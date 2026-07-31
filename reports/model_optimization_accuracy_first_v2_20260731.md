@@ -6,15 +6,18 @@ Stage A is complete and unchanged. The Stage B optimization-only export,
 7,479/1,863 split freeze, and final preregistration are complete and pushed.
 No selection-eligible Stage B metric has been produced.
 
-The current blocker is checkpoint integrity, not data access or compute. A
-first integrity-only Arm-A smoke exposed a Transformers 5.0 compatibility bug:
-the checkpoint saved 49 LayerNorm pairs as legacy `gamma`/`beta`, while Trainer
-best/resume reload expects native `weight`/`bias`. The two-step smoke happened
-to select its final checkpoint, so the LayerNorm values were retained in
-memory rather than randomized; a full run could nevertheless mix different
-epochs or resume with base LayerNorm values. Screen remains blocked until the
-save/load path is fixed, re-frozen, pushed, and all four smoke arms pass under
-a new run ID.
+The checkpoint-integrity blocker discovered by the first Arm-A smoke is fixed.
+The repaired trainer was committed as
+`b4dc2b8e1d884bcbad4b13a007d4b68d9ffc3217`, the trainer identity was re-frozen
+without changing the protocol contract, and refreeze commit
+`5ea50611c677ac3bcfff4a48c5aa67353ac0a9ce` matched local HEAD, upstream, and
+the live remote before replacement smoke. All four replacement smoke arms
+completed under a fresh run ID. Each checkpoint has schema-v2 file integrity,
+393 F32 tensors, 49 native `LayerNorm.weight` keys, 49 native
+`LayerNorm.bias` keys, zero legacy `gamma`/`beta` keys, and a successful strict
+best-checkpoint reload. Smoke metrics are explicitly non-claimable and were
+not used to rank arms. The next eligible computation is the frozen Seed-42
+four-arm screen.
 
 ## Stage A re-audit
 
@@ -122,18 +125,14 @@ improvement. Slow execution alone is not a compute failure.
 
 ## Required next gate
 
-1. Save checkpoints with native parameter names and reject every legacy
-   LayerNorm or key/shape mismatch before writing a completion marker.
-2. Enforce strict best-checkpoint and resume model-state loading.
-3. Commit and push the integrity fix as the new execution base.
-4. Update only the final preregistration trainer SHA and execution-base commit,
-   then commit, push, and re-run the live-remote preflight.
-5. Run all four integrity-only smoke arms under a fresh run ID.
-6. Only after 4/4 smoke passes, start the full Seed-42 four-arm screen.
-7. Only an eligible challenger and D proceed to fresh Seeds 43/44/45.
+1. Run the full Seed-42 four-arm screen with 10 epochs and per-epoch
+   accuracy-best checkpointing.
+2. Recompute the frozen screen decision from all four aggregate and private
+   diagnostic artifacts; smoke metrics are excluded.
+3. Only an eligible challenger and D proceed to fresh Seeds 43/44/45.
 
 The accurate status is:
-`DATA_BOUNDARY_CLOSED / CHECKPOINT_INTEGRITY_FIX_PENDING / NO_SELECTION_METRICS`.
+`DATA_BOUNDARY_CLOSED / SMOKE_INTEGRITY_PASS / SCREEN_NOT_RUN / NO_SELECTION_METRICS`.
 
 ## Deferred work
 
