@@ -42,6 +42,13 @@ claiming that one task-specific model improves any other benchmark.
       `0c3cbf98db02c609d500b4f9ef9bf95518b617bd4dffd1f4cde8a5c5e85a8dd9`.
 - [ ] Output and one-time receipt are repository-external, permission `0600`,
       created without overwrite, and never displayed or added to Git.
+- [ ] A fixed per-account machine-global claim path, independent of checkout,
+      environment-home, and every CLI source/output value, is atomically created
+      before the first source-content read and persists after any failed attempt;
+      a second or concurrent attempt must fail closed.
+- [ ] Private output basenames are fixed safe constants, and claim, optimization
+      output, receipt, and public audit are read back with no symlink following,
+      exact permissions, stable file identity, and byte/hash verification.
 - [ ] The receipt and public audit contain only counts, commitments, file
       hashes, code/Git identity, UTC time, and basenames—never text, row IDs,
       membership, local absolute paths, or secrets.

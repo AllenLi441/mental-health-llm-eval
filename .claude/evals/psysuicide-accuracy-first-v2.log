@@ -66,7 +66,17 @@ AUTHORIZED ONE-TIME EXPORT PRE-EXECUTION — 2026-07-31
 - PASS: exporter synthetic selftest passed under normal Python and python -O
 - PASS: source SHA, frozen partition algorithm, three partition commitments,
   exact counts, strict three-field output, 0600 files, and no-overwrite gates are coded
-- PASS: a private O_EXCL-style claim is created before the licensed source is read;
-  a failed attempt cannot silently retry
+- PASS: a fixed per-account machine-global O_EXCL-style claim, independent of
+  checkout, environment-home, and all CLI path values, is created before the
+  licensed source contents are read; a failed or concurrent attempt cannot
+  silently retry
+- PASS: holdout selection retains only row digests and never creates a
+  holdout-only row/reference slice
+- PASS: fixed safe private basenames prevent terminal/public-artifact injection
+- PASS: claim, optimization output, receipt, and public audit use no-follow,
+  fstat, exact-mode, stable-identity, and byte/hash readback verification
+- PASS: sanitized failure-path test emitted no supplied path or traceback
+- PASS: Stage A ancestry and exact frozen partition-code/commitment bytes are
+  verified before the global claim and source read
 - PENDING: exporter code must be committed, pushed, and remote-SHA verified before execution
 - NOT RUN: licensed source read or optimization artifact creation
