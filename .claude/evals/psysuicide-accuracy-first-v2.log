@@ -104,3 +104,17 @@ AUTHORIZED ONE-TIME EXPORT AND SPLIT FREEZE — 2026-07-31
   prediction/logit/weight boundary scans; private artifacts remain untracked
 - NOT RUN: model smoke, four-arm Seed-42 screen, Seeds 43/44/45 confirmation
 - NOT CLAIMED: v2 accuracy improvement, cross-benchmark improvement, or deployment benefit
+
+CODE SMOKE ATTEMPT 1 — 2026-07-31
+- PASS: Arm A completed its fixed two training steps; its smoke metrics remain
+  integrity-only and are forbidden for selection
+- FAIL-CLOSED: Arms B/C/D stopped before run-directory creation when the live
+  remote SHA check returned a transient git ls-remote error; no model step ran
+- BLOCKER: Transformers 5.0 saved 49 LayerNorm weight/bias pairs as legacy
+  gamma/beta, while Trainer best/resume reload used direct state-dict names
+- VERIFIED IMPACT: the two-step final checkpoint did not randomize LayerNorm,
+  but a non-final best epoch could mix best non-LayerNorm parameters with final
+  LayerNorm parameters, and cross-process resume could retain base LayerNorm
+- DECISION: invalidate attempt 1 as complete smoke evidence; do not start screen
+- NEXT: save native parameter names, bind exact key/shape metadata, enforce
+  strict best/resume load, refreeze trainer SHA, and rerun A/B/C/D under a new run ID

@@ -2,18 +2,19 @@
 
 ## Current verdict
 
-Stage A is complete and unchanged. The Stage B protocol-and-code base is
-prepared and has passed synthetic and repository regression checks, but no
-Stage B model metric has been produced.
+Stage A is complete and unchanged. The Stage B optimization-only export,
+7,479/1,863 split freeze, and final preregistration are complete and pushed.
+No selection-eligible Stage B metric has been produced.
 
-The current blocker is a data-boundary blocker, not a compute blocker: the
-repository and licensed dataset area do not contain a verified
-optimization-only artifact holding the previously committed 9,342 development
-rows. The existing v1 loader can reconstruct those rows only by reopening the
-licensed full train file, which also contains the already-consumed 2,329-row
-frozen holdout. Stage B therefore refuses that loader and does not run smoke,
-screen, or confirmation until an optimization-only input is separately
-established and verified.
+The current blocker is checkpoint integrity, not data access or compute. A
+first integrity-only Arm-A smoke exposed a Transformers 5.0 compatibility bug:
+the checkpoint saved 49 LayerNorm pairs as legacy `gamma`/`beta`, while Trainer
+best/resume reload expects native `weight`/`bias`. The two-step smoke happened
+to select its final checkpoint, so the LayerNorm values were retained in
+memory rather than randomized; a full run could nevertheless mix different
+epochs or resume with base LayerNorm values. Screen remains blocked until the
+save/load path is fixed, re-frozen, pushed, and all four smoke arms pass under
+a new run ID.
 
 ## Stage A re-audit
 
@@ -36,12 +37,11 @@ do not establish superiority, a statistical tie, or equivalence.
 
 ## Predeclared Stage B design
 
-The draft protocol is
-`reports/psysuicide-roberta-v2-accuracy-first.prereg.draft.json`. It remains
-deliberately non-executable:
+The frozen protocol is
+`reports/psysuicide-roberta-v2-accuracy-first.prereg.json`:
 
-- status: `PARTITION_FREEZE_PENDING`;
-- `training_allowed=false`;
+- status: `FROZEN`;
+- `training_allowed=true`, conditional on clean/pushed Git and every runtime gate;
 - accepted source: repository-external permission-`0600` optimization-only
   data;
 - required source: exactly 9,342 unique rows with the already published
@@ -76,12 +76,13 @@ metric, calibration, row-set, and gold-stratum commitments. Hand-edited screen
 selection is rejected because confirmation recomputes it from all four frozen
 Seed-42 aggregate and private-diagnostic artifacts.
 
-The exact inner-train, inner-dev, and per-label inner-dev commitments, final
-trainer/analyzer SHA-256 values, and execution base commit are intentionally
-still pending. They must be frozen, committed, and pushed before any
-metric-producing run. The later final-preregistration HEAD is verified against
-the live remote and recorded in each private run identity; it cannot contain
-its own commit SHA.
+The exact inner-train, inner-dev, and per-label inner-dev commitments were
+frozen before smoke. The final-preregistration commit
+`e24ab737fad3f0ec3f173e25034943a1c76192fb` was pushed and passed the trainer's
+live-remote preflight. Because smoke then found a checkpoint-integrity defect,
+the trainer SHA and execution base must be updated in a new frozen commit before
+the replacement smoke; split, arms, metrics, seeds, and decision rules remain
+unchanged.
 
 ## Verification completed for the protocol-and-code base
 
@@ -97,6 +98,13 @@ its own commit SHA.
   aggregate audit, 19-summary scoreboard, 22-entry baseline registry, harness
   safety, PsySUICIDE matrix/analyzer/trainer/reporter/scorer selftests,
   EmoBench protocol selftests, and the nine-task IMHI matrix selftest.
+- The authorized optimization-only export reproduced the frozen source and all
+  partition commitments; only 9,342 optimization rows were written privately.
+- The split freeze produced 7,479 train and 1,863 inner-dev rows with zero
+  digest overlap and exact whole/per-label commitments.
+- The first Arm-A smoke is retained as failure-discovery evidence only. B/C/D
+  stopped before training because their live-remote preflight transiently
+  failed; none of attempt 1 may be used for selection.
 - These are implementation and integrity checks only. They are not smoke,
   screen, confirmation, or accuracy evidence for v2.
 
@@ -114,20 +122,18 @@ improvement. Slow execution alone is not a compute failure.
 
 ## Required next gate
 
-1. Establish a repository-external, permission-`0600`, optimization-only input
-   without exposing or reusing frozen-holdout membership.
-2. Verify its exact row count, per-label counts, and optimization commitment.
-3. Generate aggregate-only inner-train, inner-dev, and 11 per-label inner-dev
-   commitments.
-4. Insert those commitments plus the final trainer/analyzer SHA-256 values and
-   execution base commit into the final preregistration.
-5. Commit the final preregistration, push it, and
-   verify the live remote SHA.
-6. Run integrity-only smoke, then the full Seed-42 four-arm screen.
+1. Save checkpoints with native parameter names and reject every legacy
+   LayerNorm or key/shape mismatch before writing a completion marker.
+2. Enforce strict best-checkpoint and resume model-state loading.
+3. Commit and push the integrity fix as the new execution base.
+4. Update only the final preregistration trainer SHA and execution-base commit,
+   then commit, push, and re-run the live-remote preflight.
+5. Run all four integrity-only smoke arms under a fresh run ID.
+6. Only after 4/4 smoke passes, start the full Seed-42 four-arm screen.
 7. Only an eligible challenger and D proceed to fresh Seeds 43/44/45.
 
-Until gates 1–5 pass, the accurate status is:
-`PROTOCOL_PREPARED / DATA_BOUNDARY_BLOCKED / NO_V2_METRICS`.
+The accurate status is:
+`DATA_BOUNDARY_CLOSED / CHECKPOINT_INTEGRITY_FIX_PENDING / NO_SELECTION_METRICS`.
 
 ## Deferred work
 

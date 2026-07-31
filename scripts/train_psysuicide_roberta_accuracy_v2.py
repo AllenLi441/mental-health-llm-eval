@@ -413,6 +413,85 @@ def atomic_write_json(path: Path, payload: dict[str, Any], mode: int) -> None:
             os.unlink(temporary)
 
 
+def inspect_safetensors_state(
+    checkpoint_dir: Path,
+) -> tuple[dict[str, Any], dict[str, tuple[tuple[int, ...], str]]]:
+    """Return aggregate key/shape identity without reading tensor values."""
+    from safetensors import safe_open
+
+    weight_files = sorted(checkpoint_dir.glob("*.safetensors"))
+    if len(weight_files) != 1 or weight_files[0].name != "model.safetensors":
+        raise ValueError("checkpoint must contain exactly one model.safetensors file")
+    weight_file = weight_files[0]
+    if weight_file.is_symlink() or not weight_file.is_file():
+        raise ValueError("checkpoint weights must be a regular non-symlink file")
+    shapes: dict[str, tuple[int, ...]] = {}
+    dtypes: dict[str, str] = {}
+    try:
+        with safe_open(str(weight_file), framework="pt", device="cpu") as handle:
+            for key in handle.keys():
+                if key in shapes:
+                    raise ValueError("checkpoint contains a duplicate tensor key")
+                tensor_slice = handle.get_slice(key)
+                shapes[key] = tuple(
+                    int(value) for value in tensor_slice.get_shape()
+                )
+                dtypes[key] = str(tensor_slice.get_dtype())
+    except Exception as error:
+        raise ValueError("checkpoint safetensors metadata is invalid") from error
+    records = [
+        {"key": key, "shape": list(shapes[key]), "dtype": dtypes[key]}
+        for key in sorted(shapes)
+    ]
+    legacy_layernorm = sum(
+        key.endswith("LayerNorm.gamma") or key.endswith("LayerNorm.beta")
+        for key in shapes
+    )
+    manifest = {
+        "schema_version": 1,
+        "format": "safetensors",
+        "weight_files": [weight_file.name],
+        "tensor_count": len(shapes),
+        "key_shape_dtype_commitment_sha256": sha256_bytes(
+            json.dumps(
+                records,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ),
+        "legacy_layernorm_key_count": legacy_layernorm,
+    }
+    specs = {key: (shapes[key], dtypes[key]) for key in shapes}
+    return manifest, specs
+
+
+def validate_checkpoint_model_state(
+    checkpoint_dir: Path,
+    expected_specs: dict[str, tuple[tuple[int, ...], str]],
+) -> dict[str, Any]:
+    manifest, observed_specs = inspect_safetensors_state(checkpoint_dir)
+    if manifest["legacy_layernorm_key_count"] != 0:
+        raise ValueError("legacy LayerNorm gamma/beta checkpoint keys are forbidden")
+    if observed_specs != expected_specs:
+        missing = len(set(expected_specs) - set(observed_specs))
+        unexpected = len(set(observed_specs) - set(expected_specs))
+        shape_mismatch = sum(
+            observed_specs[key][0] != expected_specs[key][0]
+            for key in set(observed_specs) & set(expected_specs)
+        )
+        dtype_mismatch = sum(
+            observed_specs[key][1] != expected_specs[key][1]
+            for key in set(observed_specs) & set(expected_specs)
+        )
+        raise ValueError(
+            "checkpoint model state differs from the live model: "
+            f"missing={missing}, unexpected={unexpected}, "
+            f"shape_mismatch={shape_mismatch}, dtype_mismatch={dtype_mismatch}"
+        )
+    return manifest
+
+
 def build_checkpoint_completion(checkpoint_dir: Path, global_step: int) -> dict[str, Any]:
     required = {
         "optimizer.pt",
@@ -426,26 +505,18 @@ def build_checkpoint_completion(checkpoint_dir: Path, global_step: int) -> dict[
         raise ValueError(
             f"checkpoint is missing resume state: {sorted(required - present)}"
         )
-    model_files = sorted(
-        path
-        for path in checkpoint_dir.iterdir()
-        if path.is_file()
-        and (
-            path.name.endswith(".safetensors")
-            or path.name.startswith("pytorch_model")
-            and path.name.endswith(".bin")
-        )
-    )
-    if not model_files:
-        raise ValueError("checkpoint is missing model weights")
+    model_state, _ = inspect_safetensors_state(checkpoint_dir)
+    if model_state["legacy_layernorm_key_count"] != 0:
+        raise ValueError("legacy LayerNorm gamma/beta checkpoint keys are forbidden")
     files = sorted(
         path
         for path in checkpoint_dir.iterdir()
         if path.is_file() and path.name != "checkpoint-complete.json"
     )
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "global_step": int(global_step),
+        "model_state": model_state,
         "files": {
             path.name: {
                 "bytes": path.stat().st_size,
@@ -467,10 +538,10 @@ def checkpoint_is_complete(checkpoint_dir: Path) -> bool:
             return False
         step = int(match.group(1))
         if (
-            set(payload) != {"schema_version", "global_step", "files"}
+            set(payload) != {"schema_version", "global_step", "model_state", "files"}
             or not isinstance(payload.get("schema_version"), int)
             or isinstance(payload.get("schema_version"), bool)
-            or payload.get("schema_version") != 1
+            or payload.get("schema_version") != 2
             or not isinstance(payload.get("global_step"), int)
             or isinstance(payload.get("global_step"), bool)
             or payload.get("global_step") != step
@@ -496,14 +567,8 @@ def checkpoint_is_complete(checkpoint_dir: Path) -> bool:
         }
         if not required <= actual_files:
             return False
-        if not any(
-            filename.endswith(".safetensors")
-            or (
-                filename.startswith("pytorch_model")
-                and filename.endswith(".bin")
-            )
-            for filename in actual_files
-        ):
+        observed_model_state, _ = inspect_safetensors_state(checkpoint_dir)
+        if payload.get("model_state") != observed_model_state:
             return False
         for filename, expected in files.items():
             if (
@@ -1145,6 +1210,7 @@ def execute_training(
 ) -> None:
     import numpy as np
     import torch
+    from safetensors.torch import load_file as load_safetensors_file
     from torch.utils.data import Dataset, Sampler
     from transformers import (
         AutoModelForSequenceClassification,
@@ -1256,6 +1322,85 @@ def execute_training(
     }
 
     class ArmTrainer(Trainer):
+        def _model_to_save(self, model=None):
+            return self.accelerator.unwrap_model(
+                model if model is not None else self.model,
+                keep_torch_compile=False,
+            )
+
+        def _expected_state_specs(
+            self, model=None
+        ) -> dict[str, tuple[tuple[int, ...], str]]:
+            model_to_check = self._model_to_save(model)
+            specs: dict[str, tuple[tuple[int, ...], str]] = {}
+            for key, tensor in model_to_check.state_dict().items():
+                if tensor.dtype != torch.float32:
+                    raise ValueError(
+                        f"live model state must be float32, got {tensor.dtype} for {key}"
+                    )
+                specs[key] = (
+                    tuple(int(value) for value in tensor.shape),
+                    "F32",
+                )
+            return specs
+
+        def _save(self, output_dir=None, state_dict=None):
+            checkpoint_dir = Path(output_dir or self.args.output_dir)
+            checkpoint_dir.mkdir(parents=True, exist_ok=True)
+            model_to_save = self._model_to_save()
+            if state_dict is None:
+                state_dict = model_to_save.state_dict()
+            expected_specs: dict[str, tuple[tuple[int, ...], str]] = {}
+            for key, tensor in state_dict.items():
+                if tensor.dtype != torch.float32:
+                    raise ValueError(
+                        f"checkpoint state must be float32, got {tensor.dtype} for {key}"
+                    )
+                expected_specs[key] = (
+                    tuple(int(value) for value in tensor.shape),
+                    "F32",
+                )
+            model_to_save.save_pretrained(
+                checkpoint_dir,
+                state_dict=state_dict,
+                save_original_format=False,
+            )
+            if self.processing_class is not None:
+                self.processing_class.save_pretrained(checkpoint_dir)
+            elif (
+                self.data_collator is not None
+                and hasattr(self.data_collator, "tokenizer")
+                and self.data_collator.tokenizer is not None
+            ):
+                self.data_collator.tokenizer.save_pretrained(checkpoint_dir)
+            torch.save(self.args, checkpoint_dir / "training_args.bin")
+            validate_checkpoint_model_state(checkpoint_dir, expected_specs)
+
+        def _strict_load_checkpoint_weights(self, checkpoint_dir, model=None) -> None:
+            checkpoint_path = Path(checkpoint_dir).resolve(strict=True)
+            if not checkpoint_is_complete(checkpoint_path):
+                raise ValueError(
+                    "checkpoint completion marker or recorded file integrity is invalid"
+                )
+            expected_specs = self._expected_state_specs(model)
+            validate_checkpoint_model_state(checkpoint_path, expected_specs)
+            state_dict = load_safetensors_file(
+                str(checkpoint_path / "model.safetensors"),
+                device="cpu",
+            )
+            try:
+                self._model_to_save(model).load_state_dict(state_dict, strict=True)
+            finally:
+                del state_dict
+
+        def _load_from_checkpoint(self, resume_from_checkpoint, model=None):
+            self._strict_load_checkpoint_weights(resume_from_checkpoint, model)
+
+        def _load_best_model(self):
+            if not self.state.best_model_checkpoint:
+                raise ValueError("Trainer did not record a best checkpoint")
+            self._strict_load_checkpoint_weights(self.state.best_model_checkpoint)
+
         def _get_train_sampler(self, train_dataset=None):
             if not arm_config["weighted_sampler"]:
                 return super()._get_train_sampler(train_dataset)
@@ -1463,6 +1608,9 @@ def require(condition: bool, message: str) -> None:
 
 
 def selftest() -> None:
+    import torch
+    from safetensors.torch import save_file as save_safetensors_file
+
     synthetic: list[dict[str, Any]] = []
     synthetic_counts = {label: 10 for label in LABELS}
     for label_index, label in enumerate(LABELS):
@@ -1585,9 +1733,27 @@ def selftest() -> None:
             "rng_state.pth",
             "trainer_state.json",
             "training_args.bin",
-            "model.safetensors",
         ):
             (checkpoint / filename).write_bytes(f"fixture-{filename}".encode())
+        expected_checkpoint_specs = {
+            "encoder.LayerNorm.bias": ((2,), "F32"),
+            "encoder.LayerNorm.weight": ((2,), "F32"),
+        }
+        save_safetensors_file(
+            {
+                "encoder.LayerNorm.bias": torch.zeros(2),
+                "encoder.LayerNorm.weight": torch.ones(2),
+            },
+            str(checkpoint / "model.safetensors"),
+        )
+        validated_state = validate_checkpoint_model_state(
+            checkpoint, expected_checkpoint_specs
+        )
+        require(
+            validated_state["tensor_count"] == 2
+            and validated_state["legacy_layernorm_key_count"] == 0,
+            "native checkpoint key/shape validation",
+        )
         completion = build_checkpoint_completion(checkpoint, 10)
         atomic_write_json(
             checkpoint / "checkpoint-complete.json", completion, 0o600
@@ -1609,6 +1775,54 @@ def selftest() -> None:
             not checkpoint_is_complete(checkpoint),
             "checkpoint corruption rejection",
         )
+        legacy_checkpoint = root / "legacy-checkpoint"
+        legacy_checkpoint.mkdir()
+        save_safetensors_file(
+            {
+                "encoder.LayerNorm.beta": torch.zeros(2),
+                "encoder.LayerNorm.gamma": torch.ones(2),
+            },
+            str(legacy_checkpoint / "model.safetensors"),
+        )
+        try:
+            validate_checkpoint_model_state(
+                legacy_checkpoint, expected_checkpoint_specs
+            )
+        except ValueError as error:
+            require("gamma/beta" in str(error), "legacy LayerNorm rejection")
+        else:
+            raise RuntimeError(
+                "selftest failed: legacy LayerNorm keys must be rejected"
+            )
+        try:
+            validate_checkpoint_model_state(
+                checkpoint,
+                {
+                    "encoder.LayerNorm.bias": ((3,), "F32"),
+                    "encoder.LayerNorm.weight": ((2,), "F32"),
+                },
+            )
+        except ValueError as error:
+            require("shape_mismatch=1" in str(error), "shape mismatch rejection")
+        else:
+            raise RuntimeError("selftest failed: checkpoint shape mismatch")
+        dtype_checkpoint = root / "dtype-checkpoint"
+        dtype_checkpoint.mkdir()
+        save_safetensors_file(
+            {
+                "encoder.LayerNorm.bias": torch.zeros(2, dtype=torch.float16),
+                "encoder.LayerNorm.weight": torch.ones(2),
+            },
+            str(dtype_checkpoint / "model.safetensors"),
+        )
+        try:
+            validate_checkpoint_model_state(
+                dtype_checkpoint, expected_checkpoint_specs
+            )
+        except ValueError as error:
+            require("dtype_mismatch=1" in str(error), "dtype mismatch rejection")
+        else:
+            raise RuntimeError("selftest failed: checkpoint dtype mismatch")
         incomplete = root / "checkpoint-30"
         incomplete.mkdir()
         (incomplete / "note.txt").write_text("not a checkpoint", encoding="utf-8")
@@ -1679,8 +1893,6 @@ def selftest() -> None:
             raise RuntimeError(
                 "selftest failed: mismatched diagnostic lengths must be rejected"
             )
-    import torch
-
     loss_logits = torch.tensor(
         [[2.0] + [0.0] * (len(LABELS) - 1), [0.0, 2.0] + [0.0] * (len(LABELS) - 2)]
     )
@@ -1751,7 +1963,8 @@ def selftest() -> None:
     print(
         "PsySUICIDE accuracy-first v2 trainer selftest PASS: "
         "optimization-only path/permission/commitment gates, deterministic "
-        "stratified split, four frozen arms, no licensed data or model download"
+        "stratified split, native float32 checkpoint integrity, four frozen "
+        "arms, no licensed data or model download"
     )
 
 

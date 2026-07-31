@@ -69,7 +69,8 @@ valid/test 或已消费的内部 holdout。经一次明确授权，导出器只�
 一次分区复现，写出 9,342 条 optimization；2,329 条 holdout 只保留聚合数量与承诺，
 没有单独收集或写出 holdout 行。随后已冻结 7,479/1,863 的 train/inner-dev 承诺与最终
 预注册，`training_allowed=true` 只表示推送并通过运行时门禁后允许开始预注册实验，
-不代表已有 v2 分数。当前仍没有 v2 smoke、四臂 screen、确认性准确率结果或部署证据。
+不代表已有 v2 分数。首次 smoke 已发现并阻断 checkpoint 键名兼容问题；当前仍没有通过
+完整性门禁的 v2 smoke、四臂 screen、确认性准确率结果或部署证据。
 公开导出审计、split freeze 与真实状态见
 `reports/model_optimization_accuracy_first_v2_20260731.md`。
 

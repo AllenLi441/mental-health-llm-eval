@@ -88,6 +88,9 @@ claiming that one task-specific model improves any other benchmark.
 - [ ] A run refuses overwrite, resume under a different identity, uncommitted
       preregistration, changed split commitment, undeclared arm/seed, or any
       attempt to pass a holdout/valid/test path.
+- [ ] Every checkpoint is saved with native live-model parameter names; its
+      completion marker rejects legacy LayerNorm `gamma`/`beta` names and any
+      key/shape mismatch, while best-checkpoint and resume loads are strict.
 
 ## Prespecified four-arm decision
 
