@@ -4,6 +4,8 @@
 
 工作分支：`codex/cross-benchmark-accuracy-family-v1`
 
+公开审核入口：[Draft PR #5](https://github.com/AllenLi441/mental-health-llm-eval/pull/5)，依赖前序 PR #4。
+
 最高目标：分别提高有论文依据的各 benchmark 主指标，并用同切分、同协议、预注册证据证明；不是只优化 PsySUICIDE。
 
 ## 总判定

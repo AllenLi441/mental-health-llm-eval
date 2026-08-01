@@ -46,6 +46,13 @@
 
 这次没有产生新的论文 test 分数，也不声称跨 benchmark accuracy 已提升。它完成的是停止错误优先级、修正两个协议缺陷、整理真实证据，并为后续“共享框架 + 每任务专用 head/adapter”建立公开起点。
 
+## GitHub 状态
+
+- 分支：`codex/cross-benchmark-accuracy-family-v1`
+- Draft PR：[AllenLi441/mental-health-llm-eval#5](https://github.com/AllenLi441/mental-health-llm-eval/pull/5)
+- 依赖：PR #4；未直接合并 `main`
+- 发布边界：仅代码、协议、aggregate、commitment 和公开文档；无 raw/secrets/weights/private diagnostics
+
 ## 下一步
 
 1. 先对有合法训练标签的 IMHI 任务建立独立 spec/head/checkpoint；只用 train/inner-dev 筛选。
