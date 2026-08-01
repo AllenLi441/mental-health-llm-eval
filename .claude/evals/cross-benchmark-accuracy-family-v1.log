@@ -1,0 +1,97 @@
+EVAL REPORT: cross-benchmark accuracy family v1 — definition checkpoint
+Date: 2026-08-01
+Scope: ledger/eval definition only; no new API call, training, or test access
+
+Definition:
+- PASS: execution order is registry -> generic trainer -> V4-Flash taxonomy valid -> IMHI four-task Seed-42 screen
+- PASS: V4-Flash taxonomy candidate is bound to the completed 1,459-row baseline manifest and exact model fingerprint
+- PASS: IMHI screen is fixed to DR, dreaddit, IRF, SAD and CE/weighted-CE/focal at Seed 42
+- PASS: single-Seed and valid-only outputs are explicitly non-confirmatory
+- PASS: public/private artifact and no-test-tuning boundaries are explicit
+- PASS: PsySUICIDE v2 B/C/D are PAUSED and outside this execution scope
+
+Execution status:
+- PASS: project ledger checker found 5 required files, 2 dated updates, complete changelog links, and public-safe markers
+- PASS: tracked ledger diff-check and new-file trailing-whitespace scan returned exit 0 with no output
+- NOT RUN: benchmark spec registry implementation/selftests
+- NOT RUN: generic classification trainer implementation/selftests
+- NOT RUN: V4-Flash taxonomy smoke/full-valid/paired analysis
+- NOT RUN: IMHI four-task Seed-42 training matrix
+- PAUSED: PsySUICIDE v2 B/C/D
+
+Status: DEFINITION_PREPARED / IMPLEMENTATION_PENDING / NO_NEW_MODEL_CLAIM
+
+IMPLEMENTATION AND VALIDATION CHECKPOINT — 2026-08-01
+- PASS: benchmark registry validates 19/19 runner tasks
+- PASS: registry synthetic selftest is 17/17 under normal Python and python -O
+- PASS: canonical registry bundle is d1f38dc38cd3745c8c84edc12390609e35580f8304322607424e5e16d366433b
+- PASS: generic trainer selftest under normal Python and python -O; no model download
+- PASS: IMHI screen adapter selftest under normal Python and python -O; fixed DR/Irf/SAD/dreaddit x CE/weighted-CE/focal, Seed 42
+- PASS: default screen command is registry-only and reads no external dataset
+- FIXED: removed Transformers 5-incompatible TrainingArguments save_safetensors keyword after TypeError
+- FIXED: cross-split grouping now uses the post-only key; a different question cannot hide a repeated post
+
+IMHI DATA-VALIDATION CHECKPOINT — 2026-08-01
+- PASS / DRY_RUN: explicit --validate-data built exactly 12 planned jobs
+- DR: used train=1002, valid=430, cross-split train rows removed=1
+- Irf: used train=3941, valid=985, cross-split train rows removed=0
+- SAD: used train=5547, valid=616, cross-split train rows removed=0
+- dreaddit: used train=2814, valid=300, cross-split train rows removed=1
+- PASS: selection split is valid; no test or holdout accepted or opened
+- NOT STARTED: zero model-training jobs; launch waits for a clean, committed execution base
+
+V4-FLASH 0731 TAXONOMY VALID — 2026-08-01
+- PASS: bounded smoke completed 50/50, accuracy=0.92, invalid=0, errors=0
+- PASS: response model and fingerprint match the fixed full-valid baseline
+- COMPLETE: full valid completed 1459/1459, errors=0
+- candidate: accuracy=0.8779986292, macro-F1=0.5318369277, weighted-F1=0.8809387821, invalid=16
+- paired deltas: accuracy=+0.054832, macro-F1=+0.051654, weighted-F1=+0.044373
+- secondary accuracy inference: McNemar p=4.0268e-08
+- FAIL: invalid rate 16/1459 (~1.10%) exceeds 0.5%
+- FAIL: prespecified critical-class recall guard
+- FAIL: macro-F1 paired inference; randomization p=0.06360 and bootstrap CI95=[-0.00619, 0.10574]
+- COST ESTIMATE: full=$0.0722557584; smoke+full approximately $0.074955
+- REJECTED_BY_GATE: candidate does not advance; official test was not opened
+
+SCOPE HOLD — 2026-08-01
+- PAUSED: PsySUICIDE v2 B/C/D remain outside this campaign
+- NOT CLAIMED: reliable Flash taxonomy improvement, IMHI screen score, three-Seed stability, test/paper superiority, clinical benefit, or deployment
+
+Status: INFRASTRUCTURE_VALIDATED / FLASH_TAXONOMY_REJECTED / IMHI_VALIDATED_NOT_STARTED / V2_BCD_PAUSED
+
+DOCUMENTATION CHECKPOINT — 2026-08-01
+- PASS: project ledger checker found 5 required files, 2 dated updates, complete changelog links, and public-safe markers
+- PASS: tracked ledger diff check and new-file whitespace scan
+- PASS: edited ledger/eval files contain no local absolute dataset path or secret marker
+
+FINAL CODE-REVIEW HARDENING — 2026-08-01
+- FIXED: shared execute_training no longer trusts adapter/nonempty registry proof
+- PASS: execute_training reloads the live registry, reruns checker/hashes, and binds task/profile/config/protocol/path/rows/split SHA/plan
+- PASS: forged registry bundle proof is rejected
+- FIXED: strict mps_rng_state.pth save/restore for Transformers 5 MPS checkpoints
+- PASS: actual MPS save/restore produced an identical subsequent random tensor
+- PASS: device-aware latest-checkpoint selection skips missing/corrupt higher-step MPS RNG artifacts
+- FIXED: execute preflight failure now persists aggregate-only ATTEMPTED then FAILED/PREFLIGHT status and exits 1
+- PASS: raw preflight error message is not persisted
+- FIXED: --resume without --execute exits 1 instead of silently producing dry-run state
+- PASS: trainer and screen selftests passed again under normal Python and python -O
+- NOT STARTED: IMHI training still waits for a clean committed execution base
+
+FLASH PROVENANCE ADDENDUM — 2026-08-01
+- historical harness commit: 479e5c03d3626bccdd1d0882c161daebc173d7db
+- taxonomy prompt SHA-256: eb2180f8305316f4cc2c07a810d137901fc62ab94e18e68392b236a2b869d1c8
+- response fingerprint: fp_a18b46594c_prod0820_fp8_kvcache_20260402
+- PASS: full-valid reference/candidate retained the same fingerprint; official test remained untouched
+
+FINAL DOCUMENTATION RECHECK — 2026-08-01
+- PASS: project ledger checker still reports 5 required files, 2 dated updates, complete changelog links, and public-safe markers
+- PASS: ledger diff, new-file whitespace, local-path, and secret-marker scans
+
+FINAL CAPABILITY EVIDENCE AND REPOSITORY REGRESSION — 2026-08-01
+- FIXED: selftest checklist no longer outruns executed evidence
+- PASS: binary and three-class CE/weighted-CE/focal, imbalanced weights, invalid/empty-class rejection, and deterministic repeated metrics under normal Python and python -O
+- PASS: selected checkpoint name, global step, and logged epoch are strictly cross-checked; chosen epoch is persisted
+- PASS: explicit 12-job live-registry proof audit; forged bundle rejected before model loading
+- PASS: README regression matrix, 19/19 prompt/parser, aggregate audit, scoreboard, baseline, harness safety, CPsyExam, PsySUICIDE v1/v2, EmoBench, and IMHI offline selftests
+- PASS: final diff and tracked/new-file privacy scans
+- FINAL REVIEW: 0 blocking findings before commit and IMHI development-screen launch

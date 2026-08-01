@@ -4,6 +4,10 @@
 
 ## 2026-08-01
 
+- [`终审证据闭环与全仓回归`](updates/2026-08-01-accuracy-family-execution.md)：补齐 multiclass/imbalance/invalid/empty-class/deterministic-metric 实执行断言与 checkpoint epoch 记录；全仓回归和隐私扫描通过，终审为 0 blocker。
+- [`终审执行门禁加固`](updates/2026-08-01-accuracy-family-execution.md)：shared trainer 现独立验证 live registry proof，MPS checkpoint 严格保存/恢复 RNG，preflight 失败生成去敏审计 manifest，`--resume` 模式误用 fail closed；normal/`-O` 回归通过，IMHI 仍未启动。
+- [`提分执行结果：基础设施通过、Flash taxonomy 拒绝、IMHI 待启动`](updates/2026-08-01-accuracy-family-execution.md)：registry 19/19 与 trainer/screen 离线门禁通过；0731 Flash taxonomy 虽提高 valid 点值，但因 invalid、关键类 recall 和 macro-F1 inference 失败被拒绝；IMHI 仅完成 12-job data-validation dry-run，尚未训练。
+- [`跨 benchmark 提分执行台账`](updates/2026-08-01-accuracy-family-execution.md)：冻结 registry、generic trainer、0731 Flash taxonomy valid 与 IMHI 四任务单 Seed screen 的执行顺序、验收门槛和追加式命令/错误记录；PsySUICIDE v2 B/C/D 继续暂停。
 - [`跨 benchmark 目标重置、协议修正与公开同步`](updates/2026-08-01-cross-benchmark-reset.md)：停止未完成的 PsySUICIDE v2，承认跨 split 不可比；修正 CPsyExam parser 与 EmoBench 16,000-call 门禁；建立长期项目账本。
 
 ## 2026-07-31

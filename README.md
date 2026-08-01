@@ -21,6 +21,14 @@ python3 scripts/scoreboard.py --selftest
 python3 scripts/check_baselines.py
 python3 scripts/check_harness_safety.py
 python3 scripts/check_project_ledger.py
+python3 scripts/check_benchmark_registry.py       # 19-task machine-readable protocol registry
+python3 scripts/check_benchmark_registry.py --selftest
+python3 scripts/train_text_classifier.py --selftest
+python3 scripts/imhi_classification_screen.py --selftest
+python3 scripts/imhi_classification_screen.py     # registry-only preregistration; does not open licensed CSVs
+python3 scripts/imhi_classification_screen.py --validate-data  # explicit train/dev hash + leakage dry-run; no training
+# From a clean committed HEAD only; writes ignored checkpoints/results and never opens IMHI test:
+python3 scripts/imhi_classification_screen.py --execute --device auto
 node scripts/check_psysuicide_protocol.mjs
 node scripts/run_psysuicide_valid_matrix.mjs --selftest
 python3 scripts/analyze_psysuicide_valid_matrix.py --selftest
@@ -231,6 +239,7 @@ mental-health-llm-eval/
 ├── lib/baselines.mjs  从 reports/BASELINES.json 读取对照值
 ├── run.mjs        入口（list / all / 单任务）
 ├── tasks/         emobench mdd5k psysuicide cbtbench mentalmanip imhi cpsyexam eatd
+├── benchmark-specs/  19 个任务的 split/metric/sample/provenance/paper-status 机器可读规则
 ├── results-summary/  可公开的聚合结果
 ├── project-ledger/   每次更新、当前状态、错误/失败用例与固定模板
 └── results/       本地运行后生成的逐行结果（不发布）

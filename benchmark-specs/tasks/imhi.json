@@ -1,0 +1,603 @@
+[
+  {
+    "schema_version": "1.0",
+    "task_key": "imhi-dr",
+    "family": "imhi",
+    "task_contract": { "task_type": "single_label_classification", "output_representation": "fixed_label", "canonical_output_labels": ["yes", "no"], "label_order": "declared", "dynamic_options": false, "composition_rule": "single_label", "scoring_method": "exact_match", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "MentaLLaMA",
+      "revision": { "kind": "unversioned_local_copy", "value": "local-layout-observed-2026-08-01; manifest-sha256-required-before-new-run", "frozen": false },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "dev",
+      "test_selection_prohibited": true,
+      "train": { "source_split": "train_data/complete_data/DR/reddit_train.csv", "availability": "available", "allowed_uses": ["training", "preprocessing_fit", "class_weight_estimation"], "consumption_status": "unknown", "notes": "Released source yields 1003 usable rows; remove the one content duplicate shared with valid from train only, leaving 1002 used rows." },
+      "dev": { "source_split": "train_data/complete_data/DR/reddit_valid.csv", "availability": "available", "allowed_uses": ["model_selection", "early_stopping"], "consumption_status": "unknown", "notes": "Keep all 430 usable released validation rows; weighted_f1 selects CE, weighted CE, or focal under seed 42." },
+      "test": { "source_split": "test_data/test_complete/DR.csv", "availability": "available", "allowed_uses": ["historical_reporting", "final_confirmation_once"], "consumption_status": "exploratory_used", "notes": "Never pass this path to the specialist screen or use it for checkpoint/loss selection." }
+    },
+    "metrics": { "primary": ["weighted_f1"], "secondary": ["accuracy", "macro_f1", "per_class_recall", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "imhi-dr-test-seed42-v1",
+      "evaluation_role": "test",
+      "source_split": "test_data/test_complete/DR.csv",
+      "selection_forbidden": true,
+      "mode": "deterministic_sample",
+      "examples": { "kind": "up_to", "value": 500 },
+      "seed": 42,
+      "option_permutations": 1,
+      "repetitions_per_permutation": 1,
+      "api_calls_per_example": 1,
+      "expected_total_api_calls": 405,
+      "scoring_unit": "retained test row; the 405-row pool is smaller than the 500-row cap"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "supervised_classifier_profile": {
+      "profile_id": "imhi-dr-roberta-screen-v1",
+      "task_type": "single_label_text_classification",
+      "labels": ["yes", "no"],
+      "text_columns": ["question", "post"],
+      "cross_split_leakage_columns": ["post"],
+      "input_parser": "csv-dictreader-utf8-sig-newline-join-v1",
+      "label_column": "response",
+      "label_parser": "imhi-response-prefix",
+      "train_relative_path": "train_data/complete_data/DR/reddit_train.csv",
+      "dev_relative_path": "train_data/complete_data/DR/reddit_valid.csv",
+      "split_commitments": { "hash_algorithm": "sha256", "commitment_scope": "raw_file_bytes_before_parsing", "train_file_sha256": "78fee2be7d39cd149d8105d4a7b80b23fb119c709392e988a3f41dab23eb64cb", "dev_file_sha256": "463928931041adc6b95aaf413edb4d0cece3358c84363a8fd1ea1ec5e52d9ec4" },
+      "test_access": false,
+      "loss_arms": ["ce", "weighted-ce", "focal"],
+      "seed": 42,
+      "primary_metric": "weighted_f1",
+      "model": { "base_model_id": "FacebookAI/roberta-base", "base_model_revision": "e2da8e2f811d1448a5b465c236feacd80ffbac7b", "tokenizer_id": "FacebookAI/roberta-base", "tokenizer_revision": "e2da8e2f811d1448a5b465c236feacd80ffbac7b", "head_type": "independent_sequence_classification_head" },
+      "training_protocol": { "max_length": 256, "train_batch_size": 8, "eval_batch_size": 16, "gradient_accumulation_steps": 1, "epochs": 5.0, "learning_rate": 0.00002, "weight_decay": 0.01, "warmup_ratio": 0.1, "optimizer": "adamw_torch", "scheduler": "linear", "evaluation_strategy": "epoch", "save_strategy": "epoch", "early_stopping_patience": 2, "best_model_metric": "weighted_f1", "greater_is_better": true, "tie_break_rule": "first_strict_improvement_checkpoint", "focal_gamma": 2.0, "class_weighting": "balanced_inverse_frequency_after_cleaning", "max_grad_norm": 1.0, "save_total_limit": 2, "fp16": false, "bf16": false },
+      "source_rows": { "train": 1003, "dev": 430 },
+      "used_rows": { "train": 1002, "dev": 430 },
+      "data_cleaning_order": ["same_label_content_keep_first", "conflicting_label_content_drop_group", "train_dev_content_overlap_drop_train_keep_dev"],
+      "provenance_fields": {
+        "model": ["model", "model_revision", "resolved_model_commit"],
+        "tokenizer": ["tokenizer_id", "tokenizer_revision", "resolved_tokenizer_commit"],
+        "head": ["task_id", "labels", "head_type", "label_mapping_sha256"],
+        "loss": ["loss", "loss_definition", "class_weights", "focal_gamma"],
+        "seed": ["seed"],
+        "code": ["implementation_path", "implementation_sha256", "framework_versions"],
+        "run": ["run_id", "identity_sha256", "train_manifest_sha256", "dev_manifest_sha256", "checkpoint_sha256"]
+      }
+    },
+    "paper_compatibility": {
+      "status": "partial",
+      "reference_protocol": "MentaLLaMA IMHI DR test task; weighted F1 is the paper comparison metric.",
+      "paper_primary_metrics": ["weighted_f1"],
+      "blocking_differences": ["Historical public results used per-task selection among ambiguous legacy model aliases rather than one frozen exact model identity."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "active",
+      "evidence_level": "exploratory",
+      "summary": "Released train/valid data is ready for the first four-task specialist screen; historical test results remain descriptive.",
+      "next_action": "Run seed-42 CE, weighted-CE, and focal on 1002 clean train rows and 430 released valid rows; select only by valid weighted_f1."
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "task_key": "imhi-dreaddit",
+    "family": "imhi",
+    "task_contract": { "task_type": "single_label_classification", "output_representation": "fixed_label", "canonical_output_labels": ["yes", "no"], "label_order": "declared", "dynamic_options": false, "composition_rule": "single_label", "scoring_method": "exact_match", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "MentaLLaMA",
+      "revision": { "kind": "unversioned_local_copy", "value": "local-layout-observed-2026-08-01; manifest-sha256-required-before-new-run", "frozen": false },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "dev",
+      "test_selection_prohibited": true,
+      "train": { "source_split": "train_data/complete_data/dreaddit/dreaddit-train.csv", "availability": "available", "allowed_uses": ["training", "preprocessing_fit", "class_weight_estimation"], "consumption_status": "unknown", "notes": "Released source yields 2837 usable rows; keep the first row in each same-label duplicate group (12 removed), delete four conflicting-label content groups (10 rows), then remove one train/valid content overlap from train, leaving 2814 used rows." },
+      "dev": { "source_split": "train_data/complete_data/dreaddit/val.csv", "availability": "available", "allowed_uses": ["model_selection", "early_stopping"], "consumption_status": "unknown", "notes": "Keep all 300 usable released validation rows; weighted_f1 selects CE, weighted CE, or focal under seed 42." },
+      "test": { "source_split": "test_data/test_complete/dreaddit.csv", "availability": "available", "allowed_uses": ["historical_reporting", "final_confirmation_once"], "consumption_status": "exploratory_used", "notes": "Never pass this path to the specialist screen or use it for checkpoint/loss selection." }
+    },
+    "metrics": { "primary": ["weighted_f1"], "secondary": ["accuracy", "macro_f1", "per_class_recall", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "imhi-dreaddit-test-seed42-v1",
+      "evaluation_role": "test",
+      "source_split": "test_data/test_complete/dreaddit.csv",
+      "selection_forbidden": true,
+      "mode": "deterministic_sample",
+      "examples": { "kind": "up_to", "value": 500 },
+      "seed": 42,
+      "option_permutations": 1,
+      "repetitions_per_permutation": 1,
+      "api_calls_per_example": 1,
+      "expected_total_api_calls": 414,
+      "scoring_unit": "retained test row; the 414-row pool is smaller than the 500-row cap"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "supervised_classifier_profile": {
+      "profile_id": "imhi-dreaddit-roberta-screen-v1",
+      "task_type": "single_label_text_classification",
+      "labels": ["yes", "no"],
+      "text_columns": ["question", "post"],
+      "cross_split_leakage_columns": ["post"],
+      "input_parser": "csv-dictreader-utf8-sig-newline-join-v1",
+      "label_column": "response",
+      "label_parser": "imhi-response-prefix",
+      "train_relative_path": "train_data/complete_data/dreaddit/dreaddit-train.csv",
+      "dev_relative_path": "train_data/complete_data/dreaddit/val.csv",
+      "split_commitments": { "hash_algorithm": "sha256", "commitment_scope": "raw_file_bytes_before_parsing", "train_file_sha256": "4071523f933741d6ef416b5f61dd8ed4e73deb87f248a94c5b23033853d7f83d", "dev_file_sha256": "133317cb471c42704e8e43097159e95085c4f09822d09eee3111580a352133e4" },
+      "test_access": false,
+      "loss_arms": ["ce", "weighted-ce", "focal"],
+      "seed": 42,
+      "primary_metric": "weighted_f1",
+      "model": { "base_model_id": "FacebookAI/roberta-base", "base_model_revision": "e2da8e2f811d1448a5b465c236feacd80ffbac7b", "tokenizer_id": "FacebookAI/roberta-base", "tokenizer_revision": "e2da8e2f811d1448a5b465c236feacd80ffbac7b", "head_type": "independent_sequence_classification_head" },
+      "training_protocol": { "max_length": 256, "train_batch_size": 8, "eval_batch_size": 16, "gradient_accumulation_steps": 1, "epochs": 5.0, "learning_rate": 0.00002, "weight_decay": 0.01, "warmup_ratio": 0.1, "optimizer": "adamw_torch", "scheduler": "linear", "evaluation_strategy": "epoch", "save_strategy": "epoch", "early_stopping_patience": 2, "best_model_metric": "weighted_f1", "greater_is_better": true, "tie_break_rule": "first_strict_improvement_checkpoint", "focal_gamma": 2.0, "class_weighting": "balanced_inverse_frequency_after_cleaning", "max_grad_norm": 1.0, "save_total_limit": 2, "fp16": false, "bf16": false },
+      "source_rows": { "train": 2837, "dev": 300 },
+      "used_rows": { "train": 2814, "dev": 300 },
+      "data_cleaning_order": ["same_label_content_keep_first", "conflicting_label_content_drop_group", "train_dev_content_overlap_drop_train_keep_dev"],
+      "provenance_fields": {
+        "model": ["model", "model_revision", "resolved_model_commit"],
+        "tokenizer": ["tokenizer_id", "tokenizer_revision", "resolved_tokenizer_commit"],
+        "head": ["task_id", "labels", "head_type", "label_mapping_sha256"],
+        "loss": ["loss", "loss_definition", "class_weights", "focal_gamma"],
+        "seed": ["seed"],
+        "code": ["implementation_path", "implementation_sha256", "framework_versions"],
+        "run": ["run_id", "identity_sha256", "train_manifest_sha256", "dev_manifest_sha256", "checkpoint_sha256"]
+      }
+    },
+    "paper_compatibility": {
+      "status": "partial",
+      "reference_protocol": "MentaLLaMA IMHI dreaddit test task; weighted F1 is the paper comparison metric.",
+      "paper_primary_metrics": ["weighted_f1"],
+      "blocking_differences": ["Historical public results used per-task selection among ambiguous legacy model aliases rather than one frozen exact model identity."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "active",
+      "evidence_level": "exploratory",
+      "summary": "Released train/valid data is ready for the first four-task specialist screen; historical test results remain descriptive.",
+      "next_action": "Run seed-42 CE, weighted-CE, and focal on 2814 clean train rows and 300 released valid rows; select only by valid weighted_f1."
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "task_key": "imhi-loneliness",
+    "family": "imhi",
+    "task_contract": { "task_type": "single_label_classification", "output_representation": "fixed_label", "canonical_output_labels": ["yes", "no"], "label_order": "declared", "dynamic_options": false, "composition_rule": "single_label", "scoring_method": "exact_match", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "MentaLLaMA",
+      "revision": { "kind": "unversioned_local_copy", "value": "local-layout-observed-2026-08-01; manifest-sha256-required-before-new-run", "frozen": false },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "none",
+      "test_selection_prohibited": true,
+      "train": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "No authorized task-specific train split is registered in the current local MentaLLaMA package." },
+      "dev": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "A lawful non-test development source is required before specialist model selection." },
+      "test": { "source_split": "test_data/test_complete/loneliness.csv", "availability": "available", "allowed_uses": ["historical_reporting"], "consumption_status": "exploratory_used", "notes": "The test set has already supported prompt variants and cannot be used to develop a specialist head." }
+    },
+    "metrics": { "primary": ["weighted_f1"], "secondary": ["accuracy", "macro_f1", "per_class_recall", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "imhi-loneliness-test-seed42-v1",
+      "evaluation_role": "test",
+      "source_split": "test_data/test_complete/loneliness.csv",
+      "selection_forbidden": true,
+      "mode": "deterministic_sample",
+      "examples": { "kind": "up_to", "value": 500 },
+      "seed": 42,
+      "option_permutations": 1,
+      "repetitions_per_permutation": 1,
+      "api_calls_per_example": 1,
+      "expected_total_api_calls": 500,
+      "scoring_unit": "seed-42 sample from 528 retained test rows"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "paper_compatibility": {
+      "status": "partial",
+      "reference_protocol": "MentaLLaMA IMHI loneliness test task; weighted F1 is the paper comparison metric.",
+      "paper_primary_metrics": ["weighted_f1"],
+      "blocking_differences": ["Only a deterministic 500-row subset is scored, and historical public results used per-task selection among ambiguous legacy model aliases."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "blocked",
+      "evidence_level": "exploratory",
+      "summary": "Only test-side zero-shot evidence is registered; this task is outside the first specialist screen.",
+      "next_action": "Acquire and freeze an authorized train/dev source before any specialist model work."
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "task_key": "imhi-irf",
+    "family": "imhi",
+    "task_contract": { "task_type": "single_label_classification", "output_representation": "fixed_label", "canonical_output_labels": ["yes", "no"], "label_order": "declared", "dynamic_options": false, "composition_rule": "single_label", "scoring_method": "exact_match", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "MentaLLaMA",
+      "revision": { "kind": "unversioned_local_copy", "value": "local-layout-observed-2026-08-01; manifest-sha256-required-before-new-run", "frozen": false },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "dev",
+      "test_selection_prohibited": true,
+      "train": { "source_split": "train_data/complete_data/Irf/train.csv", "availability": "available", "allowed_uses": ["training", "preprocessing_fit", "class_weight_estimation"], "consumption_status": "unknown", "notes": "Released source yields 3943 usable rows; same-label content deduplication removes two later duplicates, leaving 3941 used rows." },
+      "dev": { "source_split": "train_data/complete_data/Irf/val.csv", "availability": "available", "allowed_uses": ["model_selection", "early_stopping"], "consumption_status": "unknown", "notes": "Use all 985 usable released validation rows; weighted_f1 selects CE, weighted CE, or focal under seed 42." },
+      "test": { "source_split": "test_data/test_complete/Irf.csv", "availability": "available", "allowed_uses": ["historical_reporting", "final_confirmation_once"], "consumption_status": "exploratory_used", "notes": "Never pass this path to the specialist screen or use it for checkpoint/loss selection." }
+    },
+    "metrics": { "primary": ["weighted_f1"], "secondary": ["accuracy", "macro_f1", "per_class_recall", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "imhi-irf-test-seed42-v1",
+      "evaluation_role": "test",
+      "source_split": "test_data/test_complete/Irf.csv",
+      "selection_forbidden": true,
+      "mode": "deterministic_sample",
+      "examples": { "kind": "up_to", "value": 500 },
+      "seed": 42,
+      "option_permutations": 1,
+      "repetitions_per_permutation": 1,
+      "api_calls_per_example": 1,
+      "expected_total_api_calls": 500,
+      "scoring_unit": "seed-42 sample from 2113 retained test rows"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "supervised_classifier_profile": {
+      "profile_id": "imhi-irf-roberta-screen-v1",
+      "task_type": "single_label_text_classification",
+      "labels": ["yes", "no"],
+      "text_columns": ["question", "post"],
+      "cross_split_leakage_columns": ["post"],
+      "input_parser": "csv-dictreader-utf8-sig-newline-join-v1",
+      "label_column": "response",
+      "label_parser": "imhi-response-prefix",
+      "train_relative_path": "train_data/complete_data/Irf/train.csv",
+      "dev_relative_path": "train_data/complete_data/Irf/val.csv",
+      "split_commitments": { "hash_algorithm": "sha256", "commitment_scope": "raw_file_bytes_before_parsing", "train_file_sha256": "8b36506b544909960b2800e6f933bfd9244b3c566c4084a985680442d08baa21", "dev_file_sha256": "720c72e9d297c9ff478cdf02cfedfe8f010868ec68655c76f6238b4059ee8670" },
+      "test_access": false,
+      "loss_arms": ["ce", "weighted-ce", "focal"],
+      "seed": 42,
+      "primary_metric": "weighted_f1",
+      "model": { "base_model_id": "FacebookAI/roberta-base", "base_model_revision": "e2da8e2f811d1448a5b465c236feacd80ffbac7b", "tokenizer_id": "FacebookAI/roberta-base", "tokenizer_revision": "e2da8e2f811d1448a5b465c236feacd80ffbac7b", "head_type": "independent_sequence_classification_head" },
+      "training_protocol": { "max_length": 256, "train_batch_size": 8, "eval_batch_size": 16, "gradient_accumulation_steps": 1, "epochs": 5.0, "learning_rate": 0.00002, "weight_decay": 0.01, "warmup_ratio": 0.1, "optimizer": "adamw_torch", "scheduler": "linear", "evaluation_strategy": "epoch", "save_strategy": "epoch", "early_stopping_patience": 2, "best_model_metric": "weighted_f1", "greater_is_better": true, "tie_break_rule": "first_strict_improvement_checkpoint", "focal_gamma": 2.0, "class_weighting": "balanced_inverse_frequency_after_cleaning", "max_grad_norm": 1.0, "save_total_limit": 2, "fp16": false, "bf16": false },
+      "source_rows": { "train": 3943, "dev": 985 },
+      "used_rows": { "train": 3941, "dev": 985 },
+      "data_cleaning_order": ["same_label_content_keep_first", "conflicting_label_content_drop_group", "train_dev_content_overlap_drop_train_keep_dev"],
+      "provenance_fields": {
+        "model": ["model", "model_revision", "resolved_model_commit"],
+        "tokenizer": ["tokenizer_id", "tokenizer_revision", "resolved_tokenizer_commit"],
+        "head": ["task_id", "labels", "head_type", "label_mapping_sha256"],
+        "loss": ["loss", "loss_definition", "class_weights", "focal_gamma"],
+        "seed": ["seed"],
+        "code": ["implementation_path", "implementation_sha256", "framework_versions"],
+        "run": ["run_id", "identity_sha256", "train_manifest_sha256", "dev_manifest_sha256", "checkpoint_sha256"]
+      }
+    },
+    "paper_compatibility": {
+      "status": "partial",
+      "reference_protocol": "MentaLLaMA IMHI IRF test task; weighted F1 is the paper comparison metric.",
+      "paper_primary_metrics": ["weighted_f1"],
+      "blocking_differences": ["Only a deterministic 500-row subset is scored, and historical public results used per-task selection among ambiguous legacy model aliases."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "active",
+      "evidence_level": "exploratory",
+      "summary": "Released train/valid data is ready for the first four-task specialist screen; historical test results remain descriptive.",
+      "next_action": "Run seed-42 CE, weighted-CE, and focal on 3941 clean train rows and 985 released valid rows; select only by valid weighted_f1."
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "task_key": "imhi-multiwd",
+    "family": "imhi",
+    "task_contract": { "task_type": "single_label_classification", "output_representation": "fixed_label", "canonical_output_labels": ["yes", "no"], "label_order": "declared", "dynamic_options": false, "composition_rule": "single_label", "scoring_method": "exact_match", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "MentaLLaMA",
+      "revision": { "kind": "unversioned_local_copy", "value": "local-layout-observed-2026-08-01; manifest-sha256-required-before-new-run", "frozen": false },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "dev",
+      "test_selection_prohibited": true,
+      "train": { "source_split": "train_data/complete_data/MultiWD/train.csv", "availability": "available", "allowed_uses": ["training", "preprocessing_fit", "class_weight_estimation"], "consumption_status": "unknown", "notes": "Released train data exists but is outside the first four-task seed-42 screen." },
+      "dev": { "source_split": "train_data/complete_data/MultiWD/val.csv", "availability": "available", "allowed_uses": ["model_selection", "early_stopping"], "consumption_status": "unknown", "notes": "Freeze a manifest before a later specialist screen; do not substitute test rows." },
+      "test": { "source_split": "test_data/test_complete/MultiWD.csv", "availability": "available", "allowed_uses": ["historical_reporting", "final_confirmation_once"], "consumption_status": "exploratory_used", "notes": "The current 500-row test sample may not select a specialist checkpoint." }
+    },
+    "metrics": { "primary": ["weighted_f1"], "secondary": ["accuracy", "macro_f1", "per_class_recall", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "imhi-multiwd-test-seed42-v1",
+      "evaluation_role": "test",
+      "source_split": "test_data/test_complete/MultiWD.csv",
+      "selection_forbidden": true,
+      "mode": "deterministic_sample",
+      "examples": { "kind": "up_to", "value": 500 },
+      "seed": 42,
+      "option_permutations": 1,
+      "repetitions_per_permutation": 1,
+      "api_calls_per_example": 1,
+      "expected_total_api_calls": 500,
+      "scoring_unit": "seed-42 sample from 2441 retained test rows"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "paper_compatibility": {
+      "status": "partial",
+      "reference_protocol": "MentaLLaMA IMHI MultiWD test task; weighted F1 is the paper comparison metric.",
+      "paper_primary_metrics": ["weighted_f1"],
+      "blocking_differences": ["Only a deterministic 500-row subset is scored, and historical public results used per-task selection among ambiguous legacy model aliases."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "planned",
+      "evidence_level": "exploratory",
+      "summary": "Released train/valid data exists, but MultiWD is deliberately outside the first four-task screen.",
+      "next_action": "Revisit only after the DR, IRF, SAD, and dreaddit screen passes its preregistered multi-task gate."
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "task_key": "imhi-sad",
+    "family": "imhi",
+    "task_contract": { "task_type": "single_label_classification", "output_representation": "fixed_label", "canonical_output_labels": ["school", "financial problem", "family issues", "social relationships", "work", "health issues", "emotional turmoil", "everyday decision making", "other causes"], "label_order": "declared", "dynamic_options": false, "composition_rule": "single_label", "scoring_method": "exact_match", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "MentaLLaMA",
+      "revision": { "kind": "unversioned_local_copy", "value": "local-layout-observed-2026-08-01; manifest-sha256-required-before-new-run", "frozen": false },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "dev",
+      "test_selection_prohibited": true,
+      "train": { "source_split": "train_data/complete_data/SAD/train.csv", "availability": "available", "allowed_uses": ["training", "preprocessing_fit", "class_weight_estimation"], "consumption_status": "unknown", "notes": "Released source yields 5547 usable train rows for the seed-42 screen." },
+      "dev": { "source_split": "train_data/complete_data/SAD/val.csv", "availability": "available", "allowed_uses": ["model_selection", "early_stopping"], "consumption_status": "unknown", "notes": "Use all 616 usable released validation rows; weighted_f1 selects CE, weighted CE, or focal under seed 42." },
+      "test": { "source_split": "test_data/test_complete/SAD.csv", "availability": "available", "allowed_uses": ["historical_reporting", "final_confirmation_once"], "consumption_status": "exploratory_used", "notes": "Never pass this path to the specialist screen or use it for checkpoint/loss selection." }
+    },
+    "metrics": { "primary": ["weighted_f1"], "secondary": ["accuracy", "macro_f1", "per_class_recall", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "imhi-sad-test-seed42-v1",
+      "evaluation_role": "test",
+      "source_split": "test_data/test_complete/SAD.csv",
+      "selection_forbidden": true,
+      "mode": "deterministic_sample",
+      "examples": { "kind": "up_to", "value": 500 },
+      "seed": 42,
+      "option_permutations": 1,
+      "repetitions_per_permutation": 1,
+      "api_calls_per_example": 1,
+      "expected_total_api_calls": 500,
+      "scoring_unit": "seed-42 sample from 684 retained test rows"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "supervised_classifier_profile": {
+      "profile_id": "imhi-sad-roberta-screen-v1",
+      "task_type": "single_label_text_classification",
+      "labels": ["school", "financial problem", "family issues", "social relationships", "work", "health issues", "emotional turmoil", "everyday decision making", "other causes"],
+      "text_columns": ["question", "post"],
+      "cross_split_leakage_columns": ["post"],
+      "input_parser": "csv-dictreader-utf8-sig-newline-join-v1",
+      "label_column": "response",
+      "label_parser": "imhi-response-prefix",
+      "train_relative_path": "train_data/complete_data/SAD/train.csv",
+      "dev_relative_path": "train_data/complete_data/SAD/val.csv",
+      "split_commitments": { "hash_algorithm": "sha256", "commitment_scope": "raw_file_bytes_before_parsing", "train_file_sha256": "e216e61596908b028eee9919654442c6aa35f9b0c4640532f8462980101f8640", "dev_file_sha256": "c9207d2cd809885e87495205722977ce89c75be6ce00aacf7721d448916635ee" },
+      "test_access": false,
+      "loss_arms": ["ce", "weighted-ce", "focal"],
+      "seed": 42,
+      "primary_metric": "weighted_f1",
+      "model": { "base_model_id": "FacebookAI/roberta-base", "base_model_revision": "e2da8e2f811d1448a5b465c236feacd80ffbac7b", "tokenizer_id": "FacebookAI/roberta-base", "tokenizer_revision": "e2da8e2f811d1448a5b465c236feacd80ffbac7b", "head_type": "independent_sequence_classification_head" },
+      "training_protocol": { "max_length": 256, "train_batch_size": 8, "eval_batch_size": 16, "gradient_accumulation_steps": 1, "epochs": 5.0, "learning_rate": 0.00002, "weight_decay": 0.01, "warmup_ratio": 0.1, "optimizer": "adamw_torch", "scheduler": "linear", "evaluation_strategy": "epoch", "save_strategy": "epoch", "early_stopping_patience": 2, "best_model_metric": "weighted_f1", "greater_is_better": true, "tie_break_rule": "first_strict_improvement_checkpoint", "focal_gamma": 2.0, "class_weighting": "balanced_inverse_frequency_after_cleaning", "max_grad_norm": 1.0, "save_total_limit": 2, "fp16": false, "bf16": false },
+      "source_rows": { "train": 5547, "dev": 616 },
+      "used_rows": { "train": 5547, "dev": 616 },
+      "data_cleaning_order": ["same_label_content_keep_first", "conflicting_label_content_drop_group", "train_dev_content_overlap_drop_train_keep_dev"],
+      "provenance_fields": {
+        "model": ["model", "model_revision", "resolved_model_commit"],
+        "tokenizer": ["tokenizer_id", "tokenizer_revision", "resolved_tokenizer_commit"],
+        "head": ["task_id", "labels", "head_type", "label_mapping_sha256"],
+        "loss": ["loss", "loss_definition", "class_weights", "focal_gamma"],
+        "seed": ["seed"],
+        "code": ["implementation_path", "implementation_sha256", "framework_versions"],
+        "run": ["run_id", "identity_sha256", "train_manifest_sha256", "dev_manifest_sha256", "checkpoint_sha256"]
+      }
+    },
+    "paper_compatibility": {
+      "status": "partial",
+      "reference_protocol": "MentaLLaMA IMHI SAD test task; weighted F1 is the paper comparison metric.",
+      "paper_primary_metrics": ["weighted_f1"],
+      "blocking_differences": ["Only a deterministic 500-row subset is scored, and historical public results used per-task selection among ambiguous legacy model aliases."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "active",
+      "evidence_level": "exploratory",
+      "summary": "Released train/valid data is ready for the first four-task specialist screen; historical test results remain descriptive.",
+      "next_action": "Run seed-42 CE, weighted-CE, and focal on 5547 train rows and 616 released valid rows; select only by valid weighted_f1."
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "task_key": "imhi-cams",
+    "family": "imhi",
+    "task_contract": { "task_type": "single_label_classification", "output_representation": "fixed_label", "canonical_output_labels": ["bias or abuse", "jobs and career", "medication", "relationship", "alienation", "none"], "label_order": "declared", "dynamic_options": false, "composition_rule": "single_label", "scoring_method": "exact_match", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "MentaLLaMA",
+      "revision": { "kind": "unversioned_local_copy", "value": "local-layout-observed-2026-08-01; manifest-sha256-required-before-new-run", "frozen": false },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "none",
+      "test_selection_prohibited": true,
+      "train": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "No authorized CAMS train split is present in the current local package." },
+      "dev": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "Do not derive development labels from the released test file." },
+      "test": { "source_split": "test_data/test_complete/CAMS.csv", "availability": "available", "allowed_uses": ["historical_reporting"], "consumption_status": "exploratory_used", "notes": "The test set has already supported prompt variants and cannot develop a specialist head." }
+    },
+    "metrics": { "primary": ["weighted_f1"], "secondary": ["accuracy", "macro_f1", "per_class_recall", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "imhi-cams-test-seed42-v1",
+      "evaluation_role": "test",
+      "source_split": "test_data/test_complete/CAMS.csv",
+      "selection_forbidden": true,
+      "mode": "deterministic_sample",
+      "examples": { "kind": "up_to", "value": 500 },
+      "seed": 42,
+      "option_permutations": 1,
+      "repetitions_per_permutation": 1,
+      "api_calls_per_example": 1,
+      "expected_total_api_calls": 500,
+      "scoring_unit": "seed-42 sample from 625 retained test rows"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "paper_compatibility": {
+      "status": "partial",
+      "reference_protocol": "MentaLLaMA IMHI CAMS test task; weighted F1 is the paper comparison metric.",
+      "paper_primary_metrics": ["weighted_f1"],
+      "blocking_differences": ["Only a deterministic 500-row subset is scored, and historical public results used per-task selection among ambiguous legacy model aliases."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "blocked",
+      "evidence_level": "exploratory",
+      "summary": "CAMS is a high-value weakness but has only a local test file, so it is outside the first specialist screen.",
+      "next_action": "Obtain the licensed training source or define a lawful independent development set; never tune on CAMS test."
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "task_key": "imhi-swmh",
+    "family": "imhi",
+    "task_contract": { "task_type": "single_label_classification", "output_representation": "fixed_label", "canonical_output_labels": ["depression", "suicide", "anxiety", "bipolar disorder", "no mental disorders"], "label_order": "declared", "dynamic_options": false, "composition_rule": "single_label", "scoring_method": "exact_match", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "MentaLLaMA",
+      "revision": { "kind": "unversioned_local_copy", "value": "local-layout-observed-2026-08-01; manifest-sha256-required-before-new-run", "frozen": false },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "none",
+      "test_selection_prohibited": true,
+      "train": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "No authorized task-specific train split is registered in the current local package." },
+      "dev": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "A lawful non-test development source is required before specialist model selection." },
+      "test": { "source_split": "test_data/test_complete/swmh.csv", "availability": "available", "allowed_uses": ["historical_reporting"], "consumption_status": "exploratory_used", "notes": "The test set has already supported prompt variants and cannot develop a specialist head." }
+    },
+    "metrics": { "primary": ["weighted_f1"], "secondary": ["accuracy", "macro_f1", "per_class_recall", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "imhi-swmh-test-seed42-v1",
+      "evaluation_role": "test",
+      "source_split": "test_data/test_complete/swmh.csv",
+      "selection_forbidden": true,
+      "mode": "deterministic_sample",
+      "examples": { "kind": "up_to", "value": 500 },
+      "seed": 42,
+      "option_permutations": 1,
+      "repetitions_per_permutation": 1,
+      "api_calls_per_example": 1,
+      "expected_total_api_calls": 500,
+      "scoring_unit": "seed-42 sample from 10861 retained test rows after 21 unparseable rows are dropped"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "paper_compatibility": {
+      "status": "partial",
+      "reference_protocol": "MentaLLaMA IMHI SWMH test task; weighted F1 is the paper comparison metric.",
+      "paper_primary_metrics": ["weighted_f1"],
+      "blocking_differences": ["Only a deterministic 500-row subset is scored, and historical public results used per-task selection among ambiguous legacy model aliases."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "blocked",
+      "evidence_level": "exploratory",
+      "summary": "Only test-side zero-shot evidence is registered; this task is outside the first specialist screen.",
+      "next_action": "Acquire and freeze an authorized train/dev source before any specialist model work."
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "task_key": "imhi-t-sid",
+    "family": "imhi",
+    "task_contract": { "task_type": "single_label_classification", "output_representation": "fixed_label", "canonical_output_labels": ["depression", "suicide or self-harm tendency", "ptsd", "no mental disorders"], "label_order": "declared", "dynamic_options": false, "composition_rule": "single_label", "scoring_method": "exact_match", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "MentaLLaMA",
+      "revision": { "kind": "unversioned_local_copy", "value": "local-layout-observed-2026-08-01; manifest-sha256-required-before-new-run", "frozen": false },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "none",
+      "test_selection_prohibited": true,
+      "train": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "No authorized task-specific train split is registered in the current local package." },
+      "dev": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "A lawful non-test development source is required before specialist model selection." },
+      "test": { "source_split": "test_data/test_complete/t-sid.csv", "availability": "available", "allowed_uses": ["historical_reporting"], "consumption_status": "exploratory_used", "notes": "The test set has already supported prompt variants and cannot develop a specialist head." }
+    },
+    "metrics": { "primary": ["weighted_f1"], "secondary": ["accuracy", "macro_f1", "per_class_recall", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "imhi-t-sid-test-seed42-v1",
+      "evaluation_role": "test",
+      "source_split": "test_data/test_complete/t-sid.csv",
+      "selection_forbidden": true,
+      "mode": "deterministic_sample",
+      "examples": { "kind": "up_to", "value": 500 },
+      "seed": 42,
+      "option_permutations": 1,
+      "repetitions_per_permutation": 1,
+      "api_calls_per_example": 1,
+      "expected_total_api_calls": 500,
+      "scoring_unit": "seed-42 sample from 959 retained test rows"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "paper_compatibility": {
+      "status": "partial",
+      "reference_protocol": "MentaLLaMA IMHI T-SID test task; weighted F1 is the paper comparison metric.",
+      "paper_primary_metrics": ["weighted_f1"],
+      "blocking_differences": ["Only a deterministic 500-row subset is scored, and historical public results used per-task selection among ambiguous legacy model aliases."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "blocked",
+      "evidence_level": "exploratory",
+      "summary": "Only test-side zero-shot evidence is registered; this task is outside the first specialist screen.",
+      "next_action": "Acquire and freeze an authorized train/dev source before any specialist model work."
+    }
+  }
+]
