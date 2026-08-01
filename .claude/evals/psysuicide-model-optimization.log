@@ -1,0 +1,79 @@
+EVAL REPORT: PsySUICIDE model optimization protocol and frozen confirmation
+Date: 2026-07-28
+Scope: complete smoke, official valid selection, and one preregistered paired official test campaign
+
+Capability:
+- PASS: explicit train/valid/test split gate
+- PASS: cross-split normalized IDs and exact retained-text leakage check
+- PASS: baseline/taxonomy/hierarchical prompt selftests
+- PASS: split/profile/model/hash/usage provenance in runner
+- PASS: retired DeepSeek alias rejection
+- PASS: full, committed, exact preregistration gate for test
+- PASS: new-run overwrite refusal and strict resume metadata
+- PASS: dry-run-by-default four-arm valid launcher
+- PASS: explicit paid execution and approved-budget gate
+- PASS: full valid requires four protocol-valid smoke summaries
+- PASS: per-arm actual usage accounting and stop-before-next-arm budget check
+- PASS: paired analyzer full synthetic integration, three fixed contrasts,
+  exact McNemar, paired bootstrap, Holm correction, and frozen selection order
+- PASS: aggregate-only analysis output boundary
+- PASS: test preparation requires a committed valid-selection artifact
+- PASS: reference is fixed to A/Flash/baseline and candidate is derived from
+  the frozen valid winner
+- PASS: valid winner A stops the confirmatory campaign instead of comparing A
+  against itself
+- PASS: paired test execution is dry-run by default and requires explicit test
+  pair confirmation, committed campaign/preregistrations, and approved budget
+- PASS: confirmatory analyzer synthetic pair integration, macro-F1 paired
+  randomization, paired bootstrap, secondary McNemar, and non-equivalence wording
+
+Regression:
+- PASS: 19/19 task prompt/parser selftests
+- PASS: authorized data check for all 19 tasks
+- PASS: PsySUICIDE train=11671, valid=1459, test=1464 retained single-label rows
+- PASS: no exact retained-text overlap across PsySUICIDE splits
+- PASS: aggregate audit selftest, 76 summaries
+- PASS: scoreboard selftest, 19 summaries
+- PASS: baseline registry, 22 entries
+- PASS: harness safety, syntax, Python compile, and git diff check
+
+Expected-failure gates:
+- PASS: approved $0.10 rejected below $0.50 smoke reserve
+- PASS: full launch rejected when a smoke summary is absent
+- PASS: neither failure wrote a matrix plan, result row, or API request
+
+Paid valid selection:
+- PASS: four-arm 50-case smoke, 200/200 rows, zero errors
+- PASS: full valid matrix, 1459 retained paired rows per arm, 5836/5836 rows
+- A/Flash/baseline: accuracy 0.8095, macro-F1 0.4837, weighted-F1 0.8250
+- B/Pro/baseline: accuracy 0.8047, macro-F1 0.4769, weighted-F1 0.8210,
+  one strict-parser invalid counted wrong
+- C/Pro/taxonomy: accuracy 0.8855, macro-F1 0.5315, weighted-F1 0.8842
+- D/Pro/hierarchical: accuracy 0.8595, macro-F1 0.5303, weighted-F1 0.8637
+- frozen winner: C/Pro/taxonomy by the preregistered selection rule
+- measured smoke + full-valid estimated cost: $0.5502
+
+Confirmatory official test:
+- PASS: valid selection committed at 60f9dd3 before campaign preparation
+- PASS: campaign and both preregistrations committed at 4cd54f2 before predictions
+- PASS: reference and candidate each completed the same 1464 retained test rows
+- reference A/Flash/baseline: accuracy 0.8286, macro-F1 0.5494,
+  weighted-F1 0.8426, invalid 0, errors 0
+- candidate C/Pro/taxonomy: accuracy 0.8811, macro-F1 0.6371,
+  weighted-F1 0.8796, invalid 0, errors 0
+- primary macro-F1 delta: +0.0878
+- paired randomization: p=0.04830, 20000 repetitions, frozen seed
+- paired bootstrap macro-F1 delta CI95: [0.00993, 0.16151], 20000 repetitions
+- secondary accuracy delta: +0.0526; exact McNemar p=6.48e-9
+- confirmatory pair estimated cost: $0.1889
+- total measured smoke + valid + test estimated cost: $0.7391
+
+Claim boundary:
+- PASS: C/Pro/taxonomy is superior to A/Flash/baseline on this one frozen
+  PsySUICIDE official test campaign under the preregistered macro-F1 rule
+- NOT CLAIMED: clinical effectiveness, universal model superiority, equivalence,
+  or superiority on another dataset/version
+- raw line-level licensed results, counseling text, IDs, gold/prediction pairs,
+  raw model output, credentials, and local paths remain unpublished
+
+Status: COMPLETE — PREREGISTERED PAIRED TEST SUPERIORITY GATE PASSED

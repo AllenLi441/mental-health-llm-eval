@@ -1,0 +1,33 @@
+# benchmark-freeze-and-instruct-v1 run log
+
+2026-08-01 | DEFINE | PASS | Eval defined before implementation. No training,
+API call, model download, benchmark data read, or human labeling performed.
+
+2026-08-01 | SUITE_FREEZE | PASS | Bound 8 families / 19 tasks to source commit,
+registry/schema/index/bundle hashes, and 19 canonical task-spec hashes.
+
+2026-08-01 | BASELINE_FREEZE | PASS | Bound 19 reviewed aggregate records and
+artifact hashes; exact V4 identities separated from legacy aliases; top-level
+paper_control_ready=false.
+
+2026-08-01 | DATASET_DESIGN | PASS | Added final-record schema, source/privacy/
+overlap policy, real-human blind review, expert review template, and one blank
+UNLABELED pilot card. Public dataset rows remain zero.
+
+2026-08-01 | WORKSPACE | PASS | Normal and python -O selftests passed. A dry-run
+preceded explicit creation of the repository-external empty workspace: train=0,
+validation=0, human_review=0, training_allowed=false.
+
+2026-08-01 | IMHI_STATUS | PAUSED | Recorded the existing DR/CE post-training
+best-checkpoint LayerNorm key compatibility failure. No restart or new score.
+
+2026-08-01 | REGRESSION | PASS | 19/19 prompt/parser, aggregate audit,
+scoreboard, baseline registry, harness safety, CPsyExam, PsySUICIDE v1/v2,
+EmoBench, generic trainer, IMHI screen, and IMHI v4 offline selftests all exited
+0. Registry remained 19/19 with 17/17 normal and python -O synthetic checks.
+
+2026-08-01 | PRIVACY | PASS | Git diff check and new-file scans found no local
+licensed-data path, credential value, raw row, human gold, checkpoint, weight, or
+row-level output. Existing IMHI runtime artifacts remain ignored under results/.
+
+Status: PASS_PUBLIC_ASSETS / HUMAN_REVIEW_PENDING / TRAINING_NOT_ALLOWED

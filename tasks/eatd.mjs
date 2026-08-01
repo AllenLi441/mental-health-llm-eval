@@ -5,6 +5,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { DATASETS } from '../lib.mjs';
+import { baselineValue } from '../lib/baselines.mjs';
 
 const POS = 'depressed', NEG = 'non-depressed';
 
@@ -61,7 +62,5 @@ export function parse(raw) {
 }
 
 export const comparisons = [
-  { method: 'paper BiLSTM text-only (trained on train split)', metric: 'F1 (depressed)', value: 0.65 },
-  { method: 'paper GRU audio-only', metric: 'F1', value: 0.66 },
-  { method: 'paper multimodal fusion (SOTA in paper)', metric: 'F1', value: 0.71 },
+  { method: 'paper text/multimodal baselines', metric: 'F1', value: baselineValue('eatd-text-baselines') },
 ];

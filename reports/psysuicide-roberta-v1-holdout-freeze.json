@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "protocol_id": "psysuicide-roberta-v1-holdout-once",
+  "created_at": "2026-07-29T15:10:27Z",
+  "run_id": "roberta-large-full-20260728",
+  "branch": "codex/benchmark-model-optimization-v2",
+  "execution_commit": "e5a518d5281d0d18560a77e27fab533256248d98",
+  "artifacts": {
+    "preregistration": {
+      "path": "reports/psysuicide-roberta-v1.prereg.json",
+      "sha256": "fd47a55c4159af214412d2f7b39b62e286f48cfc899b6dcba01aa156567e4a89"
+    },
+    "partition_commitment": {
+      "path": "reports/psysuicide-v2-train-holdout.commitment.json",
+      "sha256": "02c6776bd369b26bf882f3224f4e86dfc3f03a87e02f92c5e2088e581df6edab"
+    },
+    "base_model_manifest": {
+      "path": "reports/psysuicide-roberta-v1-base-model-manifest.json",
+      "sha256": "06cd3e5467c506028e1fc574aa60d3f2c30cf8fc63c41f0d261ba19d81194475"
+    },
+    "valid_selection": {
+      "path": "reports/psysuicide-roberta-v1-valid-selection.json",
+      "sha256": "f83ed4930627c5fbb69296c92ab30260837e2be1b97a83be1c9039a7b6c0621e"
+    },
+    "selection_reporter": {
+      "path": "scripts/report_psysuicide_roberta.py",
+      "sha256": "7a808bce1dd9e680fc6d27c938dfd990a698a93e27a0d9f4bc5d8ca4fed6a0a7"
+    },
+    "holdout_scorer": {
+      "path": "scripts/score_psysuicide_roberta_holdout.py",
+      "sha256": "1edddb7aef0b7430583d10cdd4459b64605ffe42a0b9c4f6243dcd66b8b3e440"
+    }
+  },
+  "selected_checkpoint": {
+    "seed": 43,
+    "root": "results/psysuicide-roberta/roberta-large-full-20260728/seed-43/model",
+    "files": {
+      "model.safetensors": {
+        "bytes": 1302181756,
+        "sha256": "9a1cf3c2471dedc2ee8799ba6b8324f10e3d01ce1c0d0898da2b9aa642743e44"
+      },
+      "config.json": {
+        "bytes": 1983,
+        "sha256": "6b1e553a1cf0bdc13858240f276ba151f41e63777207cb10cfba5d5ac08335ea"
+      },
+      "tokenizer.json": {
+        "bytes": 439223,
+        "sha256": "1c262607a57d657df584affb5b55560aa01e38d836669660e79931269c065a89"
+      },
+      "tokenizer_config.json": {
+        "bytes": 350,
+        "sha256": "a690ace137dc901c4c2025eddc805e5587d0ec8ee52dce5c3436ec88cb40c84f"
+      },
+      "training_args.bin": {
+        "bytes": 5265,
+        "sha256": "e751495ad29561685f7257052920be4a8545f012308ec872274075e5aa7c909a"
+      }
+    }
+  },
+  "inference": {
+    "label_order": [
+      "与自杀/自伤/攻击行为无关",
+      "被动自杀意图",
+      "主动自杀意图",
+      "关于自杀的探索",
+      "自杀计划",
+      "自杀准备行为",
+      "自杀未遂",
+      "自伤意图",
+      "自伤行为",
+      "用户攻击行为",
+      "他人攻击行为"
+    ],
+    "max_length": 256,
+    "eval_batch": 8,
+    "device": "mps",
+    "dtype": "float32",
+    "local_files_only": true
+  },
+  "outputs": {
+    "public_result": "reports/psysuicide-roberta-v1-holdout-result.json",
+    "private_ledger_namespace": "psysuicide-roberta-v1-holdout-once",
+    "row_level_material": "not persisted"
+  },
+  "access_rule": "commit and push this freeze spec, selection report, reporter, scorer, and artifact manifests before creating the exclusive claim or reading holdout membership",
+  "claim_scope_limit": "the durable private ledger demonstrates one claimed attempt within this scorer namespace; it cannot prove no out-of-band data access"
+}

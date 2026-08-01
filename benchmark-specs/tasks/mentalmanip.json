@@ -1,0 +1,55 @@
+[
+  {
+    "schema_version": "1.0",
+    "task_key": "mentalmanip",
+    "family": "mentalmanip",
+    "task_contract": { "task_type": "single_label_classification", "output_representation": "fixed_label", "canonical_output_labels": ["yes", "no"], "label_order": "declared", "dynamic_options": false, "composition_rule": "single_label", "scoring_method": "exact_match", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "MentalManip/repo/mentalmanip_dataset",
+      "revision": { "kind": "git_commit", "value": "61f9f68d484e8f2d6ae27ecb5765803a6ef6a9d6", "frozen": true },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "dev",
+      "test_selection_prohibited": true,
+      "train": { "source_split": "mentalmanip_con seed17 first 60 percent", "availability": "derived_split_required", "allowed_uses": ["training", "preprocessing_fit", "class_weight_estimation"], "consumption_status": "unknown", "notes": "Reproduce and commit the source-code split before fitting; expected size is 1749 of 2915." },
+      "dev": { "source_split": "mentalmanip_con seed17 next 20 percent", "availability": "derived_split_required", "allowed_uses": ["model_selection", "early_stopping", "threshold_tuning", "prompt_selection"], "consumption_status": "unknown", "notes": "Reproduce and commit the source-code split before selection; expected size is 583." },
+      "test": { "source_split": "mentalmanip_con seed17 final 20 percent", "availability": "derived_split_required", "allowed_uses": ["final_confirmation_once", "historical_reporting"], "consumption_status": "exploratory_used", "notes": "The old seed-42 sample was drawn from the full consensus file, so the prospective fixed test is not treated as untouched." }
+    },
+    "metrics": { "primary": ["positive_class_f1", "balanced_accuracy"], "secondary": ["macro_f1", "accuracy", "expected_calibration_error", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "mentalmanip-source-split-seed17-v1",
+      "evaluation_role": "test",
+      "source_split": "mentalmanip_con seed17 final 20 percent",
+      "selection_forbidden": true,
+      "mode": "prospective_fixed_split",
+      "examples": { "kind": "exact", "value": 583 },
+      "seed": 17,
+      "option_permutations": 1,
+      "repetitions_per_permutation": 1,
+      "api_calls_per_example": 1,
+      "expected_total_api_calls": 583,
+      "scoring_unit": "conversation in the consensus subset"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "paper_compatibility": {
+      "status": "partial",
+      "reference_protocol": "MentalManip manipulation detection on the consensus subset with the repository source split: shuffle seed 17 and 60/20/20 train/valid/test roles.",
+      "paper_primary_metrics": ["accuracy", "positive_class_f1"],
+      "blocking_differences": ["The current runner samples 500 rows from the unsplit consensus file rather than the fixed final 20 percent test role."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "planned",
+      "evidence_level": "exploratory",
+      "summary": "The 500-row zero-shot result is encouraging but is not a fixed-split specialist baseline.",
+      "next_action": "Materialize non-sensitive seed-17 split commitments, then train and select only on train/dev before one frozen test report."
+    }
+  }
+]

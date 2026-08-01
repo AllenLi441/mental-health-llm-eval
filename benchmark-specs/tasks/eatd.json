@@ -1,0 +1,55 @@
+[
+  {
+    "schema_version": "1.0",
+    "task_key": "eatd-depression",
+    "family": "eatd",
+    "task_contract": { "task_type": "single_label_classification", "output_representation": "fixed_label", "canonical_output_labels": ["depressed", "non-depressed"], "label_order": "declared", "dynamic_options": false, "composition_rule": "single_label", "scoring_method": "exact_match", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "EATD/data/EATD-Corpus",
+      "revision": { "kind": "unversioned_local_copy", "value": "local-layout-observed-2026-08-01; manifest-sha256-required-before-new-run", "frozen": false },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "dev",
+      "test_selection_prohibited": true,
+      "train": { "source_split": "train", "availability": "available", "allowed_uses": ["training", "preprocessing_fit", "class_weight_estimation", "cross_validation"], "consumption_status": "unknown", "notes": "The 83-participant train split is small; freeze stratified cross-validation folds and keep participants isolated." },
+      "dev": { "source_split": "train-derived stratified folds", "availability": "derived_split_required", "allowed_uses": ["model_selection", "early_stopping", "threshold_tuning", "cross_validation"], "consumption_status": "not_applicable", "notes": "Select by depressed-class endpoints inside train only." },
+      "test": { "source_split": "validation", "availability": "available", "allowed_uses": ["historical_reporting", "final_confirmation_once"], "consumption_status": "exploratory_used", "notes": "The 79-participant validation split has already been scored by a zero-shot baseline and must never select a specialist model." }
+    },
+    "metrics": { "primary": ["depressed_class_f1", "sensitivity"], "secondary": ["macro_f1", "balanced_accuracy", "accuracy", "specificity", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "eatd-text-validation-v1",
+      "evaluation_role": "test",
+      "source_split": "validation",
+      "selection_forbidden": true,
+      "mode": "full",
+      "examples": { "kind": "exact", "value": 79 },
+      "seed": null,
+      "option_permutations": 1,
+      "repetitions_per_permutation": 1,
+      "api_calls_per_example": 1,
+      "expected_total_api_calls": 79,
+      "scoring_unit": "participant transcript; text-only depression classification"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "paper_compatibility": {
+      "status": "partial",
+      "reference_protocol": "EATD depression recognition; paper baselines include trained text, audio, and multimodal models.",
+      "paper_primary_metrics": ["depressed_class_f1"],
+      "blocking_differences": ["Current evidence is text-only zero-shot on a small imbalanced validation split, whereas paper systems are trained and may use audio or multimodal features."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "planned",
+      "evidence_level": "exploratory",
+      "summary": "Validation accuracy is majority-sensitive; depressed-class F1 and sensitivity are the required optimization endpoints.",
+      "next_action": "Freeze stratified folds over the 83 train participants, compare specialist losses there, and leave the 79 validation participants out of selection."
+    }
+  }
+]
