@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0",
+  "freeze_id": "mental-health-benchmark-suite-v1",
+  "as_of": "2026-08-01",
+  "status": "FROZEN",
+  "source_branch": "codex/cross-benchmark-accuracy-family-v1",
+  "source_commit": "702f0b7c1fed44d94de911786d4d6edaa2e6d9ef",
+  "registry": {
+    "registry_id": "mental-health-cross-benchmark-2026-08-01",
+    "task_count": 19,
+    "family_count": 8,
+    "schema_sha256": "6b3cf9a82d5a9034a1be22cd1761497df4c657ac401c19eb7acc1b3ae3321163",
+    "registry_index_sha256": "011ced6e4a3253ab9f52b1c748480939db966c41827d53f3a1261026de407092",
+    "registry_bundle_sha256": "d1f38dc38cd3745c8c84edc12390609e35580f8304322607424e5e16d366433b"
+  },
+  "task_spec_sha256": {
+    "cbt-cd": "f0d589a8e1d9b5e5a6d482f6746964a8587aed10f0d5e1e02c1f349aefeb5ce9",
+    "cbt-fc": "256b9d738dd0212afa08ed90edc8eadec84f2d906fc987a7523ee2d59619c8e7",
+    "cbt-pc": "fee0574c60ba26a1f483e2f725d9ee533d0d2694acc95aabfd369cfaa8f632e7",
+    "cpsyexam": "21ba1c10afc0f8c113e2a7eebf8737a67885edadd34630036de4d6d9d89e9acd",
+    "eatd-depression": "bb32b88f3f61128d97119421f6927def90a5251d65c92ac5cb18b2ae6b469ea0",
+    "emobench-ea": "da60b8d46275ce8d7348fd68d64855ba65b112e7da6e5c134526ea26256cfe76",
+    "emobench-eu": "c41edc403260ad3b0c81ad907769f69998fa66afa9e034ced77e4cd95efc73da",
+    "imhi-cams": "06f447a122a22f689013973e1464ba9a777d65a2ffdf9dbe29299c5fd50b1016",
+    "imhi-dr": "47f74ed0d81fca172b834ea07c52411027f7caae8716336bf419689980e23a10",
+    "imhi-dreaddit": "5655e3159298240546d7228043d650a9e5c81c8cd0f13370448ac97bf7e0a4fb",
+    "imhi-irf": "27f8f4517b73bc6dd47a2889f8749ab0b45fd0797a0a5067560034bf9f2b47a3",
+    "imhi-loneliness": "e8f268a3247a2b3b265f052952cbaf5a904772fa3b321aeceeabb0c70336dc08",
+    "imhi-multiwd": "407a1456b16d80ccfcd733a1187a54b818552914ffdd62960c4e94b3fdbda6b8",
+    "imhi-sad": "0952845d6b4decef4b1856117e1604e7ccb269742209727cdb980060fabbf38d",
+    "imhi-swmh": "012268d26a60ea9794180513fcb7dda4d87f1c8f9384fa5ec93881e1b4413847",
+    "imhi-t-sid": "6d3eb072c2960c575b53133c8c4ff9aeb9663cf503785c2540abaad4d2985d91",
+    "mdd5k-diagnosis": "14b465904163c3f945d4394d8498e974bbd085eb7eec9d32c94e72fe1b71c342",
+    "mentalmanip": "faf1be9e518876351cc7b54bc8d98660be6efab3fe0ef594e564c174d0598bbb",
+    "psysuicide": "fb26e80ee9851e65ffebbba15a0ad42fc2686a99561d2675c37f04c2a619bb16"
+  },
+  "families": [
+    "cbtbench",
+    "cpsyexam",
+    "eatd",
+    "emobench",
+    "imhi",
+    "mdd5k",
+    "mentalmanip",
+    "psysuicide"
+  ],
+  "boundary": {
+    "freezes": [
+      "task contracts",
+      "label order and output representation",
+      "split-use policy",
+      "metrics and guard metrics",
+      "sample protocol",
+      "provenance requirements",
+      "paper-compatibility limitations"
+    ],
+    "does_not_publish": [
+      "licensed source text",
+      "row identifiers",
+      "row-level gold or predictions",
+      "raw model outputs",
+      "credentials",
+      "model weights or checkpoints"
+    ],
+    "does_not_authorize": [
+      "new test access",
+      "prompt tuning on test",
+      "training",
+      "deployment",
+      "PsySUICIDE v2 B/C/D continuation"
+    ]
+  }
+}

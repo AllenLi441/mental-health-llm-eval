@@ -21,6 +21,7 @@
 | ERR-20260801-13 | Preflight 失败无审计 | `--execute` preflight 失败原先不留 manifest；`--resume` 未配 `--execute` 可静默落入 dry-run | 失败尝试无法聚合审计，CLI 误用可能被误解为已恢复 | `FIXED_PROSPECTIVE`：先写 `ATTEMPTED`，失败更新为 aggregate-only `FAILED/PREFLIGHT` 并 exit 1；不持久化 raw error message；resume misuse 同样 exit 1 |
 | ERR-20260801-14 | Capability selftest 证据缺口 | 初版 checklist 勾选了 multiclass、imbalance、invalid/empty-class 与 deterministic metrics，但 selftest 尚未逐项执行这些断言 | 文档 PASS 可能强于实际测试证据 | `FIXED_PROSPECTIVE`：新增 binary/three-class 三 loss、balanced weights、invalid/empty-class rejection 与 repeated canonical metrics 回归；normal/`-O` 均实际通过 |
 | ERR-20260801-15 | Checkpoint epoch 缺失 | 初版 result 只保存 best step/checkpoint，没有显式 chosen epoch | 无法完整满足 IMHI aggregate reporting contract | `FIXED_PROSPECTIVE`：严格交叉核对 checkpoint 名、best global step 与唯一 logged epoch，并保存 `best_checkpoint_epoch` 及推导规则 |
+| ERR-20260801-16 | Transformers 5 checkpoint LayerNorm 键名兼容 | 首个 IMHI DR/CE job 在 epoch 4 / step 504 early-stop 后加载 best checkpoint-252；checkpoint 暴露 50 个 `gamma/beta` 键，live model 期望对应 `weight/bias`，其余共同参数 shape/dtype 一致；去敏 error SHA 与 manifest 相符 | 过严 literal-key 校验把可兼容 checkpoint 判为失败；manifest 又误标为 `PROTOCOL_PREFLIGHT`，可能把 post-training best-load 失败误写成数据/预检失败 | `OPEN / PAUSED`：0 complete / 1 failed / 11 planned；诊断 weighted-F1 `0.9085` 不计正式分数；当前不重启，先修复兼容映射、阶段分类和合成回归 |
 
 ## 合成回归入口
 

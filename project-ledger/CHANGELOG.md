@@ -4,6 +4,7 @@
 
 ## 2026-08-01
 
+- [`冻结 Benchmark/DeepSeek 历史基线并建立 MentalHealth-Instruct v1`](updates/2026-08-01-benchmark-freeze-instruct-v1.md)：冻结 8 families / 19 tasks 与 19 条 aggregate baseline evidence；明确当前不是统一 paper-ready control；建立 0-row、真人盲审、专家裁决、仓库外数据骨架，并记录 IMHI post-training checkpoint compatibility 失败。
 - [`终审证据闭环与全仓回归`](updates/2026-08-01-accuracy-family-execution.md)：补齐 multiclass/imbalance/invalid/empty-class/deterministic-metric 实执行断言与 checkpoint epoch 记录；全仓回归和隐私扫描通过，终审为 0 blocker。
 - [`终审执行门禁加固`](updates/2026-08-01-accuracy-family-execution.md)：shared trainer 现独立验证 live registry proof，MPS checkpoint 严格保存/恢复 RNG，preflight 失败生成去敏审计 manifest，`--resume` 模式误用 fail closed；normal/`-O` 回归通过，IMHI 仍未启动。
 - [`提分执行结果：基础设施通过、Flash taxonomy 拒绝、IMHI 待启动`](updates/2026-08-01-accuracy-family-execution.md)：registry 19/19 与 trainer/screen 离线门禁通过；0731 Flash taxonomy 虽提高 valid 点值，但因 invalid、关键类 recall 和 macro-F1 inference 失败被拒绝；IMHI 仅完成 12-job data-validation dry-run，尚未训练。

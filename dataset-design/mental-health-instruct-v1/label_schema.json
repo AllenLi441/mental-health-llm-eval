@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/mental-health-instruct-v1.json",
+  "title": "MentalHealth-Instruct v1 final human-reviewed record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_id",
+    "language",
+    "task_family",
+    "instruction",
+    "input",
+    "output",
+    "safety",
+    "provenance",
+    "review",
+    "split_group_id"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "record_id": {"type": "string", "pattern": "^mhi-[a-z0-9][a-z0-9._-]{5,63}$"},
+    "language": {"enum": ["zh", "en", "bilingual"]},
+    "task_family": {
+      "enum": [
+        "knowledge_reasoning",
+        "emotion_understanding",
+        "risk_classification",
+        "condition_classification",
+        "cognitive_distortion",
+        "manipulation_detection",
+        "supportive_response"
+      ]
+    },
+    "instruction": {"type": "string", "minLength": 1, "maxLength": 2000},
+    "input": {"type": "string", "minLength": 1, "maxLength": 12000},
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "output_type",
+        "labels",
+        "emotion",
+        "risk_level",
+        "condition_signal",
+        "response_text"
+      ],
+      "properties": {
+        "output_type": {"enum": ["single_label", "multi_label", "structured_support"]},
+        "labels": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1, "maxLength": 160},
+          "uniqueItems": true,
+          "maxItems": 20
+        },
+        "emotion": {"type": ["string", "null"], "maxLength": 160},
+        "risk_level": {"enum": [null, "none", "low", "moderate", "high", "imminent", "uncertain"]},
+        "condition_signal": {"type": ["string", "null"], "maxLength": 160},
+        "response_text": {"type": ["string", "null"], "maxLength": 6000}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"output_type": {"enum": ["single_label", "multi_label"]}}},
+          "then": {"properties": {"labels": {"minItems": 1}}}
+        },
+        {
+          "if": {"properties": {"output_type": {"const": "structured_support"}}},
+          "then": {"properties": {"response_text": {"type": "string", "minLength": 1}}}
+        }
+      ]
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contains_self_harm", "risk_level", "requires_expert_escalation", "clinical_claim_prohibited"],
+      "properties": {
+        "contains_self_harm": {"type": "boolean"},
+        "risk_level": {"enum": ["none", "low", "moderate", "high", "imminent", "uncertain"]},
+        "requires_expert_escalation": {"type": "boolean"},
+        "clinical_claim_prohibited": {"const": true}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_type",
+        "license_id",
+        "source_revision",
+        "source_record_sha256",
+        "normalized_content_sha256",
+        "pii_removed",
+        "benchmark_overlap_checked",
+        "benchmark_test_excluded"
+      ],
+      "properties": {
+        "source_type": {"enum": ["public_licensed", "human_authored_synthetic", "human_created_scenario"]},
+        "license_id": {"type": "string", "minLength": 1, "maxLength": 240},
+        "source_uri": {"type": ["string", "null"], "maxLength": 2000},
+        "source_revision": {"type": "string", "minLength": 1, "maxLength": 240},
+        "source_record_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "normalized_content_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "pii_removed": {"const": true},
+        "benchmark_overlap_checked": {"const": true},
+        "benchmark_test_excluded": {"const": true}
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "author_id",
+        "reviewer_ids",
+        "adjudicator_id",
+        "gold_origin",
+        "model_generated_gold",
+        "expert_review_required",
+        "expert_review_status",
+        "agreement",
+        "review_protocol_version"
+      ],
+      "properties": {
+        "status": {"const": "APPROVED"},
+        "author_id": {"type": "string", "minLength": 1, "maxLength": 80},
+        "reviewer_ids": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1, "maxLength": 80},
+          "minItems": 2,
+          "uniqueItems": true
+        },
+        "adjudicator_id": {"type": ["string", "null"], "maxLength": 80},
+        "gold_origin": {"enum": ["human_consensus", "human_adjudication"]},
+        "model_generated_gold": {"const": false},
+        "expert_review_required": {"type": "boolean"},
+        "expert_review_status": {"enum": ["not_required", "approved"]},
+        "agreement": {"enum": ["full", "adjudicated"]},
+        "review_protocol_version": {"const": "mental-health-instruct-review-v1"}
+      }
+    },
+    "split_group_id": {"type": "string", "pattern": "^grp-[0-9a-f]{16,64}$"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"safety": {"properties": {"risk_level": {"enum": ["high", "imminent"]}}}}},
+      "then": {
+        "properties": {
+          "review": {
+            "properties": {
+              "expert_review_required": {"const": true},
+              "expert_review_status": {"const": "approved"}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/mental-health-instruct-v1-blank-card.json",
+  "title": "MentalHealth-Instruct v1 blank pilot annotation card",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "card_id",
+    "status",
+    "task_family",
+    "language",
+    "instruction",
+    "input",
+    "source",
+    "author_private",
+    "reviewer_a",
+    "reviewer_b",
+    "adjudication",
+    "export_to_training"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "card_id": {"const": "pilot-0001"},
+    "status": {"const": "UNLABELED"},
+    "task_family": {"type": "null"},
+    "language": {"type": "null"},
+    "instruction": {"const": ""},
+    "input": {"const": ""},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_type", "license_id", "source_revision", "source_record_sha256"],
+      "properties": {
+        "source_type": {"type": "null"},
+        "license_id": {"type": "null"},
+        "source_revision": {"type": "null"},
+        "source_record_sha256": {"type": "null"}
+      }
+    },
+    "author_private": {"type": "null"},
+    "reviewer_a": {"type": "null"},
+    "reviewer_b": {"type": "null"},
+    "adjudication": {"type": "null"},
+    "export_to_training": {"const": false}
+  }
+}

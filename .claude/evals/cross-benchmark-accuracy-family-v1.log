@@ -95,3 +95,13 @@ FINAL CAPABILITY EVIDENCE AND REPOSITORY REGRESSION — 2026-08-01
 - PASS: README regression matrix, 19/19 prompt/parser, aggregate audit, scoreboard, baseline, harness safety, CPsyExam, PsySUICIDE v1/v2, EmoBench, and IMHI offline selftests
 - PASS: final diff and tracked/new-file privacy scans
 - FINAL REVIEW: 0 blocking findings before commit and IMHI development-screen launch
+
+IMHI EXECUTION FAILURE — 2026-08-01
+- STARTED: committed Seed-42 matrix on Git HEAD 702f0b7c1fed44d94de911786d4d6edaa2e6d9ef
+- FAILED: first DR/CE job after epoch 4 / step 504 and early stopping
+- ROOT CAUSE: post-training load_best_model_at_end strict key check; 50 LayerNorm gamma/beta checkpoint keys versus live weight/bias names
+- VERIFIED: common parameter shape/dtype agree; public-safe reconstructed error SHA matches manifest
+- MANIFEST: 0 COMPLETE / 1 FAILED / 11 PLANNED; raw error message not persisted
+- DIAGNOSTIC ONLY: checkpoint-252 valid accuracy=0.9093023, weighted-F1=0.9084805
+- NOT A RESULT: no result.json or best-model; no arm comparison or family decision
+- PAUSED: no automatic fix/restart; PsySUICIDE v2 B/C/D remain PAUSED

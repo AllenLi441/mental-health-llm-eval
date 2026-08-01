@@ -166,10 +166,20 @@ the shared response fingerprint was
       paper superiority, cross-task universal-model, clinical, or deployment claim.
 
 Data-validation checkpoint: explicit `--validate-data` produced a 12-job
-`DRY_RUN`, not training. Used train/valid rows were DR `1,002/430` (one
-cross-split train row removed), Irf `3,941/985` (zero), SAD `5,547/616` (zero),
-and dreaddit `2,814/300` (one). The screen is validated but remains NOT STARTED
-until a clean, committed execution base is verified.
+`DRY_RUN`. Used train/valid rows were DR `1,002/430` (one cross-split train row
+removed), Irf `3,941/985` (zero), SAD `5,547/616` (zero), and dreaddit
+`2,814/300` (one).
+
+Execution checkpoint: the committed screen then started, but the first DR/CE
+job failed after epoch 4 / step 504. Early stopping selected checkpoint-252;
+`load_best_model_at_end` hit a strict state-key mismatch because Transformers 5
+serialized 50 LayerNorm parameters as `gamma/beta` while the live model expected
+`weight/bias`; matching keys retained identical shape/dtype. This is a harness
+compatibility failure, not a data or model-metric failure. The manifest has 0
+COMPLETE, 1 FAILED, and 11 PLANNED jobs; no `result.json` or `best-model` exists.
+Checkpoint-252 valid weighted-F1 `0.9084805` and accuracy `0.9093023` are
+diagnostic only and cannot enter the formal screen. Execution is paused and was
+not restarted.
 
 ## Regression evals
 

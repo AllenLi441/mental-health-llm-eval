@@ -23,6 +23,8 @@ python3 scripts/check_harness_safety.py
 python3 scripts/check_project_ledger.py
 python3 scripts/check_benchmark_registry.py       # 19-task machine-readable protocol registry
 python3 scripts/check_benchmark_registry.py --selftest
+python3 scripts/check_research_freeze.py --selftest # 8-family/19-task freeze + 0-row dataset-design guard
+python3 scripts/init_mental_health_instruct_workspace.py --selftest
 python3 scripts/train_text_classifier.py --selftest
 python3 scripts/imhi_classification_screen.py --selftest
 python3 scripts/imhi_classification_screen.py     # registry-only preregistration; does not open licensed CSVs
@@ -47,6 +49,21 @@ python3 scripts/train_psysuicide_roberta_accuracy_v2.py --selftest
 python3 scripts/analyze_psysuicide_roberta_accuracy_v2.py --selftest
 node scripts/run_imhi_uniform_v4_matrix.mjs --selftest
 ```
+
+## Research freeze and MentalHealth-Instruct v1
+
+Before any new model training, the current 8-family / 19-task protocol and
+reviewed DeepSeek aggregate evidence are frozen in [`benchmark-freezes/`](benchmark-freezes/README.md).
+The historical baseline is deliberately `paper_control_ready=false`: existing
+rows mix exact V4 fingerprints, unresolved legacy aliases, proxy protocols, and
+incompatible metrics, so they must not be averaged into one model score.
+
+The public-safe dataset design lives in
+[`dataset-design/mental-health-instruct-v1/`](dataset-design/mental-health-instruct-v1/README.md).
+It starts with zero rows and one blank `UNLABELED` pilot card. Real people must
+author and blind-review labels; AI/model labels cannot be presented as human
+gold. The initializer creates empty train/validation files only outside this
+repository and is dry-run unless `--execute` is supplied.
 
 通用协议：零样本、temperature 0、严格标签解析（无同义词映射，解析失败记 invalid 并算错）、
 抽样用种子 42 确定性洗牌（`--seed` 可换）、逐条落盘 JSONL 可续跑、汇总含 accuracy + Wilson 95% CI +
