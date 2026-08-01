@@ -16,7 +16,7 @@
 - IMHI 的统一 v3u 在 9 个可用任务中有 8/9 的点值高于 ChatGPT zero-shot，却只有 1/9
   高于 MentaLLaMA-13B，0/9 高于各任务 fine-tuned 判别式。
 - EmoBench 当前可进入 scoreboard 的仍是 temp-0 单次 proxy：EA 比论文 GPT-4 中英均值低
-  `0.35pp`，EU 高 `14.60pp`。论文 5 次采样多数票 × 4 个选项排列的完整 8,000-call
+  `0.35pp`，EU 高 `14.60pp`。论文 5 次采样多数票 × 4 个选项排列的完整 16,000-call
   重算尚未发生，不能把 proxy 差值写成完全同协议胜负。
 
 本轮真正完成的是把“继续凭感觉改 prompt”改造成可证伪、会自动停止的优化流程。两个新
@@ -87,8 +87,10 @@ taxonomy-v2 完成 1,459 条 official valid，全程 0 error / 0 invalid，费�
 聚合与排列，因此额外冻结了确定性排列种子、EU 分字段投票和 tie-break 假设。
 
 8 个唯一题目的完整性 smoke 实际发出 160 次请求：0 error、usage 160/160、响应模型和
-fingerprint 均通过，费用 `$0.06380`。全量需要 8,000 次调用；按 smoke 校准并加 1.5 倍
-预留需要 `$4.7851`，当时余额为 `¥6.81`，所以状态为 `BLOCKED_BY_PROVIDER_BALANCE`。
+fingerprint 均通过，费用 `$0.06380`。全量需要 **16,000 次调用**（EA 与 EU 各 400 题，
+每题 4 个排列 × 5 次采样）；按 smoke 校准并加 1.5 倍预留需要 `$9.5702`，当时余额为
+`¥6.81`，所以状态为 `BLOCKED_BY_PROVIDER_BALANCE`。2026-08-01 审计发现此前
+8,000-call / `$4.7851` 估算漏计了一个任务；这项更正不改变 160-call smoke 观测值。
 没有把 8 题 smoke 当成 benchmark。
 
 ## 5. IMHI 九任务统一候选
@@ -195,7 +197,7 @@ Seeds 43/44/45 confirmation，因此不能宣称 v2 提高了 accuracy、macro-F
 1. 监督 v1 已按规则完成并通过内部 holdout 描述性确认。下一轮必须另建预注册和分支，
    只从 optimization 建 inner-dev，先解决训练不足、双重平衡与极稀有类；不得根据本次
    holdout 改 v1、调阈值或再次评分。
-2. EmoBench 只在账户可提供至少 `$4.79` 独立批准预算时运行完整 8,000 calls；在此之前
+2. EmoBench 只在账户可提供至少 `$9.58` 独立批准预算时运行完整 16,000 calls；在此之前
    scoreboard 继续明确标识 proxy。
 3. IMHI 不再扩大全量 LLM prompt 搜索。下一条合理路线是每任务训练判别式 encoder，或在
    独立 development split 上做阈值/类别不平衡优化；最终仍必须统一报告九任务，不能只挑

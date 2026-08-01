@@ -11,6 +11,11 @@ protocol. It explicitly records three assumptions that are not specified by the
 paper and are absent from the released aggregation code: deterministic
 permutation seed, per-field EU majority voting, and the tie rule.
 
+For the complete `EA + EU`, `en + zh` run, the frozen call count is **16,000**:
+`2 tasks × 400 rows × 4 option orderings × 5 stochastic samples`. The earlier
+8,000-call estimate omitted one task and was corrected on 2026-08-01; the
+160-call smoke observations themselves did not change.
+
 ## Output
 Write `eval.mjs` (Node, stdlib only, zero deps — same style as
 the sibling harness style). Node >= 18 (global fetch).

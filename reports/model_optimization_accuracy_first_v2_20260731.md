@@ -1,5 +1,12 @@
 # PsySUICIDE accuracy-first v2 status — 2026-07-31
 
+> **2026-08-01 状态更新：** 本文主体是正式 screen 启动前的历史快照。此后 Seed-42 Arm A
+> 完成，inner-dev accuracy `0.9329039184`、macro-F1 `0.6250354736`；Arm B 在
+> `3,560 / 4,680` steps 处被用户要求停止，Arm C/D 未开始。当前无训练或 `caffeinate`
+> 进程，自动监控已删除。四臂不完整，因此没有 screen selection，也不能宣称 v2 提升或
+> 下降。跨 benchmark 总复盘见
+> `reports/model_architecture_status_and_roadmap_20260801.md`。
+
 ## Current verdict
 
 Stage A is complete and unchanged. The Stage B optimization-only export,
