@@ -1,0 +1,379 @@
+{
+  "campaign": {
+    "execution_commit": "4cd54f219fca01b2fa6cb264fb71532fe83edb4e",
+    "file": "reports/psytest-20260728.campaign.json",
+    "sha256": "621c5828117b117c369fe56444af32ccb7864da472f70e199d15e01db672cbd6"
+  },
+  "candidate": {
+    "accuracy": 0.8811475409836066,
+    "dataset_manifest_sha256": "25ec7f9c004d2a92198e7940bf4ad9a0a840d94a8d5201b554d489e11daf6a5e",
+    "file": "psysuicide-test-taxonomy-deepseek-v4-pro-psytest-20260728-candidate.jsonl",
+    "fingerprints": [
+      "fp_9954b31ca7_prod0820_fp8_kvcache_20260402"
+    ],
+    "invalid": 0,
+    "macro_f1": 0.6371438506354873,
+    "model": "deepseek-v4-pro",
+    "per_class": {
+      "与自杀/自伤/攻击行为无关": {
+        "f1": 0.9535747446610956,
+        "fn": 49,
+        "fp": 51,
+        "support": 1076,
+        "tp": 1027
+      },
+      "主动自杀意图": {
+        "f1": 0.7083333333333334,
+        "fn": 47,
+        "fp": 23,
+        "support": 132,
+        "tp": 85
+      },
+      "他人攻击行为": {
+        "f1": 0.6470588235294118,
+        "fn": 7,
+        "fp": 5,
+        "support": 18,
+        "tp": 11
+      },
+      "关于自杀的探索": {
+        "f1": 0.4,
+        "fn": 19,
+        "fp": 35,
+        "support": 37,
+        "tp": 18
+      },
+      "用户攻击行为": {
+        "f1": 0.6785714285714286,
+        "fn": 8,
+        "fp": 10,
+        "support": 27,
+        "tp": 19
+      },
+      "自伤意图": {
+        "f1": 0.75,
+        "fn": 0,
+        "fp": 2,
+        "support": 3,
+        "tp": 3
+      },
+      "自伤行为": {
+        "f1": 0.7619047619047619,
+        "fn": 2,
+        "fp": 3,
+        "support": 10,
+        "tp": 8
+      },
+      "自杀准备行为": {
+        "f1": 0.4,
+        "fn": 1,
+        "fp": 2,
+        "support": 2,
+        "tp": 1
+      },
+      "自杀未遂": {
+        "f1": 0.8181818181818182,
+        "fn": 2,
+        "fp": 2,
+        "support": 11,
+        "tp": 9
+      },
+      "自杀计划": {
+        "f1": 0.125,
+        "fn": 14,
+        "fp": 0,
+        "support": 15,
+        "tp": 1
+      },
+      "被动自杀意图": {
+        "f1": 0.7659574468085106,
+        "fn": 25,
+        "fp": 41,
+        "support": 133,
+        "tp": 108
+      }
+    },
+    "preregistration_commit": "4cd54f219fca01b2fa6cb264fb71532fe83edb4e",
+    "preregistration_sha256": "77fe5c84f4dc7cfc99be120a9295e7d69adf216bfb91eba271c52092d95d4d93",
+    "prompt_profile": "taxonomy",
+    "prompt_template_sha256": "eb2180f8305316f4cc2c07a810d137901fc62ab94e18e68392b236a2b869d1c8",
+    "rows": 1464,
+    "sha256": "72450afc9adca70b9ffea98e6be30ec314a4bc6a2579945f5498473f9db2c04b",
+    "top_confusions": [
+      {
+        "count": 26,
+        "gold": "与自杀/自伤/攻击行为无关",
+        "predicted": "被动自杀意图"
+      },
+      {
+        "count": 26,
+        "gold": "主动自杀意图",
+        "predicted": "关于自杀的探索"
+      },
+      {
+        "count": 15,
+        "gold": "被动自杀意图",
+        "predicted": "与自杀/自伤/攻击行为无关"
+      },
+      {
+        "count": 13,
+        "gold": "关于自杀的探索",
+        "predicted": "与自杀/自伤/攻击行为无关"
+      },
+      {
+        "count": 10,
+        "gold": "主动自杀意图",
+        "predicted": "与自杀/自伤/攻击行为无关"
+      },
+      {
+        "count": 9,
+        "gold": "与自杀/自伤/攻击行为无关",
+        "predicted": "用户攻击行为"
+      },
+      {
+        "count": 9,
+        "gold": "主动自杀意图",
+        "predicted": "被动自杀意图"
+      },
+      {
+        "count": 8,
+        "gold": "自杀计划",
+        "predicted": "主动自杀意图"
+      },
+      {
+        "count": 7,
+        "gold": "被动自杀意图",
+        "predicted": "主动自杀意图"
+      },
+      {
+        "count": 6,
+        "gold": "他人攻击行为",
+        "predicted": "与自杀/自伤/攻击行为无关"
+      }
+    ],
+    "usage_and_cost": {
+      "cache_pricing_basis": "provider_cache_hit_and_miss_fields",
+      "completion_tokens": 100639,
+      "estimated_usd": 0.133923566,
+      "prompt_cache_hit_tokens": 374912,
+      "prompt_cache_miss_tokens": 103468,
+      "prompt_tokens": 478380,
+      "reasoning_tokens": 88263
+    },
+    "weighted_f1": 0.8795978829883035
+  },
+  "n": 1464,
+  "paired_inference": {
+    "accuracy_exact_mcnemar_secondary": {
+      "candidate_only_correct": 127,
+      "reference_only_correct": 50,
+      "two_sided_p": 6.4808624541515635e-09
+    },
+    "claim": "CANDIDATE_SUPERIOR_ON_PREREGISTERED_MACRO_F1",
+    "delta_candidate_minus_reference": {
+      "accuracy": 0.05259562841530063,
+      "macro_f1": 0.08778528839636734,
+      "weighted_f1": 0.03700599538729776
+    },
+    "equivalence_tested": false,
+    "paired_bootstrap": {
+      "macro_f1_delta_ci95": [
+        0.009925475102901137,
+        0.16150551968128513
+      ],
+      "repetitions": 20000,
+      "seed": 20260727,
+      "weighted_f1_delta_ci95": [
+        0.020930550184338648,
+        0.05309512727095715
+      ]
+    },
+    "paired_randomization": {
+      "observed_delta": 0.08778528839636734,
+      "repetitions": 20000,
+      "seed": 20260727,
+      "two_sided_p": 0.04829758512074396
+    },
+    "primary_metric": "macro_f1"
+  },
+  "pricing_snapshot": {
+    "currency": "USD",
+    "models": {
+      "deepseek-v4-flash": {
+        "input_cache_hit": 0.0028,
+        "input_cache_miss": 0.14,
+        "output": 0.28
+      },
+      "deepseek-v4-pro": {
+        "input_cache_hit": 0.003625,
+        "input_cache_miss": 0.435,
+        "output": 0.87
+      }
+    },
+    "retrieved_at": "2026-07-27",
+    "schema_version": 1,
+    "source": "https://api-docs.deepseek.com/quick_start/pricing",
+    "unit": "per_1m_tokens"
+  },
+  "publishing_boundary": "aggregate confirmation only; no counseling text, ids, per-case gold/prediction assignments, or raw output",
+  "reference": {
+    "accuracy": 0.828551912568306,
+    "dataset_manifest_sha256": "25ec7f9c004d2a92198e7940bf4ad9a0a840d94a8d5201b554d489e11daf6a5e",
+    "file": "psysuicide-test-baseline-deepseek-v4-flash-psytest-20260728-reference.jsonl",
+    "fingerprints": [
+      "fp_8b330d02d0_prod0820_fp8_kvcache_20260402"
+    ],
+    "invalid": 0,
+    "macro_f1": 0.5493585622391199,
+    "model": "deepseek-v4-flash",
+    "per_class": {
+      "与自杀/自伤/攻击行为无关": {
+        "f1": 0.944177093358999,
+        "fn": 95,
+        "fp": 21,
+        "support": 1076,
+        "tp": 981
+      },
+      "主动自杀意图": {
+        "f1": 0.6136363636363636,
+        "fn": 51,
+        "fp": 51,
+        "support": 132,
+        "tp": 81
+      },
+      "他人攻击行为": {
+        "f1": 0.5882352941176471,
+        "fn": 8,
+        "fp": 6,
+        "support": 18,
+        "tp": 10
+      },
+      "关于自杀的探索": {
+        "f1": 0.23703703703703705,
+        "fn": 21,
+        "fp": 82,
+        "support": 37,
+        "tp": 16
+      },
+      "用户攻击行为": {
+        "f1": 0.65625,
+        "fn": 6,
+        "fp": 16,
+        "support": 27,
+        "tp": 21
+      },
+      "自伤意图": {
+        "f1": 0.6666666666666666,
+        "fn": 0,
+        "fp": 3,
+        "support": 3,
+        "tp": 3
+      },
+      "自伤行为": {
+        "f1": 0.8181818181818182,
+        "fn": 1,
+        "fp": 3,
+        "support": 10,
+        "tp": 9
+      },
+      "自杀准备行为": {
+        "f1": 0.0,
+        "fn": 2,
+        "fp": 1,
+        "support": 2,
+        "tp": 0
+      },
+      "自杀未遂": {
+        "f1": 0.6956521739130435,
+        "fn": 3,
+        "fp": 4,
+        "support": 11,
+        "tp": 8
+      },
+      "自杀计划": {
+        "f1": 0.23529411764705882,
+        "fn": 13,
+        "fp": 0,
+        "support": 15,
+        "tp": 2
+      },
+      "被动自杀意图": {
+        "f1": 0.5878136200716846,
+        "fn": 51,
+        "fp": 64,
+        "support": 133,
+        "tp": 82
+      }
+    },
+    "preregistration_commit": "4cd54f219fca01b2fa6cb264fb71532fe83edb4e",
+    "preregistration_sha256": "58a2a4d5e2acc6a883be1a5282235d43b60c001b6a559d0e7b1a20f6ec1cd77e",
+    "prompt_profile": "baseline",
+    "prompt_template_sha256": "72ce2d6668cc7e027546034cf8c85736833b752b5b6aca79bf0bc7a31be5d32d",
+    "rows": 1464,
+    "sha256": "966a759635475036fab961361f7c33698535069f7d5bd526d17bee6b667d68e0",
+    "top_confusions": [
+      {
+        "count": 36,
+        "gold": "与自杀/自伤/攻击行为无关",
+        "predicted": "关于自杀的探索"
+      },
+      {
+        "count": 34,
+        "gold": "与自杀/自伤/攻击行为无关",
+        "predicted": "被动自杀意图"
+      },
+      {
+        "count": 33,
+        "gold": "被动自杀意图",
+        "predicted": "主动自杀意图"
+      },
+      {
+        "count": 27,
+        "gold": "主动自杀意图",
+        "predicted": "关于自杀的探索"
+      },
+      {
+        "count": 22,
+        "gold": "主动自杀意图",
+        "predicted": "被动自杀意图"
+      },
+      {
+        "count": 15,
+        "gold": "与自杀/自伤/攻击行为无关",
+        "predicted": "用户攻击行为"
+      },
+      {
+        "count": 13,
+        "gold": "被动自杀意图",
+        "predicted": "关于自杀的探索"
+      },
+      {
+        "count": 9,
+        "gold": "关于自杀的探索",
+        "predicted": "与自杀/自伤/攻击行为无关"
+      },
+      {
+        "count": 8,
+        "gold": "自杀计划",
+        "predicted": "主动自杀意图"
+      },
+      {
+        "count": 5,
+        "gold": "他人攻击行为",
+        "predicted": "与自杀/自伤/攻击行为无关"
+      }
+    ],
+    "usage_and_cost": {
+      "cache_pricing_basis": "provider_cache_hit_and_miss_fields",
+      "completion_tokens": 119733,
+      "estimated_usd": 0.05499732,
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 153372,
+      "prompt_tokens": 153372,
+      "reasoning_tokens": 107769
+    },
+    "weighted_f1": 0.8425918876010058
+  },
+  "schema_version": 1,
+  "scope": "one frozen paired PsySUICIDE official test campaign"
+}

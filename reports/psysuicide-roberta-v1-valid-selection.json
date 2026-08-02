@@ -1,0 +1,228 @@
+{
+  "schema_version": 2,
+  "scope": "PsySUICIDE supervised v1 three-seed official-valid selection",
+  "execution_commit": "e5a518d5281d0d18560a77e27fab533256248d98",
+  "execution_identity": {
+    "execution_base_commit": "376ca624422dd0b84616f70917b6c096891203e3",
+    "execution_commit": "e5a518d5281d0d18560a77e27fab533256248d98",
+    "training_script": "scripts/train_psysuicide_roberta.py",
+    "training_script_sha256": "ab8d63dc8700d3f0be622afa54b6754df6f181fbd96cb652fc3bd26b09d0184e",
+    "preregistration_sha256": "fd47a55c4159af214412d2f7b39b62e286f48cfc899b6dcba01aa156567e4a89",
+    "partition_commitment_artifact_sha256": "02c6776bd369b26bf882f3224f4e86dfc3f03a87e02f92c5e2088e581df6edab",
+    "verification": "execution commit exists, descends from the preregistered base, and contains the preregistered trainer bytes",
+    "limitation": "the trainer did not record whether its execution-time worktree contained uncommitted changes"
+  },
+  "preregistration": "reports/psysuicide-roberta-v1.prereg.json",
+  "preregistration_sha256": "fd47a55c4159af214412d2f7b39b62e286f48cfc899b6dcba01aa156567e4a89",
+  "base_model": "hfl/chinese-roberta-wwm-ext-large",
+  "base_model_revision": "a25cc9e05974bd9687e528edd516f2cfdb3f5db9",
+  "base_model_identity": {
+    "base_model": "hfl/chinese-roberta-wwm-ext-large",
+    "base_model_revision": "a25cc9e05974bd9687e528edd516f2cfdb3f5db9",
+    "local_cache_manifest": "reports/psysuicide-roberta-v1-base-model-manifest.json",
+    "local_cache_manifest_sha256": "06cd3e5467c506028e1fc574aa60d3f2c30cf8fc63c41f0d261ba19d81194475",
+    "verification_status": "POST_RUN_LOCAL_ARTIFACT_MATCH",
+    "limitation": "the trainer used a local path and recorded model_revision=null; the pinned revision and exact cache bytes were verified after the run, not cryptographically recorded inside each seed result"
+  },
+  "partition": {
+    "optimization_rows": 9342,
+    "optimization_commitment_sha256": "0c3cbf98db02c609d500b4f9ef9bf95518b617bd4dffd1f4cde8a5c5e85a8dd9",
+    "official_valid_rows": 1459,
+    "official_valid_membership_verification": "row count, exact label order, per-class support vector, and aggregate metric consistency only; the v1 trainer did not record a valid-file or valid-membership commitment",
+    "holdout_rows": 2329,
+    "holdout_commitment_sha256": "2691aca6db327d4e8c3b3cefe49b68716506d4181344883ae0f8a3e19a53fe30",
+    "holdout_scored": false
+  },
+  "configuration": {
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "hyperparameter_search": false,
+    "epochs": 3.0,
+    "max_length": 256,
+    "per_device_train_batch": 2,
+    "per_device_eval_batch": 8,
+    "gradient_accumulation": 8,
+    "learning_rate": 2e-05,
+    "weight_decay": 0.01,
+    "warmup_ratio": 0.1,
+    "scheduler": "linear",
+    "optimizer": "adamw_torch",
+    "sampler": "weighted replacement using inverse fourth-root class frequency",
+    "loss": "class-weighted focal loss using inverse fourth-root class frequency and gamma=1.5"
+  },
+  "seed_results": [
+    {
+      "seed": 42,
+      "device": "mps",
+      "train_runtime_seconds": 10101.9667,
+      "train_loss": 0.9483802340948478,
+      "accuracy": 0.9383139136394791,
+      "macro_f1": 0.6935049954997005,
+      "weighted_f1": 0.9380552310429924
+    },
+    {
+      "seed": 43,
+      "device": "mps",
+      "train_runtime_seconds": 9347.1604,
+      "train_loss": 0.975454827527112,
+      "accuracy": 0.9417409184372858,
+      "macro_f1": 0.7615574925039819,
+      "weighted_f1": 0.94249899249097
+    },
+    {
+      "seed": 44,
+      "device": "mps",
+      "train_runtime_seconds": 11554.1477,
+      "train_loss": 0.9980154963914298,
+      "accuracy": 0.9403701165181632,
+      "macro_f1": 0.7589977500264721,
+      "weighted_f1": 0.9407894574169042
+    }
+  ],
+  "three_seed_mean": {
+    "accuracy": 0.9401416495316427,
+    "macro_f1": 0.7380200793433848,
+    "weighted_f1": 0.940447893650289
+  },
+  "three_seed_sample_std": {
+    "accuracy": 0.0017248879221545906,
+    "macro_f1": 0.03857243300072575,
+    "weighted_f1": 0.0022414846211008107
+  },
+  "per_class": {
+    "与自杀/自伤/攻击行为无关": {
+      "support": 1075,
+      "mean_f1": 0.9722281956969093,
+      "std_f1": 0.0015017410488197918,
+      "reference_f1": 0.9545032497678737,
+      "delta_vs_reference": 0.017724945929035618
+    },
+    "被动自杀意图": {
+      "support": 132,
+      "mean_f1": 0.8859170780909911,
+      "std_f1": 0.005670766492615557,
+      "reference_f1": 0.8327645051194539,
+      "delta_vs_reference": 0.05315257297153719
+    },
+    "主动自杀意图": {
+      "support": 132,
+      "mean_f1": 0.9191799894378031,
+      "std_f1": 0.0027275081131239967,
+      "reference_f1": 0.7914893617021277,
+      "delta_vs_reference": 0.1276906277356754
+    },
+    "关于自杀的探索": {
+      "support": 36,
+      "mean_f1": 0.7411411411411412,
+      "std_f1": 0.042224229872088764,
+      "reference_f1": 0.2857142857142857,
+      "delta_vs_reference": 0.45542685542685546
+    },
+    "自杀计划": {
+      "support": 15,
+      "mean_f1": 0.8604269293924466,
+      "std_f1": 0.03459984812102707,
+      "reference_f1": 0.2222222222222222,
+      "delta_vs_reference": 0.6382047071702244
+    },
+    "自杀准备行为": {
+      "support": 2,
+      "mean_f1": 0.0,
+      "std_f1": 0.0
+    },
+    "自杀未遂": {
+      "support": 10,
+      "mean_f1": 0.7678362573099414,
+      "std_f1": 0.11971461567801767,
+      "reference_f1": 0.631578947368421,
+      "delta_vs_reference": 0.1362573099415204
+    },
+    "自伤意图": {
+      "support": 3,
+      "mean_f1": 0.8095238095238094,
+      "std_f1": 0.2182178902359924
+    },
+    "自伤行为": {
+      "support": 10,
+      "mean_f1": 0.7695906432748538,
+      "std_f1": 0.09158723719509658,
+      "reference_f1": 0.6153846153846154,
+      "delta_vs_reference": 0.1542060278902384
+    },
+    "用户攻击行为": {
+      "support": 27,
+      "mean_f1": 0.7634621999947077,
+      "std_f1": 0.024255844141535515,
+      "reference_f1": 0.5777777777777777,
+      "delta_vs_reference": 0.18568442221692993
+    },
+    "他人攻击行为": {
+      "support": 17,
+      "mean_f1": 0.6289146289146289,
+      "std_f1": 0.050592957487106203,
+      "reference_f1": 0.36363636363636365,
+      "delta_vs_reference": 0.26527826527826526
+    }
+  },
+  "selection": {
+    "primary_reference_macro_f1": 0.5314999909201558,
+    "primary_delta": 0.206520088423229,
+    "primary_pass": true,
+    "regression_guard_failures": [],
+    "regression_guard_pass": true,
+    "candidate_advances": true,
+    "decision": "ADVANCE_SUPERVISED_V1_FREEZE_CHECKPOINT_BEFORE_HOLDOUT"
+  },
+  "selected_checkpoint": {
+    "seed": 43,
+    "valid_macro_f1": 0.7615574925039819,
+    "weight_filename": "model.safetensors",
+    "weight_bytes": 1302181756,
+    "weight_sha256": "9a1cf3c2471dedc2ee8799ba6b8324f10e3d01ce1c0d0898da2b9aa642743e44",
+    "artifact_files": {
+      "model.safetensors": {
+        "bytes": 1302181756,
+        "sha256": "9a1cf3c2471dedc2ee8799ba6b8324f10e3d01ce1c0d0898da2b9aa642743e44"
+      },
+      "config.json": {
+        "bytes": 1983,
+        "sha256": "6b1e553a1cf0bdc13858240f276ba151f41e63777207cb10cfba5d5ac08335ea"
+      },
+      "tokenizer.json": {
+        "bytes": 439223,
+        "sha256": "1c262607a57d657df584affb5b55560aa01e38d836669660e79931269c065a89"
+      },
+      "tokenizer_config.json": {
+        "bytes": 350,
+        "sha256": "a690ace137dc901c4c2025eddc805e5587d0ec8ee52dce5c3436ec88cb40c84f"
+      },
+      "training_args.bin": {
+        "bytes": 5265,
+        "sha256": "e751495ad29561685f7257052920be4a8545f012308ec872274075e5aa7c909a"
+      }
+    },
+    "label_order": [
+      "与自杀/自伤/攻击行为无关",
+      "被动自杀意图",
+      "主动自杀意图",
+      "关于自杀的探索",
+      "自杀计划",
+      "自杀准备行为",
+      "自杀未遂",
+      "自伤意图",
+      "自伤行为",
+      "用户攻击行为",
+      "他人攻击行为"
+    ],
+    "status": "frozen before holdout access; weights remain local and ignored"
+  },
+  "integrity_limits": [
+    "official-valid membership was not cryptographically committed by the v1 trainer",
+    "base-model revision provenance is a post-run local-artifact verification because each seed recorded model_revision=null",
+    "the frozen selected checkpoint and all files used for inference are byte-hashed before holdout access"
+  ],
+  "publishing_boundary": "aggregate metrics and hashes only; text, ids, row-level predictions, weights, and trainer state remain private and ignored"
+}

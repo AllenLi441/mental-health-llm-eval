@@ -6,6 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DATASETS, csvObjects } from '../lib.mjs';
+import { imhiBaseline } from '../lib/baselines.mjs';
 
 const DIR = join(DATASETS, 'MentaLLaMA', 'test_data', 'test_complete');
 
@@ -21,7 +22,6 @@ const TASKS = [
       'Answer no for transient sadness, venting about one specific event, ordinary stress, or posts that only discuss depression in other people or in the abstract.',
       'Do not infer depression merely because the post is negative, emotional, or about an unpleasant situation.',
     ].join(' '),
-    cmp: { chatgptZS: 82.41, bestDiscriminative: 'RoBERTa 95.11', mentallama13b: 85.68 },
   },
   {
     name: 'dreaddit', file: 'dreaddit.csv', type: 'binary',
@@ -32,7 +32,6 @@ const TASKS = [
       'Answer no for neutral descriptions, ordinary advice requests, isolated annoyance or disagreement, and descriptions of a difficult event that do not show the poster experiencing psychological strain.',
       'Do not infer stress merely because the topic is unpleasant or could be stressful.',
     ].join(' '),
-    cmp: { chatgptZS: 71.79, bestDiscriminative: 'MentalRoBERTa 81.76', mentallama13b: 75.79 },
   },
   {
     name: 'loneliness', file: 'loneliness.csv', type: 'binary',
@@ -43,7 +42,6 @@ const TASKS = [
       'Answer no when the poster is simply by themselves, mentions relationships or social activity without distress, or describes other problems without expressed loneliness.',
       'Do not infer loneliness merely because the poster is physically alone or mentions other people.',
     ].join(' '),
-    cmp: { chatgptZS: 58.40, bestDiscriminative: 'MentalRoBERTa 85.33', mentallama13b: 85.1 },
   },
   {
     name: 'Irf', file: 'Irf.csv', type: 'binary', questionFromRow: true,
@@ -54,7 +52,6 @@ const TASKS = [
       'Answer yes only when the post expresses the specific factor named in the question; answer no when it is absent or only another kind of distress is shown.',
       'Do not infer the factor merely from general negativity, sadness, or the mention of relationships or self-worth.',
     ].join(' '),
-    cmp: { chatgptZS: 41.33, bestDiscriminative: 'MentalBERT 76.73', mentallama13b: 76.49 },
   },
   {
     name: 'MultiWD', file: 'MultiWD.csv', type: 'binary', questionFromRow: true,
@@ -68,34 +65,41 @@ const TASKS = [
       'Intellectual = learning, curiosity, creativity, problem solving, or cultural and intellectual activity.',
       'Answer yes for explicit or clearly demonstrated evidence, including impairment or absence in that dimension; answer no when the dimension is only remotely implied or when evidence belongs to another dimension.',
     ].join(' '),
-    cmp: { chatgptZS: 62.72, bestDiscriminative: 'BERT 76.69', mentallama13b: 75.11 },
   },
   {
     name: 'SAD', file: 'SAD.csv', type: 'multi',
     question: 'What is the cause of the poster\'s stress?',
     labels: ['school', 'financial problem', 'family issues', 'social relationships', 'work',
       'health issues', 'emotional turmoil', 'everyday decision making', 'other causes'],
-    cmp: { chatgptZS: 54.05, bestDiscriminative: 'MentalRoBERTa 68.44', mentallama13b: 63.62 },
+    candidateGuide: 'school = academic demands or study; financial problem = money, debt, bills, or basic costs; family issues = relatives or household conflict; social relationships = friends, partners, rejection, or interpersonal conflict outside the family; work = job or workplace demands; health issues = physical or mental health; emotional turmoil = internal emotional distress without a more direct listed cause; everyday decision making = ordinary choices or daily organization; other causes = only when none of the specific causes is directly supported.',
   },
   {
     name: 'CAMS', file: 'CAMS.csv', type: 'multi',
     question: 'What is the cause of the poster\'s mental disorder? (answer "none" if no cause is shown)',
     labels: ['bias or abuse', 'jobs and career', 'medication', 'relationship', 'alienation', 'none'],
-    cmp: { chatgptZS: 33.85, bestDiscriminative: 'MentalRoBERTa 47.62', mentallama13b: 45.52 },
+    candidateGuide: 'bias or abuse = discrimination, harassment, violence, or maltreatment; jobs and career = employment, workplace, or career pressure; medication = psychiatric or other medicine effects, withdrawal, or treatment; relationship = conflict, loss, or difficulty with a partner, family member, or friend; alienation = isolation, exclusion, or disconnection; none = the post does not state a cause. Prefer the most directly stated cause and do not infer one from symptoms alone.',
   },
   {
     name: 'swmh', file: 'swmh.csv', type: 'multi',
     question: 'Which mental disorder symptoms does this post show?',
     labels: ['depression', 'suicide', 'anxiety', 'bipolar disorder', 'no mental disorders'],
-    cmp: { chatgptZS: 49.32, bestDiscriminative: 'MentalRoBERTa 72.16', mentallama13b: 71.7 },
+    candidateGuide: 'depression = sustained depressed mood, anhedonia, hopelessness, or related depressive symptoms; suicide = suicidal thought, plan, attempt, or self-harm tendency; anxiety = persistent fear, worry, panic, or physiological anxiety; bipolar disorder = explicit mania/hypomania or bipolar diagnosis, not ordinary mood change; no mental disorders = no direct evidence for the listed symptom groups. Use only evidence in the post.',
   },
   {
     name: 't-sid', file: 't-sid.csv', type: 'multi',
     question: 'Which mental disorder symptoms does this post show?',
     labels: ['depression', 'suicide or self-harm tendency', 'ptsd', 'no mental disorders'],
-    cmp: { chatgptZS: 33.30, bestDiscriminative: 'MentalRoBERTa 89.01', mentallama13b: 75.31 },
+    candidateGuide: 'depression = sustained depressed mood, anhedonia, hopelessness, or related depressive symptoms; suicide or self-harm tendency = suicidal or deliberate self-injury thought, intent, plan, attempt, or behavior; ptsd = trauma-linked intrusion, avoidance, hyperarousal, or explicit PTSD; no mental disorders = no direct evidence for the listed groups. Do not infer a diagnosis from a negative event alone.',
   },
 ];
+
+const EVIDENCE_PROTOCOL_V4 = [
+  'Identify the exact phrase or behavior that supports each plausible label.',
+  'Actively test the closest alternative label and reject labels supported only by topic, negativity, or speculation.',
+  'For binary questions, answer yes only when the named construct is substantively present; otherwise answer no.',
+  'For multiclass questions, choose the single most directly supported label and use the fallback label only when no specific label is evidenced.',
+  'Perform this comparison internally, then output only the exact allowed label.',
+].join(' ');
 
 function extractPost(query) {
   const m = query.match(/(?:consider this post:|post:)\s*"?([\s\S]*?)"?\s*question:/i);
@@ -125,12 +129,15 @@ function goldFrom(resp, t) {
 
 function makeVariant(t) {
   const labels = t.type === 'binary' ? YESNO : t.labels;
+  const published = imhiBaseline(t.name);
   return {
     key: `imhi-${t.name.toLowerCase()}`,
     description: `IMHI ${t.name} (${t.type === 'binary' ? 'binary' : `${labels.length}-class`}, zero-shot)`,
     labels,
     defaultSample: 500,
     maxTokens: t.type === 'binary' ? 4 : 16,
+    promptProfiles: ['uniform-v3u', 'contrastive-v4'],
+    defaultPromptProfile: 'uniform-v3u',
     load() {
       const rows = csvObjects(readFileSync(join(DIR, t.file), 'utf8'));
       const items = [];
@@ -149,8 +156,20 @@ function makeVariant(t) {
       if (dropped / rows.length > 0.05) throw new Error(`imhi-${t.name}: too many dropped rows`);
       return items;
     },
-    messages(item) {
+    messages(item, args = {}) {
+      const profile = args.promptProfile || 'uniform-v3u';
       const guide = t.decisionGuide ? `\nDecision criteria: ${t.decisionGuide}` : '';
+      if (profile === 'contrastive-v4') {
+        const candidateGuide = t.decisionGuide || t.candidateGuide;
+        const inst = t.type === 'binary'
+          ? `${item.question}\nConstruct definition: ${candidateGuide}\nUnified evidence protocol: ${EVIDENCE_PROTOCOL_V4}\nAnswer with only "yes" or "no".`
+          : `${item.question}\nLabel boundaries: ${candidateGuide}\nUnified evidence protocol: ${EVIDENCE_PROTOCOL_V4}\nAnswer with exactly one of: ${labels.join('; ')}. No explanation.`;
+        return [
+          { role: 'system', content: 'You are a benchmark labeler. Apply the same evidence-first contrastive decision process to every IMHI task. Do not diagnose or add facts absent from the post.' },
+          { role: 'user', content: `Post: "${item.post}"\n\n${inst}` },
+        ];
+      }
+      if (profile !== 'uniform-v3u') throw new Error(`unsupported IMHI prompt profile: ${profile}`);
       const inst = t.type === 'binary'
         ? `${item.question}${guide}\nAnswer with only "yes" or "no".`
         : `${item.question} Answer with exactly one of: ${labels.join('; ')}. No explanation.`;
@@ -158,6 +177,21 @@ function makeVariant(t) {
         { role: 'system', content: 'You are an expert in mental health analysis of social media posts.' },
         { role: 'user', content: `Post: "${item.post}"\n\n${inst}` },
       ];
+    },
+    promptFingerprint(args = {}) {
+      const profile = args.promptProfile || 'uniform-v3u';
+      return {
+        prompt_version: 'imhi-uniform-protocols-v1',
+        prompt_profile: profile,
+        subtask: t.name,
+        labels,
+        decision_guide: profile === 'contrastive-v4'
+          ? (t.decisionGuide || t.candidateGuide)
+          : (t.decisionGuide || null),
+        unified_evidence_protocol: profile === 'contrastive-v4'
+          ? EVIDENCE_PROTOCOL_V4
+          : null,
+      };
     },
     parse(raw) {
       const s = (raw || '').trim().toLowerCase();
@@ -178,9 +212,9 @@ function makeVariant(t) {
       return { predicted: null, invalid: true };
     },
     comparisons: [
-      { method: 'ChatGPT zero-shot (paper Table 2)', metric: 'weighted F1', value: t.cmp.chatgptZS },
-      { method: `best fine-tuned discriminative (${t.cmp.bestDiscriminative.split(' ')[0]})`, metric: 'weighted F1', value: Number(t.cmp.bestDiscriminative.split(' ')[1]) },
-      { method: 'MentaLLaMA-chat-13B (paper)', metric: 'weighted F1', value: t.cmp.mentallama13b },
+      { method: 'ChatGPT zero-shot (paper Table 2)', metric: 'weighted F1', value: published.chatgpt_zs },
+      { method: `best fine-tuned discriminative (${published.best_finetuned.name})`, metric: 'weighted F1', value: published.best_finetuned.value },
+      { method: 'MentaLLaMA-chat-13B (paper)', metric: 'weighted F1', value: published.mentallama13b },
     ],
   };
 }

@@ -1,0 +1,135 @@
+EVAL REPORT: PsySUICIDE accuracy-first supervised v2 protocol/code base
+Date: 2026-07-31
+Scope: implementation integrity only; no licensed rows or model metrics opened
+
+Protocol boundary:
+- PASS: draft status remains PARTITION_FREEZE_PENDING
+- PASS: training_allowed remains false
+- PASS: trainer is dry-run by default
+- PASS: metric execution requires a final tracked, clean, pushed preregistration
+- PASS: only a repository-external permission-0600 optimization-only file is accepted
+- PASS: full train, valid, test, holdout, dataset-root, symlink, and repository paths are rejected
+- PASS: source rows must contain exactly idx, labels, and text
+- PASS: expected row count, label counts, and optimization commitment are exact
+- PASS: deterministic 7479/1863 inner split emits aggregate commitments only
+- PASS: whole and 11 per-label inner-dev commitments bind diagnostics to frozen gold strata
+
+Trainer/analyzer integrity:
+- PASS: fixed A/B/C/D imbalance-treatment arms
+- PASS: 10-epoch, per-epoch evaluation/save, unrounded accuracy checkpoint selection
+- PASS: Seed-42 screen and fresh Seeds 43/44/45 confirmation declarations
+- PASS: complete checkpoint marker validates exact files, resume state, model weights, sizes, and hashes
+- PASS: resume identity binds split, code, preregistration, base model, software, device, and remote Git state
+- PASS: safe run-ID containment and Git-ignore gates
+- PASS: private diagnostics validate exact fields, shapes, probabilities, confusion, metrics, calibration, and commitments
+- PASS: screen recomputes all four aggregate metrics from private diagnostics and binds their hashes
+- PASS: confirmation recomputes the frozen screen decision before accepting challenger/control runs
+- PASS: fixed paired hierarchical bootstrap and all prespecified decision gates
+- PASS: public analyzer artifacts exclude rows, text, source IDs, logits, labels, predictions, and confusion
+
+Direct tests:
+- PASS: Python compilation for both new scripts
+- PASS: trainer selftest under normal Python
+- PASS: trainer selftest under python -O
+- PASS: analyzer selftest under normal Python
+- PASS: analyzer selftest under python -O
+- PASS: digest-set mutation rejection
+- PASS: same digest-set with cross-label digest remapping rejection
+- PASS: incomplete or extra-file checkpoint marker rejection
+- PASS: hand-edited screen-selection rejection
+- PASS: independent final code review found no known P0/P1/P2 blocker
+
+Repository regression:
+- PASS: standalone 19/19 task prompt/parser selftests
+- PASS: aggregate audit, 76 summary files and overview=19
+- PASS: scoreboard, 19 pinned summaries
+- PASS: baseline registry, 22 unique entries
+- PASS: harness safety
+- PASS: PsySUICIDE protocol, matrix, paired analyzer, v2 partition, v2 matrix,
+  v2 analyzer, v1 RoBERTa trainer/reporter/holdout-scorer selftests
+- PASS: EmoBench standalone and paper-protocol selftests
+- PASS: IMHI uniform v4 matrix, nine tasks and two fixed arms
+
+Expected blocking result:
+- BLOCKED: no verified optimization-only private artifact is present
+- NOT RUN: real split freeze
+- NOT RUN: code smoke
+- NOT RUN: four-arm Seed-42 screen
+- NOT RUN: Seeds 43/44/45 confirmation
+- NOT CLAIMED: v2 accuracy improvement, holdout improvement, another benchmark improvement, or deployment benefit
+
+Status: PROTOCOL_CODE_PREPARED / DATA_BOUNDARY_BLOCKED / NO_V2_METRICS
+
+AUTHORIZED ONE-TIME EXPORT PRE-EXECUTION — 2026-07-31
+- PASS: explicit user authorization received for one audited optimization-only export
+- PASS: exporter dry-run completed without opening the supplied source/output paths
+- PASS: exporter synthetic selftest passed under normal Python and python -O
+- PASS: source SHA, frozen partition algorithm, three partition commitments,
+  exact counts, strict three-field output, 0600 files, and no-overwrite gates are coded
+- PASS: a fixed per-account machine-global O_EXCL-style claim, independent of
+  checkout, environment-home, and all CLI path values, is created before the
+  licensed source contents are read; a failed or concurrent attempt cannot
+  silently retry
+- PASS: holdout selection retains only row digests and never creates a
+  holdout-only row/reference slice
+- PASS: fixed safe private basenames prevent terminal/public-artifact injection
+- PASS: claim, optimization output, receipt, and public audit use no-follow,
+  fstat, exact-mode, stable-identity, and byte/hash readback verification
+- PASS: sanitized failure-path test emitted no supplied path or traceback
+- PASS: Stage A ancestry and exact frozen partition-code/commitment bytes are
+  verified before the global claim and source read
+- PENDING: exporter code must be committed, pushed, and remote-SHA verified before execution
+- NOT RUN: licensed source read or optimization artifact creation
+
+AUTHORIZED ONE-TIME EXPORT AND SPLIT FREEZE — 2026-07-31
+- PASS: hardened exporter commit 66cab405cdae2019c9542e2f968b9bc60e4f6a01
+  matched local HEAD, upstream, live origin, and Draft PR #4 before execution
+- PASS: the per-account global claim was created once with permission 0600
+- PASS: source SHA, all/optimization/holdout commitments, exact counts, and all
+  11 per-label counts reproduced the previously frozen Stage A values
+- PASS: exactly 9,342 optimization rows were written repository-external with
+  permission 0600 and exact readback verification
+- PASS: no separate holdout-row collection or output was created; only aggregate
+  holdout counts and commitment were retained publicly
+- PASS: private receipt is permission 0600; public audit is aggregate-only
+- PASS: optimization-only split freeze produced 7,479 train and 1,863 inner-dev
+  rows, zero digest overlap, and exact whole/per-label commitments
+- PASS: final preregistration changes 18 allowed machine fields plus 3
+  contract-excluded status-note values, preserves key order, and retains
+  protocol contract SHA-256
+  7ee7688f630eca9339ea02be1d374784a434ff8a348740eb12811ebcb6dda4fa
+- PASS: 25/25 offline public regression commands passed with no API, model
+  download, or external dataset access
+- PASS: all 7 public commit candidates passed secrets/raw-row/local-path/
+  prediction/logit/weight boundary scans; private artifacts remain untracked
+- NOT RUN: model smoke, four-arm Seed-42 screen, Seeds 43/44/45 confirmation
+- NOT CLAIMED: v2 accuracy improvement, cross-benchmark improvement, or deployment benefit
+
+CODE SMOKE ATTEMPT 1 — 2026-07-31
+- PASS: Arm A completed its fixed two training steps; its smoke metrics remain
+  integrity-only and are forbidden for selection
+- FAIL-CLOSED: Arms B/C/D stopped before run-directory creation when the live
+  remote SHA check returned a transient git ls-remote error; no model step ran
+- BLOCKER: Transformers 5.0 saved 49 LayerNorm weight/bias pairs as legacy
+  gamma/beta, while Trainer best/resume reload used direct state-dict names
+- VERIFIED IMPACT: the two-step final checkpoint did not randomize LayerNorm,
+  but a non-final best epoch could mix best non-LayerNorm parameters with final
+  LayerNorm parameters, and cross-process resume could retain base LayerNorm
+- DECISION: invalidate attempt 1 as complete smoke evidence; do not start screen
+- NEXT: save native parameter names, bind exact key/shape metadata, enforce
+  strict best/resume load, refreeze trainer SHA, and rerun A/B/C/D under a new run ID
+
+REPLACEMENT CODE SMOKE — 2026-07-31
+- PASS: checkpoint-integrity fix commit b4dc2b8e1d884bcbad4b13a007d4b68d9ffc3217
+  was pushed as the new execution base
+- PASS: final preregistration updated only trainer SHA and execution-base commit;
+  protocol contract remained 7ee7688f630eca9339ea02be1d374784a434ff8a348740eb12811ebcb6dda4fa
+- PASS: refreeze commit 5ea50611c677ac3bcfff4a48c5aa67353ac0a9ce
+  matched local HEAD, upstream, and live origin before execution
+- PASS: A/B/C/D each completed two training steps under fresh run ID
+  accuracy-v2-smoke-r2-20260731; all smoke metrics remain non-claimable
+- PASS: every checkpoint has schema-v2 file integrity, 393 F32 tensors,
+  49 native LayerNorm weight keys, 49 bias keys, and zero gamma/beta keys
+- PASS: all four post-training strict best-checkpoint loads completed
+- NOT RUN: Seed-42 four-arm screen or Seeds 43/44/45 confirmation
+- NOT CLAIMED: v2 accuracy improvement, model selection, or deployment benefit

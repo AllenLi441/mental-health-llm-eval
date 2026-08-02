@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "task": "psysuicide",
+  "split": "test",
+  "prompt_profile": "baseline",
+  "requested_model": "deepseek-v4-flash",
+  "thinking": "enabled",
+  "reasoning_effort": "high",
+  "run_id": "psytest-20260728-reference",
+  "seed": 42,
+  "sample": "full",
+  "prompt_template_sha256": "72ce2d6668cc7e027546034cf8c85736833b752b5b6aca79bf0bc7a31be5d32d",
+  "dataset_manifest_sha256": "25ec7f9c004d2a92198e7940bf4ad9a0a840d94a8d5201b554d489e11daf6a5e",
+  "prepared_at": "2026-07-28T16:30:18.742Z",
+  "protocol": "freeze-and-commit-before-test",
+  "test_attempt_policy": "one full official test run; no prompt or model changes after predictions are seen"
+}

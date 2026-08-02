@@ -1,7 +1,7 @@
 {
-  "_spec": "单一数字源。本文件收录全部论文对照基线值。所有文档(scratch/paper.html、scratch/scoreboard.html、reports/*.md、README.md)引用对照值时必须与本文件一致,禁止手抄新数;如需新增基线,先在此登记再引用。scope 取值:zero-shot=论文零样本列;few-shot-mixed=论文报告均值含少样本;derived-mean=由论文分项我们计算(如 en/zh 均值、按题量加权);fine-tuned=任务微调判别式;domain-llm=领域微调 LLM;majority-class=多数类基线。",
-  "generated": "2026-07-13",
-  "source_of_truth": "datasets/eval-suite/tasks/*.mjs 的 comparisons 字段 + 各论文 PDF 页码级核验",
+  "_spec": "唯一数值源。本文件收录论文对照基线。任务 comparisons 通过 lib/baselines.mjs 读取，scoreboard.py 直接读取本文件；禁止在执行代码中另建数字表。文档重复展示时由 scripts/check_baselines.py 检查已知陈旧口径。scope:zero-shot=论文零样本列;few-shot-mixed=论文报告均值含少样本;derived-mean=由论文分项计算;fine-tuned=任务微调判别式;domain-llm=领域微调 LLM;majority-class=多数类基线。",
+  "generated": "2026-07-21",
+  "source_of_truth": "本文件；来源依据为各论文 PDF 页码级核验，执行代码不得反向覆盖",
   "baselines": [
     {
       "id": "cpsyexam-gpt4-avg",
@@ -39,9 +39,9 @@
       "method": "ChatGPT",
       "value": 51.15,
       "metric": "acc,4 分组均值",
-      "scope": "zero-shot",
+      "scope": "few-shot-mixed",
       "source": "CPsyExam (COLING 2025) Table 2",
-      "notes": "分组 57.43/11.14/47.33/9.00。"
+      "notes": "Table 2 的 Avg. 对每个分组取 zero-shot/few-shot 两种设置中的较高值；51.15 不能标成纯 zero-shot。零样本分组为 57.43/11.14/47.33/9.00。"
     },
     {
       "id": "cpsyexam-chatglm-turbo-avg",
@@ -49,9 +49,9 @@
       "method": "ChatGLM-Turbo",
       "value": 64.58,
       "metric": "acc Avg.",
-      "scope": "unspecified",
+      "scope": "few-shot-mixed",
       "source": "CPsyExam (COLING 2025) Table 2",
-      "notes": "论文报告均值;论文未细分零/少样本。"
+      "notes": "Table 2 的 Avg. 对每个分组取 zero-shot/few-shot 两种设置中的较高值，不能写成纯零样本。"
     },
     {
       "id": "emobench-eu-gpt4-mean",
@@ -137,40 +137,60 @@
       "id": "mentalmanip-roberta-base",
       "dataset": "MentalManip",
       "method": "RoBERTa-base(fine-tuned)",
+      "value": 76.6,
+      "metric": "accuracy",
+      "scope": "fine-tuned",
+      "source": "MentalManip (ACL 2024) Table 5, MENTALMANIPcon",
+      "notes": "RoBERTa-base 在 MENTALMANIPcon 上微调后的 accuracy=0.766；不要与同表 Llama-2-13B 的 0.768 混淆。"
+    },
+    {
+      "id": "mentalmanip-llama2-13b",
+      "dataset": "MentalManip",
+      "method": "Llama-2-13B(fine-tuned)",
       "value": 76.8,
       "metric": "accuracy",
       "scope": "fine-tuned",
-      "source": "MentalManip (ACL 2024)",
-      "notes": "微调判别式;本次 chat 档约与其打平。"
+      "source": "MentalManip (ACL 2024) Table 5, MENTALMANIPcon",
+      "notes": "Llama-2-13B 在 MENTALMANIPcon 上微调后的 accuracy=0.768。"
     },
     {
       "id": "psysuicide-roberta-large-macrof1",
       "dataset": "PsySUICIDE",
       "method": "RoBERTa-large(fine-tuned)",
-      "value": 69.8,
+      "value": 69.76,
       "metric": "macro-F1(11 类)",
       "scope": "fine-tuned",
       "source": "PsyGUARD (EMNLP 2024) Table 4",
-      "notes": "细粒度自杀分诊微调 SOTA。"
+      "notes": "RoBERTa-large 微调判别式的 macro-F1；与同表其他微调/LoRA 模型分开比较，不笼统称总体 SOTA。"
     },
     {
       "id": "psysuicide-roberta-large-acc",
       "dataset": "PsySUICIDE",
       "method": "RoBERTa-large(fine-tuned)",
-      "value": 92.8,
+      "value": 91.69,
       "metric": "accuracy",
       "scope": "fine-tuned",
       "source": "PsyGUARD (EMNLP 2024) Table 4",
-      "notes": ""
+      "notes": "论文 accuracy=91.69；92.77 是 micro-F1，不是 accuracy。"
+    },
+    {
+      "id": "psysuicide-roberta-large-microf1",
+      "dataset": "PsySUICIDE",
+      "method": "RoBERTa-large(fine-tuned)",
+      "value": 92.77,
+      "metric": "micro-F1(11 类)",
+      "scope": "fine-tuned",
+      "source": "PsyGUARD (EMNLP 2024) Table 4",
+      "notes": "与 accuracy=91.69、macro-F1=69.76 分开报告。"
     },
     {
       "id": "psysuicide-gpt4-preview-acc",
       "dataset": "PsySUICIDE",
       "method": "GPT-4-preview",
-      "value": 82.7,
+      "value": 82.72,
       "metric": "accuracy",
       "scope": "zero-shot",
-      "source": "PsyGUARD (EMNLP 2024)",
+      "source": "PsyGUARD (EMNLP 2024) Table 4",
       "notes": "整体 acc 对照;本次思考档 80.2 略低。"
     },
     {
@@ -191,7 +211,7 @@
       "metric": "weighted F1",
       "scope": "zero-shot(ChatGPT/MentaLLaMA) + fine-tuned(判别式)",
       "source": "MentaLLaMA / IMHI (WWW 2024) Table 2",
-      "notes": "chatgpt_zs=ChatGPT 零样本;mentallama13b=MentaLLaMA-chat-13B(domain-llm);best_finetuned=各子任务最强微调判别式(fine-tuned)。9 子任务。",
+      "notes": "chatgpt_zs=ChatGPT 零样本;mentallama13b=MentaLLaMA-chat-13B(domain-llm);best_finetuned=各子任务最强微调判别式(fine-tuned)。原论文评测 10 个 test sets；本 harness 仅覆盖其中 9 个，未包含 CLP，任何汇总必须写成 9/10 子集。",
       "subtasks": {
         "DR": {
           "chatgpt_zs": 82.41,
