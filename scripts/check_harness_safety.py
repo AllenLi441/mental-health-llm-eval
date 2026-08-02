@@ -261,6 +261,135 @@ for metric, recomputed in checks.items():
     ):
         raise SystemExit(f"PsySUICIDE holdout aggregate mismatch: {metric}")
 
+paired_prereg_path = (
+    ROOT / "reports" / "psysuicide-roberta-v1-official-test-paired.prereg.json"
+)
+paired_result = json.loads(
+    text("reports/psysuicide-roberta-v1-official-test-paired-result.json")
+)
+paired_prereg = json.loads(paired_prereg_path.read_text(encoding="utf-8"))
+if (
+    paired_result.get("protocol_id")
+    != "psysuicide-roberta-v1-official-test-paired-v1"
+    or paired_result.get("cohort", {}).get("rows") != 1464
+    or paired_result.get("cohort", {}).get("dataset_manifest_sha256")
+    != paired_prereg["cohort"]["dataset_manifest_sha256"]
+):
+    raise SystemExit("PsySUICIDE same-test paired result identity mismatch")
+paired_freeze = paired_result.get("preregistration", {})
+if (
+    paired_freeze.get("freeze_commit")
+    != "6d597b35d16f9789274390202d79041cfb9a7936"
+    or paired_freeze.get("live_remote_sha") != paired_freeze.get("freeze_commit")
+):
+    raise SystemExit("PsySUICIDE same-test freeze/remote identity mismatch")
+if (
+    paired_result.get("reference", {}).get("source_jsonl_sha256")
+    != paired_prereg["reference"]["source_jsonl_sha256"]
+    or paired_result.get("candidate", {}).get("checkpoint_weight_sha256")
+    != paired_prereg["candidate"]["checkpoint_weight_sha256"]
+):
+    raise SystemExit("PsySUICIDE same-test model artifact identity mismatch")
+
+paired_labels = paired_prereg["cohort"]["label_count"]
+for arm_name in ("reference", "candidate"):
+    arm = paired_result.get(arm_name, {})
+    arm_per_class = arm.get("per_class", {})
+    if list(arm_per_class) != expected_labels or len(arm_per_class) != paired_labels:
+        raise SystemExit(f"PsySUICIDE same-test {arm_name} label order mismatch")
+    arm_support = sum(values["support"] for values in arm_per_class.values())
+    arm_tp = sum(values["tp"] for values in arm_per_class.values())
+    arm_macro = sum(values["f1"] for values in arm_per_class.values()) / paired_labels
+    arm_weighted = (
+        sum(values["support"] * values["f1"] for values in arm_per_class.values())
+        / arm_support
+    )
+    if arm_support != 1464:
+        raise SystemExit(f"PsySUICIDE same-test {arm_name} support mismatch")
+    for metric, recomputed in {
+        "accuracy": arm_tp / arm_support,
+        "macro_f1": arm_macro,
+        "weighted_f1": arm_weighted,
+    }.items():
+        if not math.isclose(
+            arm.get(metric, float("nan")),
+            recomputed,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ):
+            raise SystemExit(
+                f"PsySUICIDE same-test {arm_name} {metric} aggregate mismatch"
+            )
+
+paired_inference = paired_result.get("paired_inference", {})
+paired_delta = paired_inference.get("delta_candidate_minus_reference", {})
+for metric in ("accuracy", "macro_f1", "weighted_f1"):
+    recomputed = (
+        paired_result["candidate"][metric] - paired_result["reference"][metric]
+    )
+    if not math.isclose(
+        paired_delta.get(metric, float("nan")),
+        recomputed,
+        rel_tol=0.0,
+        abs_tol=1e-12,
+    ):
+        raise SystemExit(f"PsySUICIDE same-test paired delta mismatch: {metric}")
+
+randomization = paired_inference.get("paired_randomization", {})
+bootstrap = paired_inference.get("paired_bootstrap", {})
+macro_delta = paired_delta["macro_f1"]
+primary_superior = (
+    macro_delta > 0
+    and randomization.get("two_sided_p", 1.0) < 0.05
+    and bootstrap.get("macro_f1_delta_ci95", [float("nan")])[0] > 0
+)
+primary_inferior = (
+    macro_delta < 0
+    and randomization.get("two_sided_p", 1.0) < 0.05
+    and bootstrap.get("macro_f1_delta_ci95", [float("nan"), float("nan")])[1]
+    < 0
+)
+expected_primary_claim = (
+    "CANDIDATE_SUPERIOR_ON_PREREGISTERED_MACRO_F1"
+    if primary_superior
+    else (
+        "REFERENCE_SUPERIOR_ON_PREREGISTERED_MACRO_F1"
+        if primary_inferior
+        else "NO_DETECTED_PRIMARY_DIFFERENCE_NOT_A_TIE_OR_EQUIVALENCE"
+    )
+)
+if (
+    paired_inference.get("claim") != expected_primary_claim
+    or paired_inference.get("equivalence_tested") is not False
+):
+    raise SystemExit("PsySUICIDE same-test primary claim mismatch")
+
+mcnemar = paired_inference.get("accuracy_exact_mcnemar_secondary", {})
+candidate_only = mcnemar.get("candidate_only_correct")
+reference_only = mcnemar.get("reference_only_correct")
+if not isinstance(candidate_only, int) or not isinstance(reference_only, int):
+    raise SystemExit("PsySUICIDE same-test discordant counts are invalid")
+discordant = candidate_only + reference_only
+tail = sum(
+    math.comb(discordant, index)
+    for index in range(min(candidate_only, reference_only) + 1)
+)
+exact_p = min(1.0, 2.0 * tail / (2**discordant))
+if not math.isclose(
+    mcnemar.get("two_sided_p", float("nan")),
+    exact_p,
+    rel_tol=0.0,
+    abs_tol=1e-15,
+):
+    raise SystemExit("PsySUICIDE same-test exact McNemar mismatch")
+
+serialized_paired = json.dumps(paired_result, ensure_ascii=False)
+for forbidden_key in ('"id":', '"text":', '"raw":', '"logits":'):
+    if forbidden_key in serialized_paired:
+        raise SystemExit(
+            f"PsySUICIDE same-test public result contains row payload: {forbidden_key}"
+        )
+
 imhi_matrix = text("scripts/run_imhi_uniform_v4_matrix.mjs")
 for marker in (
     "IMHI 9-task uniform v4 matrix",

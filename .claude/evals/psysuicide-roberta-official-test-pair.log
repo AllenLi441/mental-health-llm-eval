@@ -1,0 +1,31 @@
+EVAL REPORT: PsySUICIDE supervised-v1 official-test pair
+========================================================
+
+Freeze gates:
+- PASS: protocol, scorer, and eval definition committed before candidate inference
+- PASS: local HEAD, upstream, and live remote SHA all 6d597b35d16f9789274390202d79041cfb9a7936
+- PASS: Seed 43 checkpoint file manifest and weight SHA-256 match the frozen selection
+- PASS: historical V4-Pro taxonomy JSONL SHA-256, fingerprint, identity, and metrics match
+
+Completeness and privacy:
+- PASS: 1,464/1,464 retained official-test rows
+- PASS: exact normalized ID, gold, case SHA-256, and dataset-manifest pairing
+- PASS: candidate row predictions not persisted
+- PASS: private claim/completion mode 0600; public output aggregate-only
+
+Metrics:
+- Reference V4-Pro + taxonomy: accuracy 0.8811475410, macro-F1 0.6371438506, weighted-F1 0.8795978830
+- Candidate RoBERTa v1 Seed 43: accuracy 0.9344262295, macro-F1 0.6917488529, weighted-F1 0.9342874596
+- Candidate minus reference: accuracy +0.0532786885, macro-F1 +0.0546050022, weighted-F1 +0.0546895766
+- Exact McNemar: candidate-only 123, reference-only 45, two-sided p=1.4454317999e-09
+- Paired macro-F1 randomization: 20,000 repetitions, p=0.4673266337
+- Paired macro-F1 bootstrap CI95: [-0.0487845600, 0.1611954621]
+
+Decision:
+- Accuracy secondary result: candidate is higher by 5.33 percentage points on the same rows, with exact McNemar evidence.
+- Primary macro-F1 result: NO_DETECTED_PRIMARY_DIFFERENCE_NOT_A_TIE_OR_EQUIVALENCE.
+- Product routing/deployment improvement: not tested by this evaluation.
+
+Public result:
+- reports/psysuicide-roberta-v1-official-test-paired-result.json
+- SHA-256 f8b5e4f873ef6e81dd2a93ad4299eb0b8361c0ea96c8f65334f0ef73c9eff285

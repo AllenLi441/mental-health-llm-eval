@@ -1,0 +1,344 @@
+{
+  "schema_version": 1,
+  "protocol_id": "psysuicide-roberta-v1-official-test-paired-v1",
+  "created_at": "2026-08-02T15:11:01.562179+00:00",
+  "scope": "prospectively score the already-frozen supervised-v1 Seed 43 checkpoint on the same 1,464 retained PsySUICIDE official-test rows as the frozen historical V4-Pro taxonomy predictions",
+  "comparison_status": "same-row paired benchmark comparison; candidate inference and paired analysis are prospective, while the fixed reference predictions are historical and the official test is not a first-use dataset for the project",
+  "preregistration": {
+    "path": "reports/psysuicide-roberta-v1-official-test-paired.prereg.json",
+    "sha256": "fcfeb56e9db3c21f873019f386b6366b977c1e8dbf94ad5b879676bc35972ebb",
+    "freeze_commit": "6d597b35d16f9789274390202d79041cfb9a7936",
+    "live_remote_sha": "6d597b35d16f9789274390202d79041cfb9a7936"
+  },
+  "cohort": {
+    "task": "psysuicide",
+    "split": "test",
+    "rows": 1464,
+    "dataset_manifest_sha256": "25ec7f9c004d2a92198e7940bf4ad9a0a840d94a8d5201b554d489e11daf6a5e",
+    "pairing": "exact normalized ID, gold label, case commitment, and dataset manifest"
+  },
+  "reference": {
+    "role": "existing_system_reference",
+    "model": "deepseek-v4-pro",
+    "prompt_profile": "taxonomy",
+    "source_jsonl_sha256": "72450afc9adca70b9ffea98e6be30ec314a4bc6a2579945f5498473f9db2c04b",
+    "fingerprints": [
+      "fp_9954b31ca7_prod0820_fp8_kvcache_20260402"
+    ],
+    "accuracy": 0.8811475409836066,
+    "macro_f1": 0.6371438506354873,
+    "weighted_f1": 0.8795978829883035,
+    "per_class": {
+      "与自杀/自伤/攻击行为无关": {
+        "support": 1076,
+        "f1": 0.9535747446610956,
+        "tp": 1027,
+        "fp": 51,
+        "fn": 49
+      },
+      "被动自杀意图": {
+        "support": 133,
+        "f1": 0.7659574468085106,
+        "tp": 108,
+        "fp": 41,
+        "fn": 25
+      },
+      "主动自杀意图": {
+        "support": 132,
+        "f1": 0.7083333333333334,
+        "tp": 85,
+        "fp": 23,
+        "fn": 47
+      },
+      "关于自杀的探索": {
+        "support": 37,
+        "f1": 0.4,
+        "tp": 18,
+        "fp": 35,
+        "fn": 19
+      },
+      "自杀计划": {
+        "support": 15,
+        "f1": 0.125,
+        "tp": 1,
+        "fp": 0,
+        "fn": 14
+      },
+      "自杀准备行为": {
+        "support": 2,
+        "f1": 0.4,
+        "tp": 1,
+        "fp": 2,
+        "fn": 1
+      },
+      "自杀未遂": {
+        "support": 11,
+        "f1": 0.8181818181818182,
+        "tp": 9,
+        "fp": 2,
+        "fn": 2
+      },
+      "自伤意图": {
+        "support": 3,
+        "f1": 0.75,
+        "tp": 3,
+        "fp": 2,
+        "fn": 0
+      },
+      "自伤行为": {
+        "support": 10,
+        "f1": 0.7619047619047619,
+        "tp": 8,
+        "fp": 3,
+        "fn": 2
+      },
+      "用户攻击行为": {
+        "support": 27,
+        "f1": 0.6785714285714286,
+        "tp": 19,
+        "fp": 10,
+        "fn": 8
+      },
+      "他人攻击行为": {
+        "support": 18,
+        "f1": 0.6470588235294118,
+        "tp": 11,
+        "fp": 5,
+        "fn": 7
+      }
+    },
+    "top_confusions": [
+      {
+        "gold": "主动自杀意图",
+        "predicted": "关于自杀的探索",
+        "count": 26
+      },
+      {
+        "gold": "与自杀/自伤/攻击行为无关",
+        "predicted": "被动自杀意图",
+        "count": 26
+      },
+      {
+        "gold": "被动自杀意图",
+        "predicted": "与自杀/自伤/攻击行为无关",
+        "count": 15
+      },
+      {
+        "gold": "关于自杀的探索",
+        "predicted": "与自杀/自伤/攻击行为无关",
+        "count": 13
+      },
+      {
+        "gold": "主动自杀意图",
+        "predicted": "与自杀/自伤/攻击行为无关",
+        "count": 10
+      },
+      {
+        "gold": "主动自杀意图",
+        "predicted": "被动自杀意图",
+        "count": 9
+      },
+      {
+        "gold": "与自杀/自伤/攻击行为无关",
+        "predicted": "用户攻击行为",
+        "count": 9
+      },
+      {
+        "gold": "自杀计划",
+        "predicted": "主动自杀意图",
+        "count": 8
+      },
+      {
+        "gold": "被动自杀意图",
+        "predicted": "主动自杀意图",
+        "count": 7
+      },
+      {
+        "gold": "他人攻击行为",
+        "predicted": "与自杀/自伤/攻击行为无关",
+        "count": 6
+      }
+    ]
+  },
+  "candidate": {
+    "role": "supervised_v1_candidate",
+    "model": "hfl/chinese-roberta-wwm-ext-large",
+    "seed": 43,
+    "checkpoint_weight_sha256": "9a1cf3c2471dedc2ee8799ba6b8324f10e3d01ce1c0d0898da2b9aa642743e44",
+    "device": "mps",
+    "runtime_seconds": 126.95067691802979,
+    "accuracy": 0.9344262295081968,
+    "macro_f1": 0.69174885285326,
+    "weighted_f1": 0.934287459582592,
+    "per_class": {
+      "与自杀/自伤/攻击行为无关": {
+        "support": 1076,
+        "f1": 0.9752913752913753,
+        "tp": 1046,
+        "fp": 23,
+        "fn": 30
+      },
+      "被动自杀意图": {
+        "support": 133,
+        "f1": 0.8529411764705882,
+        "tp": 116,
+        "fp": 23,
+        "fn": 17
+      },
+      "主动自杀意图": {
+        "support": 132,
+        "f1": 0.8955223880597015,
+        "tp": 120,
+        "fp": 16,
+        "fn": 12
+      },
+      "关于自杀的探索": {
+        "support": 37,
+        "f1": 0.7352941176470589,
+        "tp": 25,
+        "fp": 6,
+        "fn": 12
+      },
+      "自杀计划": {
+        "support": 15,
+        "f1": 0.6666666666666666,
+        "tp": 12,
+        "fp": 9,
+        "fn": 3
+      },
+      "自杀准备行为": {
+        "support": 2,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 2
+      },
+      "自杀未遂": {
+        "support": 11,
+        "f1": 0.6666666666666666,
+        "tp": 8,
+        "fp": 5,
+        "fn": 3
+      },
+      "自伤意图": {
+        "support": 3,
+        "f1": 0.5,
+        "tp": 1,
+        "fp": 0,
+        "fn": 2
+      },
+      "自伤行为": {
+        "support": 10,
+        "f1": 0.8888888888888888,
+        "tp": 8,
+        "fp": 0,
+        "fn": 2
+      },
+      "用户攻击行为": {
+        "support": 27,
+        "f1": 0.6779661016949152,
+        "tp": 20,
+        "fp": 12,
+        "fn": 7
+      },
+      "他人攻击行为": {
+        "support": 18,
+        "f1": 0.75,
+        "tp": 12,
+        "fp": 2,
+        "fn": 6
+      }
+    },
+    "top_confusions": [
+      {
+        "gold": "与自杀/自伤/攻击行为无关",
+        "predicted": "被动自杀意图",
+        "count": 13
+      },
+      {
+        "gold": "被动自杀意图",
+        "predicted": "与自杀/自伤/攻击行为无关",
+        "count": 11
+      },
+      {
+        "gold": "与自杀/自伤/攻击行为无关",
+        "predicted": "用户攻击行为",
+        "count": 9
+      },
+      {
+        "gold": "主动自杀意图",
+        "predicted": "被动自杀意图",
+        "count": 5
+      },
+      {
+        "gold": "被动自杀意图",
+        "predicted": "主动自杀意图",
+        "count": 4
+      },
+      {
+        "gold": "关于自杀的探索",
+        "predicted": "主动自杀意图",
+        "count": 4
+      },
+      {
+        "gold": "关于自杀的探索",
+        "predicted": "被动自杀意图",
+        "count": 4
+      },
+      {
+        "gold": "用户攻击行为",
+        "predicted": "主动自杀意图",
+        "count": 3
+      },
+      {
+        "gold": "用户攻击行为",
+        "predicted": "与自杀/自伤/攻击行为无关",
+        "count": 3
+      },
+      {
+        "gold": "他人攻击行为",
+        "predicted": "与自杀/自伤/攻击行为无关",
+        "count": 3
+      }
+    ]
+  },
+  "paired_inference": {
+    "primary_metric": "macro_f1",
+    "delta_candidate_minus_reference": {
+      "accuracy": 0.05327868852459017,
+      "macro_f1": 0.05460500221777276,
+      "weighted_f1": 0.054689576594288414
+    },
+    "paired_randomization": {
+      "observed_delta": 0.05460500221777276,
+      "two_sided_p": 0.46732663366831656,
+      "repetitions": 20000,
+      "seed": 20260802
+    },
+    "paired_bootstrap": {
+      "macro_f1_delta_ci95": [
+        -0.04878456001483116,
+        0.16119546205647287
+      ],
+      "weighted_f1_delta_ci95": [
+        0.037148793274354684,
+        0.07169402210422587
+      ],
+      "seed": 20260802,
+      "repetitions": 20000
+    },
+    "accuracy_exact_mcnemar_secondary": {
+      "candidate_only_correct": 123,
+      "reference_only_correct": 45,
+      "two_sided_p": 1.4454317999387109e-09
+    },
+    "claim": "NO_DETECTED_PRIMARY_DIFFERENCE_NOT_A_TIE_OR_EQUIVALENCE",
+    "equivalence_tested": false
+  },
+  "limitations": [
+    "The candidate checkpoint was frozen before this official-test inference, but the reference predictions are historical rather than rerun concurrently.",
+    "The official test had already been used by the project for the historical LLM campaign, so this is not a first-use two-arm blind test.",
+    "This task-specific classifier comparison does not prove clinical validity or deployed product improvement."
+  ],
+  "publishing_boundary": "aggregate metrics, paired counts, inference statistics, and hashes only; no counseling text, normalized ids, per-row gold/prediction assignments, raw output, credentials, model weights, or licensed data"
+}

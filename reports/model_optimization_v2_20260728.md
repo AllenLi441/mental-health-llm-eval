@@ -5,14 +5,15 @@
 当前仍有部分任务低于原论文 benchmark，而且差距主要集中在“零样本 LLM 对比任务微调判别式”
 这一组，不是简单改一版 prompt 就能消除：
 
-- PsySUICIDE 当前确认性 `V4-Pro + taxonomy` 为 accuracy `88.11%`、macro-F1 `0.6371`；
-  比论文 RoBERTa-large 分别低 `3.58pp` 和 `0.0605`。它高于 GPT-4-preview zero-shot
-  accuracy，但这不是同协议模型对比。
+- PsySUICIDE 原确认性 `V4-Pro + taxonomy` 为 accuracy `88.11%`、macro-F1 `0.6371`。
+  冻结的监督 RoBERTa v1 Seed 43 后续在完全相同的 1,464 条 official test 上得到
+  `93.44% / 0.6917`：accuracy 同批提高 `+5.33pp`，exact McNemar
+  `p≈1.45×10⁻⁹`；macro-F1 点值提高 `+0.0546`，但预注册随机化检验 `p=0.4673`、
+  bootstrap 95% CI `[-0.0488, 0.1612]`，未检出主指标差异，不能称显著胜出或等价。
 - 新训练的 PsySUICIDE RoBERTa v1 在三 Seed official-valid 上为 accuracy `94.01%`、
   macro-F1 `0.7380`（均值），选中的 Seed 43 在预先冻结的 2,329 条内部 holdout 上为
-  `93.43% / 0.7275`。这表明该专用分类器在未见内部样本上仍维持较高分数，但它不是
-  PsySUICIDE 论文 test，也没有同一 holdout 上的 LLM 对照，不能据此量化相对提升或作
-  预注册配对检验结论。
+  `93.43% / 0.7275`。该内部结果只用于稳定性检查；正式同批差值采用上面的 official-test
+  配对结果，不再把 internal holdout 与旧 official test 相减。
 - IMHI 的统一 v3u 在 9 个可用任务中有 8/9 的点值高于 ChatGPT zero-shot，却只有 1/9
   高于 MentaLLaMA-13B，0/9 高于各任务 fine-tuned 判别式。
 - EmoBench 当前可进入 scoreboard 的仍是 temp-0 单次 proxy：EA 比论文 GPT-4 中英均值低
@@ -158,6 +159,36 @@ holdout 的 11 类 support 总和为 2,329；逐类聚合中，被动意图 F1 `
 私有 claim/completion receipt 权限为 `0600`，claim ID 一致；逐行文本、ID、gold、
 prediction 与 logits 均未持久化。这个证据只证明本 scorer ledger namespace 内完成了
 一次 claim，不能证明不存在绕过工具的历史访问，也不能用于显著胜出、统计平手或等价结论。
+
+### 同一 official test 的冻结配对比较（2026-08-02）
+
+为回答“相对旧系统到底提升多少”，先提交并推送预注册与评分器；本地 HEAD、upstream 与
+live remote 均冻结在 commit `6d597b35d16f9789274390202d79041cfb9a7936` 后，才加载 Seed 43
+checkpoint。历史 `V4-Pro + taxonomy` 逐行结果以 JSONL SHA-256
+`72450afc9adca70b9ffea98e6be30ec314a4bc6a2579945f5498473f9db2c04b` 固定为 reference，
+并要求两臂的 1,464 个规范化 ID、gold、case SHA-256 与 dataset manifest 全部精确相同。
+
+| 同一批 official test | Accuracy | Macro-F1 | Weighted-F1 |
+|---|---:|---:|---:|
+| V4-Pro + taxonomy（历史 reference） | 88.11% | 0.6371 | 0.8796 |
+| RoBERTa v1 / Seed 43（冻结 candidate） | **93.44%** | **0.6917** | **0.9343** |
+| Candidate − reference | **+5.33pp** | +0.0546 | +0.0547 |
+
+accuracy 的不一致对为 candidate-only correct `123`、reference-only correct `45`，exact
+McNemar 双侧 `p≈1.45×10⁻⁹`。因此可以限定地说：**在这同一批 1,464 条 official test 上，
+冻结监督候选的 accuracy 比旧 V4-Pro taxonomy 高 5.33 个百分点。**
+
+预注册主指标仍是 macro-F1。20,000 次 paired randomization 的双侧 `p=0.4673`，20,000 次
+paired bootstrap 的 95% CI 为 `[-0.0488, 0.1612]`，故正式主结论为
+`NO_DETECTED_PRIMARY_DIFFERENCE_NOT_A_TIE_OR_EQUIVALENCE`：点值更高，但没有检出显著
+macro-F1 差异，不能写成统计平手或等价。weighted-F1 的探索性差值 CI 为
+`[+0.0371, +0.0717]`。
+
+该次 candidate 推理用 MPS 完成，耗时约 `127` 秒；candidate 逐行预测没有持久化。公开聚合
+结果为 `reports/psysuicide-roberta-v1-official-test-paired-result.json`，SHA-256 为
+`f8b5e4f873ef6e81dd2a93ad4299eb0b8361c0ea96c8f65334f0ef73c9eff285`。reference 是历史冻结
+预测而非本次重新调用 API，且 official test 对项目不是首次使用；因此这是同批 benchmark
+比较，不冒充两臂首次盲测，也不等于静室已经接入该分类器或产品准确率已经提升。
 <!-- SUPERVISED_RESULT_END -->
 
 ### Accuracy-first v2 冻结状态（2026-07-31）
@@ -192,9 +223,9 @@ Seeds 43/44/45 confirmation，因此不能宣称 v2 提高了 accuracy、macro-F
 
 优先级不是再同时发散多个 prompt，而是按证据分层：
 
-1. 监督 v1 已按规则完成并通过内部 holdout 描述性确认。下一轮必须另建预注册和分支，
-   只从 optimization 建 inner-dev，先解决训练不足、双重平衡与极稀有类；不得根据本次
-   holdout 改 v1、调阈值或再次评分。
+1. 监督 v1 已完成 internal holdout 稳定性检查和同一 official-test 配对比较；accuracy
+   同批提高 `5.33pp`，但 macro-F1 主检验未检出差异。若用于产品，下一步是冻结路由接入并
+   在静室运行端到端验证；不得根据本次 test 结果回头调整 v1。
 2. EmoBench 只在账户可提供至少 `$4.79` 独立批准预算时运行完整 8,000 calls；在此之前
    scoreboard 继续明确标识 proxy。
 3. IMHI 不再扩大全量 LLM prompt 搜索。下一条合理路线是每任务训练判别式 encoder，或在

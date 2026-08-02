@@ -180,6 +180,29 @@ test 将它与 `DeepSeek V4-Flash + baseline` 在同一批 1,464 个保留单标
 [确认性分析](reports/psytest-20260728-confirmatory-analysis.json)。原始逐行 licensed
 结果、咨询文本、ID、逐题 gold/prediction、原始模型输出和密钥均不公开。
 
+## PsySUICIDE 监督模型同批 official-test 比较（2026-08-02）
+
+为避免把 `93.43%` internal holdout 与 `88.11%` official test 直接相减，冻结的 RoBERTa v1
+Seed 43 后续在与历史 `V4-Pro + taxonomy` 完全相同的 1,464 条 official test 上评分。两臂的
+规范化 ID、gold、case SHA-256 与 dataset manifest 全部精确匹配：
+
+| 同一批 official test | Accuracy | Macro-F1 | Weighted-F1 |
+|---|---:|---:|---:|
+| V4-Pro + taxonomy（历史 reference） | 88.11% | 0.6371 | 0.8796 |
+| RoBERTa v1 / Seed 43（冻结 candidate） | **93.44%** | **0.6917** | **0.9343** |
+| Candidate − reference | **+5.33pp** | +0.0546 | +0.0547 |
+
+accuracy 的 exact McNemar 双侧 `p≈1.45×10⁻⁹`（candidate-only correct `123`，
+reference-only correct `45`）。预注册主指标 macro-F1 的 paired randomization
+`p=0.4673`，bootstrap 95% CI `[-0.0488, 0.1612]`，所以可报告同批 accuracy 提高
+`5.33pp`，但不能声称 macro-F1 显著胜出、统计平手或等价。reference 是历史冻结预测，
+不是本次重新调用 API；该比较也不代表分类器已经接入静室产品路由。
+
+公开聚合证据见
+[`preregistration`](reports/psysuicide-roberta-v1-official-test-paired.prereg.json)与
+[`paired result`](reports/psysuicide-roberta-v1-official-test-paired-result.json)；candidate
+逐行预测、licensed 文本、ID、模型权重和私有 claim/completion 均未提交。
+
 ## CPsyExam V4 全量确认性结果（2026-07-22）
 
 本次比较在[不可变预注册 Release](https://github.com/AllenLi441/mental-health-llm-eval/releases/tag/cpsyexam-v4-prereg-2026-07-22)之后运行，并对同一批 3,902 道题进行严格配对：
