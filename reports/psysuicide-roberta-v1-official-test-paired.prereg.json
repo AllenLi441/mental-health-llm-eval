@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "protocol_id": "psysuicide-roberta-v1-official-test-paired-v1",
+  "prepared_at": "2026-08-02",
+  "scope": "prospectively score the already-frozen supervised-v1 Seed 43 checkpoint on the same 1,464 retained PsySUICIDE official-test rows as the frozen historical V4-Pro taxonomy predictions",
+  "comparison_status": "same-row paired benchmark comparison; candidate inference and paired analysis are prospective, while the fixed reference predictions are historical and the official test is not a first-use dataset for the project",
+  "git": {
+    "branch": "codex/psysuicide-accuracy-first-v2",
+    "remote": "origin",
+    "freeze_commit_source": "required full SHA passed through --expected-freeze-commit",
+    "required_tracked_paths": [
+      ".claude/evals/psysuicide-roberta-official-test-pair.md",
+      "reports/psysuicide-roberta-v1-official-test-paired.prereg.json",
+      "scripts/score_psysuicide_roberta_official_test_pair.py"
+    ]
+  },
+  "cohort": {
+    "task": "psysuicide",
+    "split": "test",
+    "expected_rows": 1464,
+    "label_count": 11,
+    "dataset_manifest_sha256": "25ec7f9c004d2a92198e7940bf4ad9a0a840d94a8d5201b554d489e11daf6a5e",
+    "pairing_rule": "exact equality of normalized id, gold label, case_sha256, and dataset_manifest_sha256 for every retained row"
+  },
+  "reference": {
+    "role": "existing_system_reference",
+    "model": "deepseek-v4-pro",
+    "prompt_profile": "taxonomy",
+    "source_jsonl": "results/psysuicide-test-taxonomy-deepseek-v4-pro-psytest-20260728-candidate.jsonl",
+    "source_jsonl_sha256": "72450afc9adca70b9ffea98e6be30ec314a4bc6a2579945f5498473f9db2c04b",
+    "source_analysis": "reports/psytest-20260728-confirmatory-analysis.json",
+    "source_analysis_sha256": "3b72f7ec0fe5e483720ecac85286480b482039c05cfa2d889b6381c3cebf3036",
+    "prompt_template_sha256": "eb2180f8305316f4cc2c07a810d137901fc62ab94e18e68392b236a2b869d1c8",
+    "preregistration_sha256": "77fe5c84f4dc7cfc99be120a9295e7d69adf216bfb91eba271c52092d95d4d93",
+    "fingerprints": [
+      "fp_9954b31ca7_prod0820_fp8_kvcache_20260402"
+    ],
+    "expected_metrics": {
+      "accuracy": 0.8811475409836066,
+      "macro_f1": 0.6371438506354873,
+      "weighted_f1": 0.8795978829883035
+    },
+    "rerun_policy": "do not call the API again; use only the byte-frozen historical row predictions"
+  },
+  "candidate": {
+    "role": "supervised_v1_candidate",
+    "model": "hfl/chinese-roberta-wwm-ext-large",
+    "seed": 43,
+    "run_id": "roberta-large-full-20260728",
+    "valid_selection": "reports/psysuicide-roberta-v1-valid-selection.json",
+    "valid_selection_sha256": "f83ed4930627c5fbb69296c92ab30260837e2be1b97a83be1c9039a7b6c0621e",
+    "holdout_freeze": "reports/psysuicide-roberta-v1-holdout-freeze.json",
+    "holdout_freeze_sha256": "0b52fe703d65469682ef0a1eb044ddc99d5075c778c3a837119020b337d5702d",
+    "checkpoint_root": "results/psysuicide-roberta/roberta-large-full-20260728/seed-43/model",
+    "checkpoint_weight_sha256": "9a1cf3c2471dedc2ee8799ba6b8324f10e3d01ce1c0d0898da2b9aa642743e44",
+    "selection_rule": "Seed 43 was selected before this run by the preregistered highest official-valid macro-F1 rule"
+  },
+  "inference": {
+    "max_length": 256,
+    "eval_batch": 8,
+    "device": "mps",
+    "dtype": "float32",
+    "local_files_only": true,
+    "row_order": "official retained test order; no shuffle"
+  },
+  "paired_inference": {
+    "primary_metric": "macro_f1",
+    "alpha": 0.05,
+    "paired_randomization_repetitions": 20000,
+    "paired_randomization_seed": 20260802,
+    "paired_bootstrap_repetitions": 20000,
+    "paired_bootstrap_seed": 20260802,
+    "primary_superiority_rule": "candidate macro-F1 delta > 0, two-sided paired-randomization p < 0.05, and paired-bootstrap macro-F1 delta CI95 lower bound > 0",
+    "secondary_metric": "accuracy",
+    "secondary_test": "exact two-sided McNemar",
+    "equivalence_tested": false
+  },
+  "outputs": {
+    "public_result": "reports/psysuicide-roberta-v1-official-test-paired-result.json",
+    "private_claim": "results/psysuicide-roberta/roberta-large-full-20260728/official-test-paired.claim.json",
+    "private_completion": "results/psysuicide-roberta/roberta-large-full-20260728/official-test-paired.completion.json",
+    "row_level_candidate_predictions": "not persisted",
+    "publishing_boundary": "aggregate metrics, paired counts, inference statistics, and hashes only; no counseling text, normalized ids, per-row gold/prediction assignments, raw output, credentials, model weights, or licensed data"
+  }
+}
