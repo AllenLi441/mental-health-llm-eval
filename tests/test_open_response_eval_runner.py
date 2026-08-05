@@ -63,6 +63,28 @@ class EndpointTests(unittest.TestCase):
         self.assertEqual(endpoint.api_key, "qwen-key")
         self.assertNotIn("qwen-key", repr(endpoint))
 
+    def test_endpoint_preserves_non_reserved_request_overrides(self):
+        spec = {
+            "id": "qwen",
+            "model": "Qwen/Qwen3.6-27B",
+            "base_url_env": "QWEN_EVAL_BASE_URL",
+            "api_key_env": "QWEN_EVAL_API_KEY",
+            "wire_api": "chat",
+            "request_overrides": {"chat_template_kwargs": {"enable_thinking": False}},
+        }
+        endpoint = EndpointConfig.from_spec(
+            spec,
+            {
+                "QWEN_EVAL_BASE_URL": "https://qwen.example/v1",
+                "QWEN_EVAL_API_KEY": "qwen-key",
+            },
+        )
+
+        self.assertEqual(
+            endpoint.request_overrides,
+            {"chat_template_kwargs": {"enable_thinking": False}},
+        )
+
     def test_endpoint_fails_closed_when_dedicated_key_is_missing(self):
         spec = {
             "id": "deepseek",
