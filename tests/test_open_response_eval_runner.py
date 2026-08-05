@@ -1,4 +1,5 @@
 import json
+import ssl
 import tempfile
 import threading
 import unittest
@@ -9,6 +10,7 @@ from open_response_eval.core import CPCDTask
 from open_response_eval.runner import (
     EndpointConfig,
     OpenAICompatibleClient,
+    build_ssl_context,
     load_cpcd_full_history,
     portable_tree_sha256,
     protocol_sha256,
@@ -43,6 +45,12 @@ class _ChatHandler(BaseHTTPRequestHandler):
 
 
 class EndpointTests(unittest.TestCase):
+    def test_tls_context_never_disables_certificate_verification(self):
+        context = build_ssl_context()
+
+        self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+        self.assertTrue(context.check_hostname)
+
     def test_endpoint_reads_only_its_declared_environment_names(self):
         spec = {
             "id": "qwen",
