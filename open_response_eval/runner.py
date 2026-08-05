@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import socket
+import ssl
 import time
 import urllib.error
 import urllib.request
@@ -16,6 +17,17 @@ from .core import (
     extract_api_response,
     read_jsonl_index,
 )
+
+
+def build_ssl_context(cafile: str | None = None) -> ssl.SSLContext:
+    if cafile:
+        return ssl.create_default_context(cafile=cafile)
+    try:
+        import certifi  # type: ignore[import-not-found]
+
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
 
 
 @dataclass(frozen=True)
@@ -89,6 +101,7 @@ class EndpointConfig:
 class OpenAICompatibleClient:
     def __init__(self, endpoint: EndpointConfig):
         self.endpoint = endpoint
+        self.ssl_context = build_ssl_context()
 
     def complete(
         self, messages: list[dict[str, str]], max_tokens: int
@@ -111,9 +124,10 @@ class OpenAICompatibleClient:
         for attempt in range(self.endpoint.max_retries + 1):
             request = urllib.request.Request(url, data=encoded, headers=headers, method="POST")
             try:
-                with urllib.request.urlopen(
-                    request, timeout=self.endpoint.timeout_seconds
-                ) as response:
+                open_kwargs: dict[str, Any] = {"timeout": self.endpoint.timeout_seconds}
+                if url.startswith("https://"):
+                    open_kwargs["context"] = self.ssl_context
+                with urllib.request.urlopen(request, **open_kwargs) as response:
                     payload = json.loads(response.read().decode("utf-8"))
                 parsed = extract_api_response(self.endpoint.wire_api, payload)
                 return {
