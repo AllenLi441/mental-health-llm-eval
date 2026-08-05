@@ -10,7 +10,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from .core import CPCDTask, build_chat_request, extract_api_response
+from .core import (
+    CPCDTask,
+    build_chat_request,
+    extract_api_response,
+    read_jsonl_index,
+)
 
 
 @dataclass(frozen=True)
@@ -22,6 +27,7 @@ class EndpointConfig:
     wire_api: str = "chat"
     timeout_seconds: float = 180.0
     max_retries: int = 3
+    request_overrides: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_spec(
@@ -56,6 +62,18 @@ class EndpointConfig:
         ).strip()
         if wire_api not in {"chat", "responses"}:
             raise ValueError(f"unsupported wire API: {wire_api}")
+        request_overrides = dict(spec.get("request_overrides") or {})
+        reserved = {
+            "model",
+            "messages",
+            "input",
+            "temperature",
+            "max_tokens",
+            "max_output_tokens",
+        }
+        overlap = reserved.intersection(request_overrides)
+        if overlap:
+            raise ValueError(f"request_overrides contains reserved keys: {sorted(overlap)}")
         return cls(
             id=endpoint_id,
             model=model,
@@ -64,6 +82,7 @@ class EndpointConfig:
             wire_api=wire_api,
             timeout_seconds=float(spec.get("timeout_seconds", 180.0)),
             max_retries=int(spec.get("max_retries", 3)),
+            request_overrides=request_overrides,
         )
 
 
@@ -80,6 +99,7 @@ class OpenAICompatibleClient:
             messages,
             max_tokens=max_tokens,
         )
+        request_data["body"].update(self.endpoint.request_overrides)
         url = f"{self.endpoint.base_url}{request_data['path']}"
         encoded = json.dumps(request_data["body"]).encode("utf-8")
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
@@ -155,3 +175,21 @@ def load_cpcd_full_history(task: CPCDTask, full_session_dir: Path) -> Any:
     if not path.is_file():
         raise FileNotFoundError(f"missing CPCD full history for {task.id}: {path}")
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+class JsonlRunStore:
+    def __init__(self, path: Path, id_key: str = "run_id"):
+        self.path = path
+        self.id_key = id_key
+        self.index = read_jsonl_index(path, id_key=id_key)
+
+    def append(self, record: dict[str, Any]) -> None:
+        run_id = str(record.get(self.id_key) or "")
+        if not run_id:
+            raise ValueError(f"record is missing {self.id_key}")
+        if run_id in self.index:
+            raise ValueError(f"duplicate {self.id_key} {run_id!r} in {self.path}")
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self.path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+        self.index[run_id] = record
