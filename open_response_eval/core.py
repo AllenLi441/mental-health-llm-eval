@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Sequence
@@ -261,6 +263,110 @@ Do not include Markdown, analysis, or any other keys.""".strip()
     return [{"role": "system", "content": system}, {"role": "user", "content": user}]
 
 
+_CPCD_SCORE_SPECS = {
+    "srg": ({"empathy", "coherence", "professionalism"}, 1, 5),
+    "mr": (
+        {"accuracy", "completeness", "temporal_consistency", "no_hallucination"},
+        0,
+        5,
+    ),
+    "tcr": (
+        {"temporal_accuracy", "causal_coherence", "completeness", "no_hallucination"},
+        0,
+        5,
+    ),
+}
+
+
+def build_cpcd_judge_messages(
+    task: CPCDTask,
+    response: str,
+    full_history: Any,
+    rubric: str,
+    blind_id: str,
+) -> list[dict[str, str]]:
+    if task.family not in _CPCD_SCORE_SPECS:
+        raise ValueError(f"unsupported CPCD task family: {task.family}")
+    payload = task.payload
+    inp = payload.get("input_to_model") or {}
+
+    if task.family == "srg":
+        system = (
+            "你是严格、审慎的心理咨询回复评测员。请基于评分规则、任务焦点、"
+            "学生画像、历史上下文、参考答案和匿名候选回复评分。不要因语言流畅"
+            "自动高分，也不要要求候选回复逐字匹配参考答案。只输出严格 JSON。"
+        )
+        evidence = f"""【student_profile_summary】
+{inp.get('student_profile_summary', '')}
+
+【history_until_previous_session】
+{inp.get('history_until_previous_session', '')}
+
+【current_session_event】
+{inp.get('current_session_event', '')}
+
+【current_session_context】
+{_format_context(inp.get('current_session_context', ''))}
+
+【current_student_utterance】
+{inp.get('current_student_utterance', '')}"""
+        schema = (
+            '{"scores":{"empathy":1,"coherence":1,"professionalism":1},'
+            '"rationales":{"empathy":"...","coherence":"...",'
+            '"professionalism":"..."}}'
+        )
+    else:
+        if full_history is None:
+            raise ValueError(f"{task.id} requires full history for judging")
+        system = (
+            "你是严格的咨询历史事实评测员。请依据评分规则、参考答案和完整咨询"
+            "历史，对匿名候选答案评分。不要因文风不同扣分，只在事实错误、遗漏、"
+            "顺序或因果问题、幻觉时扣分。只输出严格 JSON。"
+        )
+        evidence = f"""【question】
+{payload.get('question', '')}
+
+【完整咨询历史】
+{_render_history(full_history)}"""
+        if task.family == "mr":
+            schema = (
+                '{"scores":{"accuracy":0,"completeness":0,'
+                '"temporal_consistency":0,"no_hallucination":0},'
+                '"rationales":{"accuracy":"...","completeness":"...",'
+                '"temporal_consistency":"...","no_hallucination":"..."}}'
+            )
+        else:
+            schema = (
+                '{"scores":{"temporal_accuracy":0,"causal_coherence":0,'
+                '"completeness":0,"no_hallucination":0},'
+                '"rationales":{"temporal_accuracy":"...",'
+                '"causal_coherence":"...","completeness":"...",'
+                '"no_hallucination":"..."}}'
+            )
+
+    user = f"""【匿名输出 ID】
+{blind_id}
+
+【评分规则】
+{rubric}
+
+【任务证据】
+{evidence}
+
+【evaluation_focus】
+{json.dumps(payload.get('evaluation_focus', {}), ensure_ascii=False, indent=2)}
+
+【reference_answer，高分参考方向，不要求逐字相似】
+{payload.get('reference_answer', '')}
+
+【匿名候选回复】
+{response}
+
+请只输出以下结构，所有分数必须是整数：
+{schema}"""
+    return [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+
 def parse_strategy_response(raw: str) -> StrategyResponse:
     cleaned = raw.strip()
     if cleaned.startswith("```"):
@@ -281,6 +387,56 @@ def parse_strategy_response(raw: str) -> StrategyResponse:
     if not response:
         return StrategyResponse(strategy, "", "empty_response")
     return StrategyResponse(strategy, response, None)
+
+
+def _extract_json_object(raw: str) -> dict[str, Any]:
+    cleaned = raw.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+    try:
+        value = json.loads(cleaned)
+    except json.JSONDecodeError:
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start < 0 or end <= start:
+            raise ValueError("judge output is not valid JSON")
+        try:
+            value = json.loads(cleaned[start : end + 1])
+        except json.JSONDecodeError as error:
+            raise ValueError("judge output is not valid JSON") from error
+    if not isinstance(value, dict):
+        raise ValueError("judge output must be a JSON object")
+    return value
+
+
+def parse_cpcd_judgement(family: str, raw: str) -> dict[str, Any]:
+    try:
+        keys, minimum, maximum = _CPCD_SCORE_SPECS[family]
+    except KeyError as error:
+        raise ValueError(f"unsupported CPCD task family: {family}") from error
+    value = _extract_json_object(raw)
+    raw_scores = value.get("scores")
+    if not isinstance(raw_scores, dict) or set(raw_scores) != keys:
+        raise ValueError(f"judge scores must contain exactly {sorted(keys)}")
+    scores: dict[str, int] = {}
+    for key in sorted(keys):
+        score_value = raw_scores[key]
+        if isinstance(score_value, dict):
+            score_value = score_value.get("score")
+        if isinstance(score_value, bool) or not isinstance(score_value, (int, float)):
+            raise ValueError(f"judge score {key} is not numeric")
+        if int(score_value) != score_value:
+            raise ValueError(f"judge score {key} must be an integer")
+        score = int(score_value)
+        if not minimum <= score <= maximum:
+            raise ValueError(f"judge score {key} is outside the {minimum}-{maximum} range")
+        scores[key] = score
+    return {
+        "scores": scores,
+        "rationales": value.get("rationales") or {},
+        "average_score": sum(scores.values()) / len(scores),
+    }
 
 
 def _f1_for_label(pairs: Sequence[tuple[str, str | None]], label: str) -> float:
@@ -331,6 +487,48 @@ def normalized_quality_score(mean_score: float) -> dict[str, float]:
     return {
         "mean_score_0_to_5": mean_score,
         "normalized_quality_percent": round(mean_score * 20, 6),
+    }
+
+
+def summarize_cpcd_judgements(records: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    families: dict[str, Any] = {}
+    for family in ("srg", "mr", "tcr"):
+        family_records = [record for record in records if record.get("family") == family]
+        if not family_records:
+            continue
+        expected_keys = _CPCD_SCORE_SPECS[family][0]
+        valid = [
+            record
+            for record in family_records
+            if isinstance(record.get("scores"), dict)
+            and set(record["scores"]) == expected_keys
+        ]
+        if not valid:
+            continue
+        metric_means = {
+            key: sum(float(record["scores"][key]) for record in valid) / len(valid)
+            for key in sorted(expected_keys)
+        }
+        item_means = [
+            sum(float(value) for value in record["scores"].values())
+            / len(record["scores"])
+            for record in valid
+        ]
+        mean_score = sum(item_means) / len(item_means)
+        families[family] = {
+            "n": len(valid),
+            "failed_or_missing": len(family_records) - len(valid),
+            "metric_means_0_to_5": metric_means,
+            **normalized_quality_score(mean_score),
+        }
+    family_means = [entry["mean_score_0_to_5"] for entry in families.values()]
+    macro_family_mean = sum(family_means) / len(family_means) if family_means else 0.0
+    return {
+        "families": families,
+        "overall": {
+            "macro_family_mean_score_0_to_5": macro_family_mean,
+            "macro_family_normalized_quality_percent": macro_family_mean * 20,
+        },
     }
 
 
@@ -390,3 +588,168 @@ def build_chat_request(
             },
         }
     raise ValueError(f"unsupported wire API: {wire_api}")
+
+
+def extract_api_response(wire_api: str, payload: dict[str, Any]) -> dict[str, Any]:
+    text = ""
+    if wire_api == "chat":
+        try:
+            text = payload["choices"][0]["message"]["content"] or ""
+        except (KeyError, IndexError, TypeError) as error:
+            raise ValueError("chat response does not contain message content") from error
+    elif wire_api == "responses":
+        if isinstance(payload.get("output_text"), str):
+            text = payload["output_text"]
+        else:
+            chunks = []
+            for item in payload.get("output") or []:
+                if item.get("type") != "message":
+                    continue
+                for content in item.get("content") or []:
+                    if content.get("type") == "output_text" and isinstance(content.get("text"), str):
+                        chunks.append(content["text"])
+            text = "".join(chunks)
+    else:
+        raise ValueError(f"unsupported wire API: {wire_api}")
+    if not text.strip():
+        raise ValueError("API response contains no answer text")
+    return {
+        "text": text.strip(),
+        "response_model": payload.get("model"),
+        "fingerprint": payload.get("system_fingerprint"),
+        "usage": payload.get("usage") or {},
+        "response_id": payload.get("id"),
+    }
+
+
+def read_jsonl_index(path: Path, id_key: str = "run_id") -> dict[str, dict[str, Any]]:
+    if not path.exists():
+        return {}
+    index: dict[str, dict[str, Any]] = {}
+    with path.open(encoding="utf-8") as handle:
+        for line_number, line in enumerate(handle, start=1):
+            if not line.strip():
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError as error:
+                raise ValueError(f"invalid JSONL at {path}:{line_number}") from error
+            run_id = str(record.get(id_key) or "")
+            if not run_id:
+                raise ValueError(f"missing {id_key} at {path}:{line_number}")
+            if run_id in index:
+                raise ValueError(f"duplicate {id_key} {run_id!r} in {path}")
+            index[run_id] = record
+    return index
+
+
+def write_jsonl_record(path: Path, record: dict[str, Any], id_key: str = "run_id") -> None:
+    run_id = str(record.get(id_key) or "")
+    if not run_id:
+        raise ValueError(f"record is missing {id_key}")
+    existing = read_jsonl_index(path, id_key=id_key)
+    if run_id in existing:
+        raise ValueError(f"duplicate {id_key} {run_id!r} in {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+
+
+def _modified_precision(
+    references: Sequence[Sequence[str]], hypothesis: Sequence[str], n: int
+) -> tuple[int, int]:
+    counts = Counter(tuple(hypothesis[index : index + n]) for index in range(len(hypothesis) - n + 1))
+    if not counts:
+        return 0, 0
+    max_counts: Counter[tuple[str, ...]] = Counter()
+    for reference in references:
+        reference_counts = Counter(
+            tuple(reference[index : index + n]) for index in range(len(reference) - n + 1)
+        )
+        for ngram in counts:
+            max_counts[ngram] = max(max_counts[ngram], reference_counts[ngram])
+    clipped = sum(min(count, max_counts[ngram]) for ngram, count in counts.items())
+    return clipped, sum(counts.values())
+
+
+def _closest_reference_length(references: Sequence[Sequence[str]], hypothesis_length: int) -> int:
+    return min((len(reference) for reference in references), key=lambda length: (abs(length - hypothesis_length), length))
+
+
+def _lcs_length(left: Sequence[str], right: Sequence[str]) -> int:
+    if len(left) < len(right):
+        left, right = right, left
+    previous = [0] * (len(right) + 1)
+    for left_token in left:
+        current = [0]
+        for index, right_token in enumerate(right, start=1):
+            if left_token == right_token:
+                current.append(previous[index - 1] + 1)
+            else:
+                current.append(max(previous[index], current[-1]))
+        previous = current
+    return previous[-1]
+
+
+def response_overlap_metrics_tokenized(
+    references: Sequence[Sequence[str]],
+    hypotheses: Sequence[Sequence[str]],
+) -> dict[str, float]:
+    if len(references) != len(hypotheses) or not references:
+        raise ValueError("references and hypotheses must have the same non-zero length")
+    corpus_refs = [[reference] for reference in references]
+    hyp_length = sum(len(hypothesis) for hypothesis in hypotheses)
+    ref_length = sum(
+        _closest_reference_length(item_refs, len(hypothesis))
+        for item_refs, hypothesis in zip(corpus_refs, hypotheses)
+    )
+    brevity_penalty = (
+        0.0
+        if hyp_length == 0
+        else (1.0 if hyp_length > ref_length else math.exp(1 - ref_length / hyp_length))
+    )
+    precisions = []
+    zero_index = 0
+    for n in range(1, 5):
+        numerator = denominator = 0
+        for item_refs, hypothesis in zip(corpus_refs, hypotheses):
+            clipped, total = _modified_precision(item_refs, hypothesis, n)
+            numerator += clipped
+            denominator += total
+        if numerator:
+            precisions.append(numerator / denominator)
+        else:
+            zero_index += 1
+            precisions.append(1 / ((2**zero_index) * max(denominator, 1)))
+
+    metrics: dict[str, float] = {}
+    for k in range(1, 5):
+        bleu = brevity_penalty * math.exp(sum(math.log(p) for p in precisions[:k]) / k)
+        metrics[f"bleu_{k}"] = bleu * 100
+
+    rouge_scores = []
+    beta = 1.2
+    for reference, hypothesis in zip(references, hypotheses):
+        lcs = _lcs_length(reference, hypothesis)
+        precision = lcs / len(hypothesis) if hypothesis else 0.0
+        recall = lcs / len(reference) if reference else 0.0
+        if precision and recall:
+            rouge_scores.append(
+                ((1 + beta**2) * precision * recall) / (recall + beta**2 * precision)
+            )
+        else:
+            rouge_scores.append(0.0)
+    metrics["rouge_l"] = sum(rouge_scores) / len(rouge_scores) * 100
+
+    for k in range(1, 4):
+        ngrams: set[tuple[str, ...]] = set()
+        total = 0
+        for hypothesis in hypotheses:
+            # Reproduce the released ESConv implementation, including its exclusive
+            # upper bound (the final possible n-gram is not counted).
+            for index in range(max(0, len(hypothesis) - k)):
+                ngrams.add(tuple(hypothesis[index : index + k]))
+                total += 1
+        metrics[f"distinct_{k}"] = (len(ngrams) / total * 100) if total else 0.0
+    metrics["mean_length_tokens"] = sum(len(hypothesis) for hypothesis in hypotheses) / len(hypotheses)
+    return metrics
