@@ -1,4 +1,5 @@
 import json
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -8,14 +9,21 @@ from open_response_eval.core import (
     STRATEGIES,
     build_chat_request,
     build_cpcd_target_messages,
+    build_cpcd_judge_messages,
     build_esconv_target_messages,
+    extract_api_response,
     load_cpcd_tasks,
     load_esconv_test,
     normalized_quality_score,
+    parse_cpcd_judgement,
     parse_strategy_response,
+    read_jsonl_index,
+    response_overlap_metrics_tokenized,
     score_strategy_predictions,
+    summarize_cpcd_judgements,
     stable_blind_order,
     validate_preregistration,
+    write_jsonl_record,
 )
 
 
@@ -238,6 +246,127 @@ class ProtocolSafetyTests(unittest.TestCase):
         self.assertTrue(messages[0]["content"].startswith("FROZEN JINGSHI CORE"))
         self.assertIn(json.dumps(STRATEGIES), messages[0]["content"])
         self.assertIn('"strategy"', messages[0]["content"])
+
+
+class JudgeTests(unittest.TestCase):
+    def test_srg_judge_sees_reference_and_not_model_identity(self):
+        task = CPCDTask(
+            id="srg-1",
+            family="srg",
+            case_id="case",
+            payload={
+                "reference_answer": "A grounded reference answer.",
+                "evaluation_focus": {"empathy": "name the mixed feeling"},
+                "input_to_model": {
+                    "student_profile_summary": "profile",
+                    "history_until_previous_session": "history",
+                    "current_session_event": "event",
+                    "current_session_context": [],
+                    "current_student_utterance": "latest",
+                },
+            },
+            source_file="case.json",
+        )
+
+        messages = build_cpcd_judge_messages(
+            task=task,
+            response="Candidate response",
+            full_history=None,
+            rubric="RUBRIC",
+            blind_id="blind-123",
+        )
+        joined = "\n".join(message["content"] for message in messages)
+
+        self.assertIn("A grounded reference answer.", joined)
+        self.assertIn("blind-123", joined)
+        self.assertNotIn("deepseek", joined.casefold())
+        self.assertNotIn("qwen", joined.casefold())
+
+    def test_parses_valid_srg_judgement_and_rejects_out_of_range(self):
+        valid = parse_cpcd_judgement(
+            "srg",
+            '{"scores":{"empathy":5,"coherence":4,"professionalism":4},'
+            '"rationales":{"empathy":"ok","coherence":"ok",'
+            '"professionalism":"ok"}}',
+        )
+
+        self.assertEqual(valid["scores"]["empathy"], 5)
+        self.assertAlmostEqual(valid["average_score"], 13 / 3)
+        with self.assertRaisesRegex(ValueError, "range"):
+            parse_cpcd_judgement(
+                "srg",
+                '{"scores":{"empathy":6,"coherence":4,"professionalism":4}}',
+            )
+
+    def test_summarizes_cpcd_families_without_calling_them_accuracy(self):
+        records = [
+            {"family": "srg", "scores": {"empathy": 5, "coherence": 4, "professionalism": 3}},
+            {"family": "srg", "scores": {"empathy": 3, "coherence": 4, "professionalism": 5}},
+            {
+                "family": "mr",
+                "scores": {
+                    "accuracy": 4,
+                    "completeness": 3,
+                    "temporal_consistency": 5,
+                    "no_hallucination": 4,
+                },
+            },
+        ]
+
+        summary = summarize_cpcd_judgements(records)
+
+        self.assertEqual(summary["families"]["srg"]["n"], 2)
+        self.assertEqual(summary["families"]["srg"]["mean_score_0_to_5"], 4.0)
+        self.assertEqual(summary["families"]["srg"]["normalized_quality_percent"], 80.0)
+        self.assertNotIn("accuracy", summary["overall"])
+
+
+class StorageAndWireTests(unittest.TestCase):
+    def test_extracts_chat_and_responses_payloads(self):
+        chat = extract_api_response(
+            "chat",
+            {
+                "model": "model-a",
+                "system_fingerprint": "fp-a",
+                "choices": [{"message": {"content": "answer-a"}}],
+                "usage": {"total_tokens": 10},
+            },
+        )
+        responses = extract_api_response(
+            "responses",
+            {
+                "model": "model-b",
+                "output": [
+                    {"type": "message", "content": [{"type": "output_text", "text": "answer-b"}]}
+                ],
+                "usage": {"total_tokens": 20},
+            },
+        )
+
+        self.assertEqual(chat["text"], "answer-a")
+        self.assertEqual(chat["fingerprint"], "fp-a")
+        self.assertEqual(responses["text"], "answer-b")
+        self.assertEqual(responses["response_model"], "model-b")
+
+    def test_jsonl_store_refuses_duplicate_ids(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "run.jsonl"
+            write_jsonl_record(path, {"run_id": "one", "value": 1})
+            with self.assertRaisesRegex(ValueError, "duplicate"):
+                write_jsonl_record(path, {"run_id": "one", "value": 2})
+
+            index = read_jsonl_index(path)
+            self.assertEqual(index["one"]["value"], 1)
+
+    def test_response_overlap_metrics_use_official_percent_scale(self):
+        metrics = response_overlap_metrics_tokenized(
+            references=[["i", "hear", "you"]],
+            hypotheses=[["i", "hear", "you"]],
+        )
+
+        self.assertAlmostEqual(metrics["bleu_1"], 100.0)
+        self.assertAlmostEqual(metrics["rouge_l"], 100.0)
+        self.assertGreater(metrics["distinct_1"], 0.0)
 
 
 if __name__ == "__main__":
