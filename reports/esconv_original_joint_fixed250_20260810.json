@@ -1,0 +1,191 @@
+{
+  "benchmark": "ESConv",
+  "task": "8-way next-support-strategy prediction",
+  "model": "ESC_Blender_Strategy (ACL 2021 Joint variant)",
+  "checkpoint": {
+    "repo": "lsy641/ESC_Blender_Strategy",
+    "revision": "72c5d30a57217f7b44b7dae6d95230241335ec04",
+    "path": "/Users/allenli/.cache/huggingface/hub/models--lsy641--ESC_Blender_Strategy/snapshots/72c5d30a57217f7b44b7dae6d95230241335ec04/pytorch_model.bin",
+    "ignored_unused_role_turn_embedding_keys": [
+      "model.encoder.wre.weight",
+      "model.encoder.wte.weight",
+      "model.decoder.wre.weight",
+      "model.decoder.wte.weight"
+    ]
+  },
+  "protocol": {
+    "test_file": "/Users/allenli/Desktop/mental-health-llm-eval/tmp/official_benchmarks/esconv/codes/dataset/testWithStrategy_short.tsv",
+    "examples": 250,
+    "paper_split": "fixed original 20% test TSV from the 1,053-dialogue release",
+    "context": "all preceding utterances, truncated at an utterance boundary to <=512 tokens",
+    "decision_rule": "argmax of the first decoder-step logits over the 8 strategy tokens",
+    "note": "Post-hoc strategy evaluation; ACL 2021 did not publish strategy Accuracy."
+  },
+  "runtime": {
+    "device": "mps",
+    "batch_size": 32,
+    "elapsed_seconds": 4.456,
+    "torch": "2.10.0"
+  },
+  "metrics": {
+    "accuracy": 0.204,
+    "macro_f1": 0.12891475436328376,
+    "weighted_f1": 0.1836706166774402,
+    "correct": 51,
+    "total": 250
+  },
+  "gold_distribution": {
+    "[Question]": 51,
+    "[Restatement or Paraphrasing]": 14,
+    "[Reflection of feelings]": 20,
+    "[Self-disclosure]": 22,
+    "[Affirmation and Reassurance]": 39,
+    "[Providing Suggestions]": 35,
+    "[Information]": 8,
+    "[Others]": 61
+  },
+  "per_class": {
+    "[Question]": {
+      "gold_count": 51,
+      "predicted_count": 54,
+      "correct": 26,
+      "recall": 0.5098039215686274
+    },
+    "[Restatement or Paraphrasing]": {
+      "gold_count": 14,
+      "predicted_count": 12,
+      "correct": 1,
+      "recall": 0.07142857142857142
+    },
+    "[Reflection of feelings]": {
+      "gold_count": 20,
+      "predicted_count": 0,
+      "correct": 0,
+      "recall": 0.0
+    },
+    "[Self-disclosure]": {
+      "gold_count": 22,
+      "predicted_count": 0,
+      "correct": 0,
+      "recall": 0.0
+    },
+    "[Affirmation and Reassurance]": {
+      "gold_count": 39,
+      "predicted_count": 86,
+      "correct": 12,
+      "recall": 0.3076923076923077
+    },
+    "[Providing Suggestions]": {
+      "gold_count": 35,
+      "predicted_count": 13,
+      "correct": 1,
+      "recall": 0.02857142857142857
+    },
+    "[Information]": {
+      "gold_count": 8,
+      "predicted_count": 26,
+      "correct": 1,
+      "recall": 0.125
+    },
+    "[Others]": {
+      "gold_count": 61,
+      "predicted_count": 59,
+      "correct": 10,
+      "recall": 0.16393442622950818
+    }
+  },
+  "confusion_matrix": {
+    "labels": [
+      "[Question]",
+      "[Restatement or Paraphrasing]",
+      "[Reflection of feelings]",
+      "[Self-disclosure]",
+      "[Affirmation and Reassurance]",
+      "[Providing Suggestions]",
+      "[Information]",
+      "[Others]"
+    ],
+    "rows_gold_columns_predicted": [
+      [
+        26,
+        2,
+        0,
+        0,
+        8,
+        2,
+        6,
+        7
+      ],
+      [
+        7,
+        1,
+        0,
+        0,
+        1,
+        0,
+        3,
+        2
+      ],
+      [
+        3,
+        2,
+        0,
+        0,
+        5,
+        1,
+        1,
+        8
+      ],
+      [
+        5,
+        2,
+        0,
+        0,
+        6,
+        4,
+        1,
+        4
+      ],
+      [
+        7,
+        2,
+        0,
+        0,
+        12,
+        1,
+        6,
+        11
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        12,
+        1,
+        6,
+        15
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        2,
+        2,
+        1,
+        2
+      ],
+      [
+        4,
+        3,
+        0,
+        0,
+        40,
+        2,
+        2,
+        10
+      ]
+    ]
+  }
+}

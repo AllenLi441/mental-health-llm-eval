@@ -135,6 +135,7 @@ class OpenAICompatibleClient:
                     "requested_model": self.endpoint.model,
                     "endpoint_id": self.endpoint.id,
                     "wire_api": self.endpoint.wire_api,
+                    "max_output_tokens_requested": max_tokens,
                     "latency_ms": round((time.monotonic() - started) * 1000),
                     "attempts": attempt + 1,
                 }
@@ -195,7 +196,9 @@ class JsonlRunStore:
     def __init__(self, path: Path, id_key: str = "run_id"):
         self.path = path
         self.id_key = id_key
-        self.index = read_jsonl_index(path, id_key=id_key)
+        self.index = read_jsonl_index(
+            path, id_key=id_key, recover_truncated_tail=True
+        )
 
     def append(self, record: dict[str, Any]) -> None:
         run_id = str(record.get(self.id_key) or "")
@@ -204,6 +207,13 @@ class JsonlRunStore:
         if run_id in self.index:
             raise ValueError(f"duplicate {self.id_key} {run_id!r} in {self.path}")
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+        encoded = json.dumps(record, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        with self.path.open("ab+") as handle:
+            handle.seek(0, 2)
+            size = handle.tell()
+            if size:
+                handle.seek(-1, 2)
+                if handle.read(1) not in (b"\n", b"\r"):
+                    handle.write(b"\n")
+            handle.write(encoded + b"\n")
         self.index[run_id] = record

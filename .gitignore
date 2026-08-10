@@ -5,3 +5,5 @@ results/
 node_modules/
 .omc/
 __pycache__/
+.DS_Store
+tmp/

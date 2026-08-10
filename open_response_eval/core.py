@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 import re
-from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Sequence
@@ -80,10 +78,15 @@ class ESConvExample:
         if not target_text:
             raise ValueError(f"ESConv row {line_number} target supporter response is empty")
 
-        context = [
-            {"role": "assistant" if role == 1 else "user", "content": text}
-            for role, _strategy, text in parsed[:-1]
-        ]
+        context = []
+        for role, strategy, text in parsed[:-1]:
+            message = {
+                "role": "assistant" if role == 1 else "user",
+                "content": text,
+            }
+            if strategy is not None:
+                message["strategy"] = strategy
+            context.append(message)
         return cls(
             id=f"esconv-test-{line_number:06d}",
             context=context,
@@ -255,10 +258,15 @@ support strategy from this JSON list: {strategy_json}
 Then write the next supportive response. Return one strict JSON object only:
 {{"strategy":"<exact label>","response":"<supportive response>"}}
 Do not include Markdown, analysis, or any other keys.""".strip()
-    transcript = "\n".join(
-        f"{'Supporter' if message['role'] == 'assistant' else 'Seeker'}: {message['content']}"
-        for message in example.context
-    )
+    transcript_lines = []
+    for message in example.context:
+        if message["role"] == "assistant":
+            strategy = message.get("strategy")
+            prefix = f"[{strategy}] " if strategy else ""
+            transcript_lines.append(f"Supporter: {prefix}{message['content']}")
+        else:
+            transcript_lines.append(f"Seeker: {message['content']}")
+    transcript = "\n".join(transcript_lines)
     user = f"Conversation so far:\n{transcript}\n\nReturn the next supporter turn."
     return [{"role": "system", "content": system}, {"role": "user", "content": user}]
 
@@ -385,7 +393,7 @@ def parse_strategy_response(raw: str) -> StrategyResponse:
     if strategy is None:
         return StrategyResponse(None, response, "invalid_strategy")
     if not response:
-        return StrategyResponse(strategy, "", "empty_response")
+        return StrategyResponse(None, "", "empty_response")
     return StrategyResponse(strategy, response, None)
 
 
@@ -560,6 +568,9 @@ def validate_preregistration(preregistration: dict[str, Any]) -> None:
         raise ValueError("judge model must be independent from both target models")
     if not bool((preregistration.get("cpcd") or {}).get("include_reference_answer")):
         raise ValueError("paper-aligned CPCD judging requires the reference answer")
+    strategy_labels = tuple((preregistration.get("esconv") or {}).get("strategy_labels") or ())
+    if strategy_labels and strategy_labels != STRATEGIES:
+        raise ValueError("preregistered ESConv strategy labels must exactly match STRATEGIES")
 
 
 def build_chat_request(
@@ -592,11 +603,19 @@ def build_chat_request(
 
 def extract_api_response(wire_api: str, payload: dict[str, Any]) -> dict[str, Any]:
     text = ""
+    termination: dict[str, Any]
     if wire_api == "chat":
         try:
-            text = payload["choices"][0]["message"]["content"] or ""
+            choice = payload["choices"][0]
+            text = choice["message"]["content"] or ""
         except (KeyError, IndexError, TypeError) as error:
             raise ValueError("chat response does not contain message content") from error
+        status = choice.get("finish_reason")
+        termination = {
+            "termination_status": status,
+            "termination_details": None,
+            "finish_reason": status,
+        }
     elif wire_api == "responses":
         if isinstance(payload.get("output_text"), str):
             text = payload["output_text"]
@@ -609,6 +628,14 @@ def extract_api_response(wire_api: str, payload: dict[str, Any]) -> dict[str, An
                     if content.get("type") == "output_text" and isinstance(content.get("text"), str):
                         chunks.append(content["text"])
             text = "".join(chunks)
+        status = payload.get("status")
+        details = payload.get("incomplete_details")
+        termination = {
+            "termination_status": status,
+            "termination_details": details,
+            "response_status": status,
+            "incomplete_details": details,
+        }
     else:
         raise ValueError(f"unsupported wire API: {wire_api}")
     if not text.strip():
@@ -619,27 +646,47 @@ def extract_api_response(wire_api: str, payload: dict[str, Any]) -> dict[str, An
         "fingerprint": payload.get("system_fingerprint"),
         "usage": payload.get("usage") or {},
         "response_id": payload.get("id"),
+        **termination,
     }
 
 
-def read_jsonl_index(path: Path, id_key: str = "run_id") -> dict[str, dict[str, Any]]:
+def read_jsonl_index(
+    path: Path,
+    id_key: str = "run_id",
+    *,
+    recover_truncated_tail: bool = False,
+) -> dict[str, dict[str, Any]]:
     if not path.exists():
         return {}
     index: dict[str, dict[str, Any]] = {}
-    with path.open(encoding="utf-8") as handle:
-        for line_number, line in enumerate(handle, start=1):
-            if not line.strip():
-                continue
-            try:
-                record = json.loads(line)
-            except json.JSONDecodeError as error:
-                raise ValueError(f"invalid JSONL at {path}:{line_number}") from error
-            run_id = str(record.get(id_key) or "")
-            if not run_id:
-                raise ValueError(f"missing {id_key} at {path}:{line_number}")
-            if run_id in index:
-                raise ValueError(f"duplicate {id_key} {run_id!r} in {path}")
-            index[run_id] = record
+    raw_lines = path.read_bytes().splitlines(keepends=True)
+    offset = 0
+    for line_index, raw_line in enumerate(raw_lines):
+        line_number = line_index + 1
+        final_unterminated_line = (
+            line_index == len(raw_lines) - 1
+            and not raw_line.endswith((b"\n", b"\r"))
+        )
+        try:
+            line = raw_line.decode("utf-8")
+            record = json.loads(line) if line.strip() else None
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            if recover_truncated_tail and final_unterminated_line:
+                with path.open("r+b") as handle:
+                    handle.truncate(offset)
+                break
+            raise ValueError(f"invalid JSONL at {path}:{line_number}") from error
+        offset += len(raw_line)
+        if record is None:
+            continue
+        if not isinstance(record, dict):
+            raise ValueError(f"non-object JSONL record at {path}:{line_number}")
+        run_id = str(record.get(id_key) or "")
+        if not run_id:
+            raise ValueError(f"missing {id_key} at {path}:{line_number}")
+        if run_id in index:
+            raise ValueError(f"duplicate {id_key} {run_id!r} in {path}")
+        index[run_id] = record
     return index
 
 
@@ -647,33 +694,21 @@ def write_jsonl_record(path: Path, record: dict[str, Any], id_key: str = "run_id
     run_id = str(record.get(id_key) or "")
     if not run_id:
         raise ValueError(f"record is missing {id_key}")
-    existing = read_jsonl_index(path, id_key=id_key)
+    existing = read_jsonl_index(
+        path, id_key=id_key, recover_truncated_tail=True
+    )
     if run_id in existing:
         raise ValueError(f"duplicate {id_key} {run_id!r} in {path}")
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
-
-
-def _modified_precision(
-    references: Sequence[Sequence[str]], hypothesis: Sequence[str], n: int
-) -> tuple[int, int]:
-    counts = Counter(tuple(hypothesis[index : index + n]) for index in range(len(hypothesis) - n + 1))
-    if not counts:
-        return 0, 0
-    max_counts: Counter[tuple[str, ...]] = Counter()
-    for reference in references:
-        reference_counts = Counter(
-            tuple(reference[index : index + n]) for index in range(len(reference) - n + 1)
-        )
-        for ngram in counts:
-            max_counts[ngram] = max(max_counts[ngram], reference_counts[ngram])
-    clipped = sum(min(count, max_counts[ngram]) for ngram, count in counts.items())
-    return clipped, sum(counts.values())
-
-
-def _closest_reference_length(references: Sequence[Sequence[str]], hypothesis_length: int) -> int:
-    return min((len(reference) for reference in references), key=lambda length: (abs(length - hypothesis_length), length))
+    encoded = json.dumps(record, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    with path.open("ab+") as handle:
+        handle.seek(0, 2)
+        size = handle.tell()
+        if size:
+            handle.seek(-1, 2)
+            if handle.read(1) not in (b"\n", b"\r"):
+                handle.write(b"\n")
+        handle.write(encoded + b"\n")
 
 
 def _lcs_length(left: Sequence[str], right: Sequence[str]) -> int:
@@ -697,35 +732,23 @@ def response_overlap_metrics_tokenized(
 ) -> dict[str, float]:
     if len(references) != len(hypotheses) or not references:
         raise ValueError("references and hypotheses must have the same non-zero length")
-    corpus_refs = [[reference] for reference in references]
-    hyp_length = sum(len(hypothesis) for hypothesis in hypotheses)
-    ref_length = sum(
-        _closest_reference_length(item_refs, len(hypothesis))
-        for item_refs, hypothesis in zip(corpus_refs, hypotheses)
-    )
-    brevity_penalty = (
-        0.0
-        if hyp_length == 0
-        else (1.0 if hyp_length > ref_length else math.exp(1 - ref_length / hyp_length))
-    )
-    precisions = []
-    zero_index = 0
-    for n in range(1, 5):
-        numerator = denominator = 0
-        for item_refs, hypothesis in zip(corpus_refs, hypotheses):
-            clipped, total = _modified_precision(item_refs, hypothesis, n)
-            numerator += clipped
-            denominator += total
-        if numerator:
-            precisions.append(numerator / denominator)
-        else:
-            zero_index += 1
-            precisions.append(1 / ((2**zero_index) * max(denominator, 1)))
-
+    try:
+        from nltk.translate.bleu_score import SmoothingFunction, corpus_bleu
+    except ImportError as error:
+        raise RuntimeError("NLTK is required for official ESConv BLEU") from error
+    corpus_refs = [[list(reference)] for reference in references]
     metrics: dict[str, float] = {}
     for k in range(1, 5):
-        bleu = brevity_penalty * math.exp(sum(math.log(p) for p in precisions[:k]) / k)
-        metrics[f"bleu_{k}"] = bleu * 100
+        weights = tuple([1 / k] * k + [0.0] * (4 - k))
+        metrics[f"bleu_{k}"] = (
+            corpus_bleu(
+                corpus_refs,
+                hypotheses,
+                weights=weights,
+                smoothing_function=SmoothingFunction().method3,
+            )
+            * 100
+        )
 
     rouge_scores = []
     beta = 1.2
