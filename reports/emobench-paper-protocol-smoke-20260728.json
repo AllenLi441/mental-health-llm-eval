@@ -46,14 +46,22 @@
     "released_repository_gap": "official repository commit 3b4f84312541f8469e909965e1fff3691ef85c62 does not implement the paper aggregation or permutations"
   },
   "full_run_gate": {
-    "required_calls": 8000,
-    "smoke_calibrated_required_budget_usd_with_1_5x_reserve": 4.7851131,
+    "required_calls": 16000,
+    "smoke_calibrated_required_budget_usd_with_1_5x_reserve": 9.5702262,
     "available_provider_balance_after_smoke": {
       "currency": "CNY",
       "amount": 6.81
     },
     "status": "BLOCKED_BY_PROVIDER_BALANCE",
     "reason": "the calibrated full-run reserve materially exceeds the available provider balance; no partial full result will be reported as a benchmark"
+  },
+  "correction_2026_08_01": {
+    "status": "CORRECTED_AGGREGATE_METADATA",
+    "reason": "the earlier gate counted only one of the two 400-row tasks; the frozen protocol is EA and EU x 400 rows x 4 permutations x 5 repeats",
+    "superseded_required_calls": 8000,
+    "superseded_budget_usd_with_1_5x_reserve": 4.7851131,
+    "formula": "2 tasks * 400 rows * 4 permutations * 5 repeats = 16000 calls",
+    "note": "the 160-call smoke observations above are unchanged"
   },
   "publishing_boundary": "aggregate smoke evidence only; per-call rows and model outputs remain ignored"
 }

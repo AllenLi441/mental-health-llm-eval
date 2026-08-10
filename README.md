@@ -2,6 +2,8 @@
 
 零依赖 Node.js（≥18）。被测模型 = 任意 OpenAI 兼容 chat API（示例默认显式使用 DeepSeek `deepseek-v4-flash`；runner 会拒绝已经退役/含义不明确的 `deepseek-chat` 和 `deepseek-reasoner` 别名）。公开仓库包含代码与聚合结果；规划中的 CPsyExam V4 Release 仅允许发布去敏的逐行承诺与成对正确性结果。受许可/敏感性约束的原始数据、题目、选项、标签、模型预测和原始输出不随仓库或 Release 发布。
 
+> 2026-08-01 跨 benchmark 总复盘：[`reports/model_architecture_status_and_roadmap_20260801.md`](reports/model_architecture_status_and_roadmap_20260801.md)。给 ChatGPT 5.6 Pro Deep Research 的独立复核 prompt：[`reports/chatgpt_pro_5_6_independent_review_prompt_20260801.md`](reports/chatgpt_pro_5_6_independent_review_prompt_20260801.md)。总目标是分别提高各论文任务的同协议指标；不得把 PsySUICIDE 专用分类头或不同 split 的分数外推到其他 benchmark。
+
 ## 用法
 
 ```bash
@@ -18,6 +20,17 @@ python3 scripts/audit_results.py --selftest  # 检查已发布聚合结果，不
 python3 scripts/scoreboard.py --selftest
 python3 scripts/check_baselines.py
 python3 scripts/check_harness_safety.py
+python3 scripts/check_project_ledger.py
+python3 scripts/check_benchmark_registry.py       # 19-task machine-readable protocol registry
+python3 scripts/check_benchmark_registry.py --selftest
+python3 scripts/check_research_freeze.py --selftest # 8-family/19-task freeze + 0-row dataset-design guard
+python3 scripts/init_mental_health_instruct_workspace.py --selftest
+python3 scripts/train_text_classifier.py --selftest
+python3 scripts/imhi_classification_screen.py --selftest
+python3 scripts/imhi_classification_screen.py     # registry-only preregistration; does not open licensed CSVs
+python3 scripts/imhi_classification_screen.py --validate-data  # explicit train/dev hash + leakage dry-run; no training
+# From a clean committed HEAD only; writes ignored checkpoints/results and never opens IMHI test:
+python3 scripts/imhi_classification_screen.py --execute --device auto
 node scripts/check_psysuicide_protocol.mjs
 node scripts/run_psysuicide_valid_matrix.mjs --selftest
 python3 scripts/analyze_psysuicide_valid_matrix.py --selftest
@@ -25,6 +38,7 @@ node scripts/run_psysuicide_test_pair.mjs --selftest
 python3 scripts/analyze_psysuicide_test_pair.py --selftest
 node emobench-official/eval.mjs --selftest # 无官方数据也可验证 prompt/parser；有数据时再验 400+400
 node emobench-official/paper_protocol.mjs --selftest
+node scripts/check_cpsyexam_protocol.mjs
 node scripts/prepare_psysuicide_v2_partition.mjs --selftest
 node scripts/run_psysuicide_v2_valid_matrix.mjs --selftest
 python3 scripts/analyze_psysuicide_v2_valid.py --selftest
@@ -35,6 +49,21 @@ python3 scripts/train_psysuicide_roberta_accuracy_v2.py --selftest
 python3 scripts/analyze_psysuicide_roberta_accuracy_v2.py --selftest
 node scripts/run_imhi_uniform_v4_matrix.mjs --selftest
 ```
+
+## Research freeze and MentalHealth-Instruct v1
+
+Before any new model training, the current 8-family / 19-task protocol and
+reviewed DeepSeek aggregate evidence are frozen in [`benchmark-freezes/`](benchmark-freezes/README.md).
+The historical baseline is deliberately `paper_control_ready=false`: existing
+rows mix exact V4 fingerprints, unresolved legacy aliases, proxy protocols, and
+incompatible metrics, so they must not be averaged into one model score.
+
+The public-safe dataset design lives in
+[`dataset-design/mental-health-instruct-v1/`](dataset-design/mental-health-instruct-v1/README.md).
+It starts with zero rows and one blank `UNLABELED` pilot card. Real people must
+author and blind-review labels; AI/model labels cannot be presented as human
+gold. The initializer creates empty train/validation files only outside this
+repository and is dry-run unless `--execute` is supplied.
 
 通用协议：零样本、temperature 0、严格标签解析（无同义词映射，解析失败记 invalid 并算错）、
 抽样用种子 42 确定性洗牌（`--seed` 可换）、逐条落盘 JSONL 可续跑、汇总含 accuracy + Wilson 95% CI +
@@ -71,7 +100,9 @@ valid/test 或已消费的内部 holdout。经一次明确授权，导出器只�
 预注册，`training_allowed=true` 只表示推送并通过运行时门禁后允许开始预注册实验，
 不代表已有 v2 分数。首次 smoke 发现的 checkpoint 键名兼容问题已修复并重新冻结；全新
 run ID 下 A/B/C/D 四臂完整性 smoke 已通过，但其两步小样本指标不可用于选择。当前仍没有
-Seed-42 四臂 screen、确认性准确率结果或部署证据。
+完整 Seed-42 四臂 screen、确认性准确率结果或部署证据。2026-08-01 用户要求暂停时，
+Arm A 已完成（inner-dev accuracy `93.29%`、macro-F1 `0.6250`），Arm B 停在
+`3,560 / 4,680` steps，Arm C/D 未开始；A 单臂不能用于选择或宣称 v2 提升。
 公开导出审计、split freeze 与真实状态见
 `reports/model_optimization_accuracy_first_v2_20260731.md`。
 
@@ -217,6 +248,12 @@ reference-only correct `45`）。预注册主指标 macro-F1 的 paired randomiz
 
 复现定位：runner commit `3e6890374cb39631bb1cc8bca46ef4835df85446`；公开 case commitment manifest SHA-256 `1275ce7edeb55ad62500ac1692b82bef3800592decc2ece4d615fc8770232c9d`；数据 revision 见公开 summary 的 `dataset.revision`。
 
+2026-08-01 的 prospective parser 审计发现，历史 runner 的全局 A–E 扫描可能把
+`Answer: B` 中 `Answer` 的 A 误当成答案；仅凭公开聚合无法确定旧结果中受影响的题数。
+不可变 Release 与上述“旧冻结协议内”配对结论不会被事后改写。未来运行改用显式
+`legacy-zero-shot-v1` / `subject-json-v1` 候选 profile 和严格 JSON/锚定/纯字母解析，
+合成回归见 `scripts/check_cpsyexam_protocol.mjs`；任何新效果结论必须另建预注册与新 run。
+
 ## 任务与对比基准
 
 | 任务 | 数据 | 量（默认抽样） | 指标 | 已发表参照 |
@@ -242,7 +279,9 @@ mental-health-llm-eval/
 ├── lib/baselines.mjs  从 reports/BASELINES.json 读取对照值
 ├── run.mjs        入口（list / all / 单任务）
 ├── tasks/         emobench mdd5k psysuicide cbtbench mentalmanip imhi cpsyexam eatd
+├── benchmark-specs/  19 个任务的 split/metric/sample/provenance/paper-status 机器可读规则
 ├── results-summary/  可公开的聚合结果
+├── project-ledger/   每次更新、当前状态、错误/失败用例与固定模板
 └── results/       本地运行后生成的逐行结果（不发布）
 ```
 
@@ -258,7 +297,7 @@ mental-health-llm-eval/
 - **v1 主跑分 = 17 个非 EmoBench 任务**(`run-v1.log`,10,142 次调用);**v2(2026-07-07)= 全部 19 任务重跑**,
   17 主任务中 16 项与 v1 精确一致、cbt-fc -0.89pp(1 题输出波动),公开 overview 固化于 `results-summary/all-v2.summary.json`
   (由 `scripts/compare_runs.py v1 v2` 生成,含逐任务差异表)。
-- ⚠ **EmoBench 口径**:当前 scoreboard 的 EmoBench 数字仍出自独立 temp-0 单次 proxy，不能称完全同协议。`emobench-official/paper_protocol.mjs` 已实现论文所述的每题 5 次采样多数票 × 4 个选项排列取均值，并完成 160-call 完整性 smoke；8,000-call 全量在预算门禁处停止，因此没有用 smoke 数字替换 benchmark。套件内置 `emobench-ea/eu` 用的是简化提示词:EA 与独立 proxy 接近(71.5 vs 72.0),
+- ⚠ **EmoBench 口径**:当前 scoreboard 的 EmoBench 数字仍出自独立 temp-0 单次 proxy，不能称完全同协议。`emobench-official/paper_protocol.mjs` 已实现论文所述的每题 5 次采样多数票 × 4 个选项排列取均值，并完成 160-call 完整性 smoke；完整 `EA + EU` 为 **16,000 calls**（2 任务 × 400 题 × 4 排列 × 5 次采样），此前 8,000-call / `$4.7851` 估算漏计一个任务，现已更正为 smoke 校准预留 `$9.5702`。全量仍在预算门禁处停止，因此没有用 smoke 数字替换 benchmark。套件内置 `emobench-ea/eu` 用的是简化提示词:EA 与独立 proxy 接近(71.5 vs 72.0),
   但 **EU 仅 39.3 vs 官方协议 57.8**——提示词差异对 EU 影响巨大,内置版数字不得与论文对比,仅作内部追踪。
 - 独立重算对账：在持有授权逐行 JSONL 的本地环境运行 `python3 scripts/audit_results.py`；公开包没有原始行，`--selftest` 只验证聚合文件结构并明确标注边界。
 - 授权环境可运行 `python3 scripts/audit_results.py --results-dir /authorized/results --manifest-out /review/authorized-run.manifest.json --audit-out /review/audit-recompute.json` 生成不含文本、输出和行 ID 的证据清单（文件 SHA-256、行数/唯一数/重复数、错误数、字段覆盖、模型/供应商聚合）。它能暴露续跑碰撞和 provenance 缺字段，但**不能替代获许可的逐行结果发布**。

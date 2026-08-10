@@ -1,0 +1,55 @@
+[
+  {
+    "schema_version": "1.0",
+    "task_key": "mdd5k-diagnosis",
+    "family": "mdd5k",
+    "task_contract": { "task_type": "single_label_classification", "output_representation": "fixed_label", "canonical_output_labels": ["抑郁障碍", "焦虑障碍", "焦虑抑郁混合", "双相障碍", "其他精神障碍"], "label_order": "declared", "dynamic_options": false, "composition_rule": "single_label", "scoring_method": "exact_match", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "MDD-5k/repo",
+      "revision": { "kind": "git_commit", "value": "e19d2bf1e6d430c6b1f66c9dfe323daa599b06fa", "frozen": true },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "dev",
+      "test_selection_prohibited": true,
+      "train": { "source_split": null, "availability": "derived_split_required", "allowed_uses": ["training", "preprocessing_fit", "class_weight_estimation"], "consumption_status": "not_applicable", "notes": "Freeze a patient-level partition before training; conversations from one patient must not cross roles." },
+      "dev": { "source_split": null, "availability": "derived_split_required", "allowed_uses": ["model_selection", "early_stopping", "threshold_tuning"], "consumption_status": "not_applicable", "notes": "Development patients must be fixed before model work." },
+      "test": { "source_split": null, "availability": "derived_split_required", "allowed_uses": ["final_confirmation_once"], "consumption_status": "not_applicable", "notes": "A new held-out patient set is required; the historical seed-42 sample is exploratory only." }
+    },
+    "metrics": { "primary": ["macro_f1"], "secondary": ["weighted_f1", "accuracy", "per_class_f1", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "mdd5k-project-proxy-v1",
+      "evaluation_role": "test",
+      "source_split": "project-defined seed-42 patient sample",
+      "selection_forbidden": true,
+      "mode": "deterministic_sample",
+      "examples": { "kind": "exact", "value": 400 },
+      "seed": 42,
+      "option_permutations": 1,
+      "repetitions_per_permutation": 1,
+      "api_calls_per_example": 1,
+      "expected_total_api_calls": 400,
+      "scoring_unit": "patient; first conversation, at most 6000 characters, project-defined five-class ICD mapping"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "paper_compatibility": {
+      "status": "project_defined",
+      "reference_protocol": "This suite defines a five-class diagnosis task from MDD-5k ICD labels; the source paper has no directly matching leaderboard task.",
+      "paper_primary_metrics": [],
+      "blocking_differences": ["Custom ICD grouping, first-conversation selection, 6000-character truncation, and no frozen patient-level train/dev/test split."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "blocked",
+      "evidence_level": "exploratory",
+      "summary": "The current 400-patient zero-shot score is an internal proxy, not a paper-comparable result.",
+      "next_action": "Freeze the label ontology and patient-level train/dev/test commitments before building a specialist model."
+    }
+  }
+]

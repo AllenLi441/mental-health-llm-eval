@@ -33,6 +33,9 @@ const LANGS = ['en', 'zh'];
 const PERMUTATIONS = 4;
 const REPEATS = 5;
 const SMOKE_PER_CELL = 2;
+const FULL_ITEMS_PER_CELL = 200;
+const FULL_ALL_CALLS = TASKS.length * LANGS.length * FULL_ITEMS_PER_CELL * PERMUTATIONS * REPEATS;
+const SMOKE_ALL_CALLS = TASKS.length * LANGS.length * SMOKE_PER_CELL * PERMUTATIONS * REPEATS;
 const STATIC_RESERVE = 1.25;
 const FULL_SMOKE_CALIBRATION = 1.5;
 const MAX_OUTPUT_TOKENS = 2048;
@@ -449,11 +452,22 @@ async function main() {
     if (majority(['A', 'B', 'A', 'B', 'C']) !== 'A') throw new Error('tie rule mismatch');
     const parsed = resultForSample('EA', sample, '{"answer":"A"}');
     if (!parsed.correct) throw new Error('official parser integration failed');
-    console.log('EmoBench paper protocol selftest PASS: 5x4 plan, deterministic permutations, frozen tie rule, official prompt/parser');
+    if (FULL_ALL_CALLS !== 16000 || SMOKE_ALL_CALLS !== 160) {
+      throw new Error(`call-count invariant failed: full=${FULL_ALL_CALLS} smoke=${SMOKE_ALL_CALLS}`);
+    }
+    console.log('EmoBench paper protocol selftest PASS: 5x4 plan, full=16000 calls, smoke=160 calls, deterministic permutations, frozen tie rule, official prompt/parser');
     return;
   }
 
   const { cases, datasetCommitments } = await buildCases(args);
+  const expectedCalls = selected(TASKS, args.task).length
+    * selected(LANGS, args.lang).length
+    * (args.phase === 'smoke' ? SMOKE_PER_CELL : FULL_ITEMS_PER_CELL)
+    * PERMUTATIONS
+    * REPEATS;
+  if (cases.length !== expectedCalls) {
+    throw new Error(`call-count invariant failed: built=${cases.length} expected=${expectedCalls}`);
+  }
   const staticCost = staticEstimate(cases, args.model);
   let requiredBudget = staticCost.usd * STATIC_RESERVE;
   let budgetBasis = 'static conservative byte/token bound with 1.25x reserve';
