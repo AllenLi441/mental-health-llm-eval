@@ -1,0 +1,596 @@
+{
+  "audit_status": "PIPELINE_IMPLEMENTED_TRAINING_NOT_RUN",
+  "dataset": {
+    "sha256": {
+      "devWithStrategy_short.tsv": "625b511f40cf9a9285582e808e6bbb4c2f35d0b0cd063f3709db430b8d0c3bdc",
+      "testWithStrategy_short.tsv": "b85ae888bf747cefa54bba2a6c3e2f6ccb4c1005d4e0b6d1d3be3823cf040aef",
+      "trainWithStrategy_short.tsv": "0ecf37462f8e3fa7f1dc5bfbecd70733abb3501c3bf83b27a957bec5a926ec21"
+    },
+    "version": "original 1,053-dialogue fixed TSV split"
+  },
+  "evaluations": {
+    "official_joint_modern_fixed250": {
+      "checkpoint_sha256": "c972037e051773afb505c14746daafaadc827e36d57588269b86fccbc56ee7c6",
+      "dataset_sha256": "b85ae888bf747cefa54bba2a6c3e2f6ccb4c1005d4e0b6d1d3be3823cf040aef",
+      "metrics": {
+        "accuracy": 0.376,
+        "confusion_matrix": {
+          "labels": [
+            "Questions",
+            "Restatement or Paraphrasing",
+            "Reflection of feelings",
+            "Self-disclosure",
+            "Affirmation and Reassurance",
+            "Providing Suggestions",
+            "Information",
+            "Other"
+          ],
+          "rows_gold_columns_predicted": [
+            [
+              27,
+              0,
+              2,
+              1,
+              6,
+              7,
+              0,
+              8
+            ],
+            [
+              7,
+              0,
+              0,
+              0,
+              5,
+              2,
+              0,
+              0
+            ],
+            [
+              3,
+              0,
+              1,
+              1,
+              4,
+              5,
+              0,
+              6
+            ],
+            [
+              6,
+              0,
+              1,
+              5,
+              7,
+              0,
+              0,
+              3
+            ],
+            [
+              9,
+              0,
+              1,
+              0,
+              7,
+              12,
+              0,
+              10
+            ],
+            [
+              1,
+              0,
+              1,
+              1,
+              6,
+              17,
+              0,
+              9
+            ],
+            [
+              1,
+              0,
+              0,
+              2,
+              2,
+              1,
+              0,
+              2
+            ],
+            [
+              7,
+              0,
+              2,
+              4,
+              6,
+              5,
+              0,
+              37
+            ]
+          ]
+        },
+        "correct": 94,
+        "invalid": 0,
+        "invalid_rate": 0.0,
+        "macro_f1": 0.24387005818587598,
+        "per_class": {
+          "Affirmation and Reassurance": {
+            "correct": 7,
+            "f1": 0.17073170731707318,
+            "precision": 0.16279069767441862,
+            "predicted": 43,
+            "recall": 0.1794871794871795,
+            "support": 39
+          },
+          "Information": {
+            "correct": 0,
+            "f1": 0.0,
+            "precision": 0.0,
+            "predicted": 0,
+            "recall": 0.0,
+            "support": 8
+          },
+          "Other": {
+            "correct": 37,
+            "f1": 0.5441176470588235,
+            "precision": 0.49333333333333335,
+            "predicted": 75,
+            "recall": 0.6065573770491803,
+            "support": 61
+          },
+          "Providing Suggestions": {
+            "correct": 17,
+            "f1": 0.4047619047619047,
+            "precision": 0.3469387755102041,
+            "predicted": 49,
+            "recall": 0.4857142857142857,
+            "support": 35
+          },
+          "Questions": {
+            "correct": 27,
+            "f1": 0.4821428571428572,
+            "precision": 0.4426229508196721,
+            "predicted": 61,
+            "recall": 0.5294117647058824,
+            "support": 51
+          },
+          "Reflection of feelings": {
+            "correct": 1,
+            "f1": 0.07142857142857144,
+            "precision": 0.125,
+            "predicted": 8,
+            "recall": 0.05,
+            "support": 20
+          },
+          "Restatement or Paraphrasing": {
+            "correct": 0,
+            "f1": 0.0,
+            "precision": 0.0,
+            "predicted": 0,
+            "recall": 0.0,
+            "support": 14
+          },
+          "Self-disclosure": {
+            "correct": 5,
+            "f1": 0.2777777777777778,
+            "precision": 0.35714285714285715,
+            "predicted": 14,
+            "recall": 0.22727272727272727,
+            "support": 22
+          }
+        },
+        "total": 250,
+        "weighted_f1": 0.344581391906356
+      },
+      "runtime": {
+        "backend": "modern",
+        "batch_size": 32,
+        "device": "mps",
+        "elapsed_seconds": 4.93,
+        "inference_context": "torch.inference_mode",
+        "platform": "macOS-26.0.1-arm64-arm-64bit",
+        "python": "3.10.4",
+        "torch": "2.10.0",
+        "transformers": "5.0.0"
+      },
+      "status": "COMPLETE",
+      "summary": "/Users/allenli/Desktop/mental-health-llm-eval/reports/esconv_joint_official_corrected_fixed250_20260811.json"
+    },
+    "official_joint_modern_full": {
+      "checkpoint_sha256": "c972037e051773afb505c14746daafaadc827e36d57588269b86fccbc56ee7c6",
+      "dataset_sha256": "b85ae888bf747cefa54bba2a6c3e2f6ccb4c1005d4e0b6d1d3be3823cf040aef",
+      "metrics": {
+        "accuracy": 0.32216216216216215,
+        "confusion_matrix": {
+          "labels": [
+            "Questions",
+            "Restatement or Paraphrasing",
+            "Reflection of feelings",
+            "Self-disclosure",
+            "Affirmation and Reassurance",
+            "Providing Suggestions",
+            "Information",
+            "Other"
+          ],
+          "rows_gold_columns_predicted": [
+            [
+              265,
+              0,
+              29,
+              16,
+              61,
+              93,
+              0,
+              90
+            ],
+            [
+              81,
+              2,
+              20,
+              6,
+              34,
+              23,
+              0,
+              23
+            ],
+            [
+              41,
+              2,
+              13,
+              8,
+              36,
+              68,
+              0,
+              30
+            ],
+            [
+              69,
+              0,
+              27,
+              40,
+              32,
+              74,
+              0,
+              51
+            ],
+            [
+              73,
+              2,
+              29,
+              13,
+              70,
+              130,
+              0,
+              93
+            ],
+            [
+              34,
+              0,
+              22,
+              30,
+              56,
+              228,
+              0,
+              79
+            ],
+            [
+              16,
+              1,
+              8,
+              8,
+              14,
+              85,
+              1,
+              43
+            ],
+            [
+              86,
+              0,
+              14,
+              8,
+              29,
+              92,
+              2,
+              275
+            ]
+          ]
+        },
+        "correct": 894,
+        "invalid": 0,
+        "invalid_rate": 0.0,
+        "macro_f1": 0.21827168949288342,
+        "per_class": {
+          "Affirmation and Reassurance": {
+            "correct": 70,
+            "f1": 0.1886792452830189,
+            "precision": 0.21084337349397592,
+            "predicted": 332,
+            "recall": 0.17073170731707318,
+            "support": 410
+          },
+          "Information": {
+            "correct": 1,
+            "f1": 0.0111731843575419,
+            "precision": 0.3333333333333333,
+            "predicted": 3,
+            "recall": 0.005681818181818182,
+            "support": 176
+          },
+          "Other": {
+            "correct": 275,
+            "f1": 0.4621848739495798,
+            "precision": 0.402046783625731,
+            "predicted": 684,
+            "recall": 0.5434782608695652,
+            "support": 506
+          },
+          "Providing Suggestions": {
+            "correct": 228,
+            "f1": 0.3671497584541063,
+            "precision": 0.287515762925599,
+            "predicted": 793,
+            "recall": 0.5077951002227171,
+            "support": 449
+          },
+          "Questions": {
+            "correct": 265,
+            "f1": 0.43478260869565216,
+            "precision": 0.39849624060150374,
+            "predicted": 665,
+            "recall": 0.47833935018050544,
+            "support": 554
+          },
+          "Reflection of feelings": {
+            "correct": 13,
+            "f1": 0.07222222222222222,
+            "precision": 0.08024691358024691,
+            "predicted": 162,
+            "recall": 0.06565656565656566,
+            "support": 198
+          },
+          "Restatement or Paraphrasing": {
+            "correct": 2,
+            "f1": 0.02040816326530612,
+            "precision": 0.2857142857142857,
+            "predicted": 7,
+            "recall": 0.010582010582010581,
+            "support": 189
+          },
+          "Self-disclosure": {
+            "correct": 40,
+            "f1": 0.18957345971563982,
+            "precision": 0.31007751937984496,
+            "predicted": 129,
+            "recall": 0.13651877133105803,
+            "support": 293
+          }
+        },
+        "total": 2775,
+        "weighted_f1": 0.28562612272020277
+      },
+      "runtime": {
+        "backend": "modern",
+        "batch_size": 32,
+        "device": "mps",
+        "elapsed_seconds": 27.445,
+        "inference_context": "torch.inference_mode",
+        "platform": "macOS-26.0.1-arm64-arm-64bit",
+        "python": "3.10.4",
+        "torch": "2.10.0",
+        "transformers": "5.0.0"
+      },
+      "status": "COMPLETE",
+      "summary": "/Users/allenli/Desktop/mental-health-llm-eval/reports/esconv_joint_official_corrected_full_20260811.json"
+    },
+    "official_joint_modern_smoke10": {
+      "checkpoint_sha256": "c972037e051773afb505c14746daafaadc827e36d57588269b86fccbc56ee7c6",
+      "dataset_sha256": "b85ae888bf747cefa54bba2a6c3e2f6ccb4c1005d4e0b6d1d3be3823cf040aef",
+      "metrics": {
+        "accuracy": 0.2,
+        "confusion_matrix": {
+          "labels": [
+            "Questions",
+            "Restatement or Paraphrasing",
+            "Reflection of feelings",
+            "Self-disclosure",
+            "Affirmation and Reassurance",
+            "Providing Suggestions",
+            "Information",
+            "Other"
+          ],
+          "rows_gold_columns_predicted": [
+            [
+              1,
+              0,
+              0,
+              0,
+              0,
+              4,
+              0,
+              1
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0
+            ]
+          ]
+        },
+        "correct": 2,
+        "invalid": 0,
+        "invalid_rate": 0.0,
+        "macro_f1": 0.0625,
+        "per_class": {
+          "Affirmation and Reassurance": {
+            "correct": 0,
+            "f1": 0.0,
+            "precision": 0.0,
+            "predicted": 0,
+            "recall": 0.0,
+            "support": 1
+          },
+          "Information": {
+            "correct": 0,
+            "f1": 0.0,
+            "precision": 0.0,
+            "predicted": 0,
+            "recall": 0.0,
+            "support": 0
+          },
+          "Other": {
+            "correct": 0,
+            "f1": 0.0,
+            "precision": 0.0,
+            "predicted": 1,
+            "recall": 0.0,
+            "support": 1
+          },
+          "Providing Suggestions": {
+            "correct": 1,
+            "f1": 0.25,
+            "precision": 0.14285714285714285,
+            "predicted": 7,
+            "recall": 1.0,
+            "support": 1
+          },
+          "Questions": {
+            "correct": 1,
+            "f1": 0.25,
+            "precision": 0.5,
+            "predicted": 2,
+            "recall": 0.16666666666666666,
+            "support": 6
+          },
+          "Reflection of feelings": {
+            "correct": 0,
+            "f1": 0.0,
+            "precision": 0.0,
+            "predicted": 0,
+            "recall": 0.0,
+            "support": 0
+          },
+          "Restatement or Paraphrasing": {
+            "correct": 0,
+            "f1": 0.0,
+            "precision": 0.0,
+            "predicted": 0,
+            "recall": 0.0,
+            "support": 0
+          },
+          "Self-disclosure": {
+            "correct": 0,
+            "f1": 0.0,
+            "precision": 0.0,
+            "predicted": 0,
+            "recall": 0.0,
+            "support": 1
+          }
+        },
+        "total": 10,
+        "weighted_f1": 0.175
+      },
+      "runtime": {
+        "backend": "modern",
+        "batch_size": 10,
+        "device": "mps",
+        "elapsed_seconds": 3.271,
+        "inference_context": "torch.inference_mode",
+        "platform": "macOS-26.0.1-arm64-arm-64bit",
+        "python": "3.10.4",
+        "torch": "2.10.0",
+        "transformers": "5.0.0"
+      },
+      "status": "COMPLETE",
+      "summary": "/Users/allenli/Desktop/mental-health-llm-eval/reports/esconv_joint_official_corrected_smoke10_20260811.json"
+    }
+  },
+  "model": "BlenderBot-small 90M Joint",
+  "official_repo_commit": "f262d062ad74cb39b17ea476facc81568ddcba24",
+  "paper": "Towards Emotional Support Dialog Systems",
+  "token_mapping": {
+    "[Affirmation and Reassurance]": 54950,
+    "[CLS]": 54952,
+    "[Information]": 54946,
+    "[Other]": 54948,
+    "[Providing Suggestions]": 54951,
+    "[Questions]": 54944,
+    "[Reflection of feelings]": 54945,
+    "[Restatement or Paraphrasing]": 54947,
+    "[Self-disclosure]": 54949
+  },
+  "training": {
+    "batch_size": 4,
+    "best_checkpoint": null,
+    "epochs": 5,
+    "learning_rate": 5e-05,
+    "reason": "Current workstation is Apple M4 without NVIDIA CUDA; faithful environment requires Linux x86-64, Python 3.7, PyTorch 1.7.1, and the official modified Transformers.",
+    "seed": 42,
+    "selection_rule": "lowest validation PPL",
+    "status": "NOT_RUN",
+    "warmup_steps": 120
+  }
+}

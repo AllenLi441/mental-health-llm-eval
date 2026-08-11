@@ -2,6 +2,7 @@
 *.env
 results/
 *.jsonl
+!reports/esconv_*.predictions.jsonl
 node_modules/
 .omc/
 __pycache__/
