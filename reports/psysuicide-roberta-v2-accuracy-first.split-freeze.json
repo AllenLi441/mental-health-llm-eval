@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "split_id": "psysuicide-optimization-inner-dev-v2",
+  "split_seed": "psysuicide-accuracy-first-v2-inner-dev-2026-07-29",
+  "optimization_rows": 9342,
+  "train_rows": 7479,
+  "inner_dev_rows": 1863,
+  "optimization_commitment_sha256": "0c3cbf98db02c609d500b4f9ef9bf95518b617bd4dffd1f4cde8a5c5e85a8dd9",
+  "train_commitment_sha256": "bb14eb605af3655fd951c9e59c51536e979330b814c6982efed09c8db4ebf1c8",
+  "inner_dev_commitment_sha256": "b229ae62d034ca2926ae8e0b8cd00f4aed18493422432a08ab38b7b52b7b75d7",
+  "inner_dev_per_label_commitment_sha256": {
+    "与自杀/自伤/攻击行为无关": "d9766b923a2cad89efa9c6af056e0cbf4e01dadea9d88e3df0870e711915b836",
+    "被动自杀意图": "40e78dd485bf27291323d656f56e44f8398c642b3b6c73c694f2744dd92ccea6",
+    "主动自杀意图": "310bc867a0b7b4004c5c1104365988d6c62b8a799f549c0eda0ef09cf24b5018",
+    "关于自杀的探索": "ff53aa36c6d2de518e1508b2ffa04cd0c8d858af03cb8de246022ef002348ae8",
+    "自杀计划": "98cf97dd3fea74c5bca16588a7c73f13976b078e005dac264288bafdee404fec",
+    "自杀准备行为": "2eceb9530ad38df31680f6f61b325e9a8d745acf61357514266b0197210f222c",
+    "自杀未遂": "d36a382e9bdfc99014046623220f80b0be248003fc6a9c30a314faf8cd8a5329",
+    "自伤意图": "854d6e91f6b34fc23bf1cd393d445eb4fbca01aafd55cc56d671144c4e31cfbf",
+    "自伤行为": "ec487e8ec57b994fab67efe5b3dc18ea900ec6fe4168ceb875e82a47522c1f37",
+    "用户攻击行为": "8a33a63d837db049646ea1295b3a95b0bb3a9a41f6f65ce4dbf64594688ec93a",
+    "他人攻击行为": "fa2ed81f15cd8f4b8e866463752bfddc578a63194835ab8de444036029971bae"
+  },
+  "overlap_rows": 0,
+  "per_label": {
+    "与自杀/自伤/攻击行为无关": {
+      "optimization": 6883,
+      "train": 5507,
+      "inner_dev": 1376
+    },
+    "被动自杀意图": {
+      "optimization": 846,
+      "train": 677,
+      "inner_dev": 169
+    },
+    "主动自杀意图": {
+      "optimization": 844,
+      "train": 676,
+      "inner_dev": 168
+    },
+    "关于自杀的探索": {
+      "optimization": 234,
+      "train": 188,
+      "inner_dev": 46
+    },
+    "自杀计划": {
+      "optimization": 93,
+      "train": 75,
+      "inner_dev": 18
+    },
+    "自杀准备行为": {
+      "optimization": 12,
+      "train": 10,
+      "inner_dev": 2
+    },
+    "自杀未遂": {
+      "optimization": 65,
+      "train": 52,
+      "inner_dev": 13
+    },
+    "自伤意图": {
+      "optimization": 18,
+      "train": 15,
+      "inner_dev": 3
+    },
+    "自伤行为": {
+      "optimization": 62,
+      "train": 50,
+      "inner_dev": 12
+    },
+    "用户攻击行为": {
+      "optimization": 173,
+      "train": 139,
+      "inner_dev": 34
+    },
+    "他人攻击行为": {
+      "optimization": 112,
+      "train": 90,
+      "inner_dev": 22
+    }
+  },
+  "publishing_boundary": "aggregate counts and commitments only; membership, row digests, text and source ids remain private"
+}

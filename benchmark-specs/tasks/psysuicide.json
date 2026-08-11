@@ -1,0 +1,55 @@
+[
+  {
+    "schema_version": "1.0",
+    "task_key": "psysuicide",
+    "family": "psysuicide",
+    "task_contract": { "task_type": "single_label_classification", "output_representation": "fixed_label", "canonical_output_labels": ["与自杀/自伤/攻击行为无关", "被动自杀意图", "主动自杀意图", "关于自杀的探索", "自杀计划", "自杀准备行为", "自杀未遂", "自伤意图", "自伤行为", "用户攻击行为", "他人攻击行为"], "label_order": "declared", "dynamic_options": false, "composition_rule": "single_label", "scoring_method": "exact_match", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "PsySUICIDE/repo",
+      "revision": { "kind": "git_commit", "value": "ae5faae0b17561342f61e95031cefc391db83b3a", "frozen": true },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "dev",
+      "test_selection_prohibited": true,
+      "train": { "source_split": "train", "availability": "available", "allowed_uses": ["training", "preprocessing_fit", "class_weight_estimation"], "consumption_status": "development_used", "notes": "Training requires the committed optimization/holdout partition; official valid and test must not enter supervised fitting." },
+      "dev": { "source_split": "valid", "availability": "available", "allowed_uses": ["model_selection", "prompt_selection", "early_stopping"], "consumption_status": "development_used", "notes": "All prompt and API configuration selection, including the 0731 Flash taxonomy comparison, is restricted to official valid." },
+      "test": { "source_split": "test", "availability": "available", "allowed_uses": ["historical_reporting", "error_analysis_after_freeze"], "consumption_status": "confirmation_used", "notes": "The frozen 2026-07-28 paired campaign consumed official test; do not use it for a new selection decision." }
+    },
+    "metrics": { "primary": ["macro_f1"], "secondary": ["weighted_f1", "accuracy", "critical_class_recall", "per_class_f1", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "psysuicide-official-valid-v1",
+      "evaluation_role": "dev",
+      "source_split": "valid",
+      "selection_forbidden": false,
+      "mode": "full",
+      "examples": { "kind": "exact", "value": 1459 },
+      "seed": 42,
+      "option_permutations": 1,
+      "repetitions_per_permutation": 1,
+      "api_calls_per_example": 1,
+      "expected_total_api_calls": 1459,
+      "scoring_unit": "retained single-label item; multi-label rows are excluded and counted"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "paper_compatibility": {
+      "status": "partial",
+      "reference_protocol": "PsyGUARD PsySUICIDE official split with 11-class reporting; macro-F1 is the project selection endpoint and accuracy/weighted-F1 are secondary.",
+      "paper_primary_metrics": ["accuracy", "macro_f1", "micro_f1"],
+      "blocking_differences": ["API zero-shot and local supervised configurations are different model regimes; multi-label rows under one percent are excluded by the runner."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "active",
+      "evidence_level": "confirmatory",
+      "summary": "The old frozen API test campaign and supervised v1 evidence exist; accuracy-first v2 Arm A completed, Arm B was stopped, and B/C/D remain paused.",
+      "next_action": "Complete only the 0731 Flash plus taxonomy official-valid comparison; keep v2 B/C/D paused and make no new official-test selection."
+    }
+  }
+]

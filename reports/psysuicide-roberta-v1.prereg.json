@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "frozen_at": "2026-07-28",
+  "scope": "one-shot supervised candidate development on the committed PsySUICIDE optimization partition; official valid is used for selection; frozen train holdout remains inaccessible until the gate passes",
+  "implementation": {
+    "execution_base_commit": "376ca624422dd0b84616f70917b6c096891203e3",
+    "script": "scripts/train_psysuicide_roberta.py",
+    "script_sha256": "ab8d63dc8700d3f0be622afa54b6754df6f181fbd96cb652fc3bd26b09d0184e",
+    "base_model": "hfl/chinese-roberta-wwm-ext-large",
+    "base_model_revision": "a25cc9e05974bd9687e528edd516f2cfdb3f5db9"
+  },
+  "partition": {
+    "optimization_rows": 9342,
+    "optimization_commitment_sha256": "0c3cbf98db02c609d500b4f9ef9bf95518b617bd4dffd1f4cde8a5c5e85a8dd9",
+    "holdout_rows": 2329,
+    "holdout_commitment_sha256": "2691aca6db327d4e8c3b3cefe49b68716506d4181344883ae0f8a3e19a53fe30",
+    "official_valid_rows": 1459,
+    "holdout_access_before_gate": "forbidden; only the already-published aggregate count and commitment may be checked"
+  },
+  "training": {
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "hyperparameter_search": false,
+    "epochs": 3.0,
+    "max_length": 256,
+    "per_device_train_batch": 2,
+    "per_device_eval_batch": 8,
+    "gradient_accumulation": 8,
+    "learning_rate": 0.00002,
+    "weight_decay": 0.01,
+    "warmup_ratio": 0.1,
+    "scheduler": "linear",
+    "optimizer": "adamw_torch",
+    "sampler": "weighted replacement using inverse fourth-root class frequency",
+    "loss": "class-weighted focal loss using inverse fourth-root class frequency and gamma=1.5",
+    "checkpoint_selection": "highest official-valid macro-F1; exact ties choose the lowest seed",
+    "public_outputs": "aggregate metrics, configuration, commitments, and hashes only; no text, ids, row-level predictions, weights, or trainer state"
+  },
+  "reference": {
+    "name": "deepseek-v4-pro taxonomy prompt",
+    "official_valid_rows": 1459,
+    "source_sha256": "761e3368b333841c072f5246263eb9b9c2d2c58323867b919be7bd6f916e7c34",
+    "accuracy": 0.8855380397532556,
+    "macro_f1": 0.5314999909201558,
+    "weighted_f1": 0.8842202132032866,
+    "per_class_f1_for_support_at_least_10": {
+      "与自杀/自伤/攻击行为无关": 0.9545032497678737,
+      "被动自杀意图": 0.8327645051194539,
+      "主动自杀意图": 0.7914893617021277,
+      "关于自杀的探索": 0.2857142857142857,
+      "自杀计划": 0.2222222222222222,
+      "自杀未遂": 0.631578947368421,
+      "自伤行为": 0.6153846153846154,
+      "用户攻击行为": 0.5777777777777777,
+      "他人攻击行为": 0.36363636363636365
+    }
+  },
+  "advancement_rule": {
+    "primary": "mean official-valid macro-F1 across seeds 42, 43, and 44 must be strictly greater than 0.5314999909201558",
+    "regression_guard": "the three-seed mean per-class F1 must not be more than 0.10 below the reference for any class with official-valid support at least 10",
+    "decision_if_either_condition_fails": "REJECT_SUPERVISED_V1; do not access or score the frozen holdout",
+    "decision_if_both_conditions_pass": "commit the selected seed, checkpoint SHA-256, aggregate valid metrics, and holdout scoring script before loading holdout membership; then score the selected checkpoint exactly once"
+  },
+  "inference_policy": {
+    "valid_result_status": "developmental model selection",
+    "holdout_result_status": "one-time internal confirmation only, not the PsySUICIDE paper test split and not a substitute for external replication",
+    "statistical_claims": "descriptive unless a paired test and its parameters were frozen before row-level holdout predictions are produced"
+  }
+}

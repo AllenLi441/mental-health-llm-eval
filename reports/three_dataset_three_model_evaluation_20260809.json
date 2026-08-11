@@ -1,0 +1,200 @@
+{
+  "report_id": "three-dataset-three-model-evaluation-20260809",
+  "status": "COMPLETE_WITH_EXPLICIT_EXTERNAL_LIMITATIONS",
+  "models": [
+    "DeepSeek V4-Pro",
+    "DeepSeek V4-Flash",
+    "Qwen3.6-27B"
+  ],
+  "esconv_strategy_250": {
+    "scoring": "250-item denominator; missing and out-of-label predictions count incorrect",
+    "models": {
+      "DeepSeek V4-Pro": {
+        "accuracy": 0.148,
+        "macro_f1": 0.09478838170888892,
+        "weighted_f1": 0.13084917967830428,
+        "invalid": 17
+      },
+      "DeepSeek V4-Flash": {
+        "accuracy": 0.164,
+        "macro_f1": 0.12257509893052063,
+        "weighted_f1": 0.1485467202141901,
+        "invalid": 4
+      },
+      "Qwen3.6-27B": {
+        "accuracy": 0.14,
+        "macro_f1": 0.1044269026749223,
+        "weighted_f1": 0.11800651939857593,
+        "invalid": 0
+      }
+    },
+    "published_reference": {
+      "model": "Causal-ESC",
+      "accuracy": 0.5353,
+      "bleu_2": 9.54,
+      "bleu_4": 4.07,
+      "rouge_l": 22.15
+    }
+  },
+  "cpcd": {
+    "judge": "DeepSeek V4-Flash, non-thinking proxy, official CPCD rubrics",
+    "comparability": "Proxy scores are not directly interchangeable with the paper GPT-5.2 judge scores.",
+    "missing_policy": {
+      "srg": 1.0,
+      "mr": 0.0,
+      "tcr": 0.0
+    },
+    "models": {
+      "DeepSeek V4-Pro": {
+        "families": {
+          "srg": {
+            "expected": 99,
+            "scored": 99,
+            "missing": 0,
+            "observed_mean": 4.057239057239057,
+            "conservative_full_denominator_mean": 4.057239057239057,
+            "scale": "1-5"
+          },
+          "mr": {
+            "expected": 40,
+            "scored": 40,
+            "missing": 0,
+            "observed_mean": 4.75625,
+            "conservative_full_denominator_mean": 4.75625,
+            "scale": "0-5"
+          },
+          "tcr": {
+            "expected": 20,
+            "scored": 20,
+            "missing": 0,
+            "observed_mean": 4.4375,
+            "conservative_full_denominator_mean": 4.4375,
+            "scale": "0-5"
+          }
+        },
+        "judge_usage": {
+          "prompt_tokens": 3534031,
+          "completion_tokens": 40758,
+          "calls": 159
+        }
+      },
+      "DeepSeek V4-Flash": {
+        "families": {
+          "srg": {
+            "expected": 99,
+            "scored": 99,
+            "missing": 0,
+            "observed_mean": 4.06060606060606,
+            "conservative_full_denominator_mean": 4.06060606060606,
+            "scale": "1-5"
+          },
+          "mr": {
+            "expected": 40,
+            "scored": 39,
+            "missing": 1,
+            "observed_mean": 4.698717948717949,
+            "conservative_full_denominator_mean": 4.58125,
+            "scale": "0-5"
+          },
+          "tcr": {
+            "expected": 20,
+            "scored": 18,
+            "missing": 2,
+            "observed_mean": 3.5,
+            "conservative_full_denominator_mean": 3.15,
+            "scale": "0-5"
+          }
+        },
+        "judge_usage": {
+          "prompt_tokens": 3358940,
+          "completion_tokens": 39039,
+          "calls": 156
+        }
+      },
+      "Qwen3.6-27B": {
+        "families": {
+          "srg": {
+            "expected": 99,
+            "scored": 99,
+            "missing": 0,
+            "observed_mean": 3.9427609427609425,
+            "conservative_full_denominator_mean": 3.9427609427609425,
+            "scale": "1-5"
+          },
+          "mr": {
+            "expected": 40,
+            "scored": 29,
+            "missing": 11,
+            "observed_mean": 4.655172413793103,
+            "conservative_full_denominator_mean": 3.375,
+            "scale": "0-5"
+          },
+          "tcr": {
+            "expected": 20,
+            "scored": 8,
+            "missing": 12,
+            "observed_mean": 4.34375,
+            "conservative_full_denominator_mean": 1.7375,
+            "scale": "0-5"
+          }
+        },
+        "judge_usage": {
+          "prompt_tokens": 2257298,
+          "completion_tokens": 31724,
+          "calls": 136
+        }
+      }
+    },
+    "published_reference": {
+      "model": "GPT-5.4",
+      "judge": "GPT-5.2",
+      "srg": 4.778,
+      "mr": 4.513,
+      "tcr": 4.525
+    }
+  },
+  "augesc_downstream_esconv_response_250": {
+    "accuracy_exists": false,
+    "interpretation": "AugESC has no independent test accuracy; these are downstream response metrics on the same ESConv 250-item slice.",
+    "models": {
+      "DeepSeek V4-Pro": {
+        "bleu_2": 4.127769646049219,
+        "bleu_4": 0.41661518419860644,
+        "rouge_l": 12.142394269883392,
+        "distinct_1": 15.546331012319229,
+        "distinct_2": 56.77954388389772,
+        "distinct_3": 79.57726363896029
+      },
+      "DeepSeek V4-Flash": {
+        "bleu_2": 4.207275911084694,
+        "bleu_4": 0.5528054577069182,
+        "rouge_l": 13.416733069778248,
+        "distinct_1": 11.949229374433363,
+        "distinct_2": 50.57492581602374,
+        "distinct_3": 75.37483393433288
+      },
+      "Qwen3.6-27B": {
+        "bleu_2": 5.454240378454362,
+        "bleu_4": 1.0863645892729556,
+        "rouge_l": 14.835895087898152,
+        "distinct_1": 14.991247811952988,
+        "distinct_2": 51.897263810015495,
+        "distinct_3": 72.9394505201387
+      }
+    },
+    "published_reference": {
+      "model": "BlenderBot 1.4B post-trained on AugESC",
+      "bleu_2": 7.7,
+      "bleu_4": 2.4,
+      "rouge_l": 16.7,
+      "distinct_2": 24.3,
+      "distinct_3": 49.4,
+      "open_domain_overall_win_rate": 0.58
+    }
+  },
+  "blockers": [
+    "Qwen CPCD generation stopped at 136/159 because the provider account is in FreeTierOnly mode.",
+    "Flash CPCD generation produced 156/159 final answers; three terminal reasoning-only failures are penalized.",
+    "No JUDGE_API_KEY or OPENAI_API_KEY is configured, so CPCD uses a clearly labeled proxy judge."
+  ]
+}

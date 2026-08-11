@@ -1,0 +1,350 @@
+{
+  "schema_version": 1,
+  "document_type": "preregistration_draft",
+  "experiment_id": "psysuicide-roberta-v2-accuracy-first",
+  "status": "PARTITION_FREEZE_PENDING",
+  "training_allowed": false,
+  "draft_reason": "The optimization-only source, exact train and inner-dev commitments, trainer and analyzer bytes, and execution base commit have not all been frozen and pushed. This draft cannot authorize smoke, screen, confirmation, or any metric-producing model run.",
+  "objective": "Test whether removing one or both components of the v1 double-imbalance treatment improves PsySUICIDE inner-dev accuracy while preserving prespecified macro-F1 and critical-risk recall guards.",
+  "scope": {
+    "task": "PsySUICIDE single-label 11-class text classification",
+    "development_source": "only the previously committed 9,342-row optimization partition",
+    "primary_metric": "inner-dev accuracy",
+    "secondary_metrics": [
+      "11-class macro-F1",
+      "11-class weighted-F1",
+      "pooled critical-risk recall",
+      "prespecified critical-class recall"
+    ],
+    "external_claim_boundary": "All v2 results are internal development evidence on a split derived from the optimization partition. They are not official-valid, official-test, frozen-holdout, cross-benchmark, clinical, deployment, significance, equivalence, or superiority evidence beyond the prespecified inner-dev comparison."
+  },
+  "implementation": {
+    "trainer_script": "scripts/train_psysuicide_roberta_accuracy_v2.py",
+    "trainer_sha256": "PENDING_TRAINER_FREEZE",
+    "analyzer_script": "scripts/analyze_psysuicide_roberta_accuracy_v2.py",
+    "analyzer_sha256": "PENDING_ANALYZER_FREEZE",
+    "execution_base_commit": "PENDING_EXECUTION_BASE_COMMIT_FREEZE",
+    "base_model": "hfl/chinese-roberta-wwm-ext-large",
+    "base_model_revision": "a25cc9e05974bd9687e528edd516f2cfdb3f5db9",
+    "base_model_manifest": "reports/psysuicide-roberta-v1-base-model-manifest.json",
+    "base_model_manifest_sha256": "06cd3e5467c506028e1fc574aa60d3f2c30cf8fc63c41f0d261ba19d81194475"
+  },
+  "source_contract": {
+    "accepted_artifact_kind": "repository-external optimization-only JSON file",
+    "required_permissions": "0600",
+    "required_rows": 9342,
+    "required_optimization_commitment_sha256": "0c3cbf98db02c609d500b4f9ef9bf95518b617bd4dffd1f4cde8a5c5e85a8dd9",
+    "canonical_row": "UTF-8 JSON with keys idx, labels, text in that order; idx and text coerced to strings; ensure_ascii=false; separators=(',', ':')",
+    "row_digest": "sha256(canonical_row_bytes)",
+    "artifact_commitment": "sha256(UTF-8 join of lexicographically sorted row digests with newline separators)",
+    "required_validation": [
+      "exactly 9,342 unique canonical rows",
+      "exactly one declared label per row",
+      "all 11 labels present",
+      "artifact commitment exactly matches the required optimization commitment",
+      "no dataset-root, full-train, official-valid, official-test, or holdout path is accepted"
+    ],
+    "explicitly_rejected_inputs": [
+      "licensed PsySUICIDE full train file",
+      "the 2,329-row frozen internal holdout or its membership",
+      "PsySUICIDE official valid split",
+      "PsySUICIDE official test split",
+      "any dataset root from which a forbidden split could be reconstructed",
+      "released PsyGUARD task-trained weights"
+    ]
+  },
+  "label_order": [
+    "与自杀/自伤/攻击行为无关",
+    "被动自杀意图",
+    "主动自杀意图",
+    "关于自杀的探索",
+    "自杀计划",
+    "自杀准备行为",
+    "自杀未遂",
+    "自伤意图",
+    "自伤行为",
+    "用户攻击行为",
+    "他人攻击行为"
+  ],
+  "inner_split": {
+    "split_id": "psysuicide-optimization-inner-dev-v2",
+    "seed": "psysuicide-accuracy-first-v2-inner-dev-2026-07-29",
+    "inner_dev_fraction": 0.2,
+    "algorithm": "Within each label, compute rank_digest=sha256(seed + NUL + row_digest), sort ascending by (rank_digest,row_digest), take the first max(1,floor(label_rows*0.20)) rows as inner-dev, and assign the remainder to train.",
+    "commitment_algorithm": "For each partition, sha256(UTF-8 join of lexicographically sorted row digests with newline separators).",
+    "expected_rows": {
+      "optimization": 9342,
+      "train": 7479,
+      "inner_dev": 1863
+    },
+    "expected_per_label": {
+      "与自杀/自伤/攻击行为无关": {
+        "optimization": 6883,
+        "train": 5507,
+        "inner_dev": 1376
+      },
+      "被动自杀意图": {
+        "optimization": 846,
+        "train": 677,
+        "inner_dev": 169
+      },
+      "主动自杀意图": {
+        "optimization": 844,
+        "train": 676,
+        "inner_dev": 168
+      },
+      "关于自杀的探索": {
+        "optimization": 234,
+        "train": 188,
+        "inner_dev": 46
+      },
+      "自杀计划": {
+        "optimization": 93,
+        "train": 75,
+        "inner_dev": 18
+      },
+      "自杀准备行为": {
+        "optimization": 12,
+        "train": 10,
+        "inner_dev": 2
+      },
+      "自杀未遂": {
+        "optimization": 65,
+        "train": 52,
+        "inner_dev": 13
+      },
+      "自伤意图": {
+        "optimization": 18,
+        "train": 15,
+        "inner_dev": 3
+      },
+      "自伤行为": {
+        "optimization": 62,
+        "train": 50,
+        "inner_dev": 12
+      },
+      "用户攻击行为": {
+        "optimization": 173,
+        "train": 139,
+        "inner_dev": 34
+      },
+      "他人攻击行为": {
+        "optimization": 112,
+        "train": 90,
+        "inner_dev": 22
+      }
+    },
+    "exact_train_commitment_sha256": "PENDING_PARTITION_FREEZE",
+    "exact_inner_dev_commitment_sha256": "PENDING_PARTITION_FREEZE",
+    "exact_inner_dev_per_label_commitment_sha256": {
+      "与自杀/自伤/攻击行为无关": "PENDING_PARTITION_FREEZE",
+      "被动自杀意图": "PENDING_PARTITION_FREEZE",
+      "主动自杀意图": "PENDING_PARTITION_FREEZE",
+      "关于自杀的探索": "PENDING_PARTITION_FREEZE",
+      "自杀计划": "PENDING_PARTITION_FREEZE",
+      "自杀准备行为": "PENDING_PARTITION_FREEZE",
+      "自杀未遂": "PENDING_PARTITION_FREEZE",
+      "自伤意图": "PENDING_PARTITION_FREEZE",
+      "自伤行为": "PENDING_PARTITION_FREEZE",
+      "用户攻击行为": "PENDING_PARTITION_FREEZE",
+      "他人攻击行为": "PENDING_PARTITION_FREEZE"
+    },
+    "overlap_requirement": "zero row-digest overlap between train and inner-dev",
+    "freeze_requirement": "The split-freeze command must verify the source contract, expected counts, whole-partition commitments, per-label inner-dev commitments, and zero overlap without emitting row content. Exact commitments and implementation SHA-256 values must replace all PENDING values in a final preregistration committed and pushed before training_allowed may become true."
+  },
+  "fixed_training_protocol": {
+    "epochs": 10.0,
+    "evaluate_each_epoch": true,
+    "save_each_epoch": true,
+    "load_best_model_at_end": true,
+    "checkpoint_selection_metric": "inner-dev accuracy",
+    "greater_is_better": true,
+    "early_stopping": false,
+    "max_length": 256,
+    "per_device_train_batch": 2,
+    "per_device_eval_batch": 8,
+    "gradient_accumulation": 8,
+    "learning_rate": 0.00002,
+    "weight_decay": 0.01,
+    "warmup_ratio": 0.1,
+    "scheduler": "linear",
+    "optimizer": "adamw_torch",
+    "max_grad_norm": 1.0,
+    "precision": "float32 only; fp16=false; bf16=false",
+    "gradient_checkpointing": true,
+    "dataloader_num_workers": 0,
+    "dataloader_pin_memory": false,
+    "save_total_limit": 2,
+    "full_determinism": false,
+    "resume_rule": "resume only the latest checkpoint carrying a valid post-save completion marker whose recorded file byte counts and SHA-256 values all verify under the identical run identity; ignore partial checkpoint directories",
+    "best_checkpoint_identity": "private complete file manifest plus aggregate-only manifest SHA-256 and model-weight SHA-256 values",
+    "class_weight_formula": "inverse fourth-root train-class frequency, normalized to mean 1.0 and clipped to [0.35,4.0]",
+    "focal_gamma": 1.5,
+    "best_checkpoint_ties": "on an exact unrounded accuracy tie, retain the earlier epoch; secondary metrics never select a within-run checkpoint"
+  },
+  "arms": {
+    "A": {
+      "sampling": "natural shuffled sampling without replacement",
+      "loss": "ordinary cross-entropy"
+    },
+    "B": {
+      "sampling": "weighted replacement sampling using the fixed class-weight formula",
+      "loss": "ordinary cross-entropy"
+    },
+    "C": {
+      "sampling": "natural shuffled sampling without replacement",
+      "loss": "class-weighted focal loss using the fixed class-weight formula and gamma=1.5"
+    },
+    "D": {
+      "sampling": "weighted replacement sampling using the fixed class-weight formula",
+      "loss": "class-weighted focal loss using the fixed class-weight formula and gamma=1.5",
+      "role": "v1-style double-imbalance control"
+    }
+  },
+  "phases": {
+    "code_smoke": {
+      "purpose": "integrity only",
+      "selection_allowed": false,
+      "metric_claims_allowed": false,
+      "data": "deterministic subsets drawn only from frozen train and inner-dev membership",
+      "seed": 42,
+      "arms": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "train_rows": 128,
+      "inner_dev_rows": 64,
+      "minimum_per_train_label": 8,
+      "minimum_per_inner_dev_label": 2,
+      "epochs": 1.0,
+      "max_steps": 2
+    },
+    "screen": {
+      "seed": 42,
+      "arms": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "runs_per_arm": 1,
+      "ranking": [
+        "highest inner-dev accuracy",
+        "highest macro-F1",
+        "highest pooled critical-risk recall",
+        "fixed arm order A, B, C, D"
+      ]
+    },
+    "confirmation": {
+      "seeds": [
+        43,
+        44,
+        45
+      ],
+      "screen_seed_reused_in_confirmatory_mean": false,
+      "arms": "the eligible non-D screen winner and D only",
+      "selection_changes_after_results": "forbidden"
+    }
+  },
+  "metric_definitions": {
+    "accuracy": "number of exact 11-class argmax matches divided by 1,863 inner-dev rows",
+    "macro_f1": "unweighted mean of one-vs-rest F1 across all 11 labels with zero_division=0",
+    "weighted_f1": "support-weighted mean of one-vs-rest F1 across all 11 labels with zero_division=0",
+    "critical_risk_labels": [
+      "主动自杀意图",
+      "自杀计划",
+      "自杀准备行为",
+      "自杀未遂",
+      "自伤意图",
+      "自伤行为"
+    ],
+    "pooled_critical_risk_recall": "sum of exact-label true positives across the six prespecified critical-risk labels divided by their summed gold support",
+    "stable_per_class_guard": "a prespecified critical class is individually gated only when its frozen inner-dev support is at least 10; lower-support classes are reported as sparse without stable per-class claims"
+  },
+  "decision_rules": {
+    "screen": {
+      "candidate": "the top-ranked non-D arm only; if D ranks first, stop",
+      "minimum_accuracy_delta_vs_D": 0.002,
+      "minimum_macro_f1_delta_vs_D": -0.03,
+      "minimum_pooled_critical_risk_recall_delta_vs_D": -0.03,
+      "minimum_each_stable_critical_class_recall_delta_vs_D": -0.1,
+      "failure_action": "STOP_NO_SCREEN_EVIDENCE; do not substitute the second-ranked arm or change thresholds"
+    },
+    "confirmation": {
+      "minimum_mean_accuracy_delta_vs_D": 0.005,
+      "minimum_seed_wins_out_of_3": 2,
+      "accuracy_delta_ci95_lower_bound_must_be_greater_than": 0.0,
+      "macro_f1_delta_ci95_lower_bound_must_be_at_least": -0.02,
+      "pooled_critical_risk_recall_delta_ci95_lower_bound_must_be_at_least": -0.02,
+      "minimum_each_stable_critical_class_mean_recall_delta_vs_D": -0.05,
+      "all_conditions_required": true,
+      "pass_label": "INNER_DEV_ACCURACY_IMPROVEMENT_WITH_GUARDS",
+      "failure_label": "NO_CONFIRMED_INNER_DEV_ACCURACY_IMPROVEMENT"
+    },
+    "claim_limits": "Passing permits only the prespecified internal inner-dev improvement statement. Failure is not equivalence. No result permits claims about official valid/test, the already-consumed frozen holdout, another dataset, static-site routing, clinical safety, or production."
+  },
+  "paired_hierarchical_bootstrap": {
+    "applies_to": [
+      "accuracy delta",
+      "macro-F1 delta",
+      "pooled critical-risk recall delta"
+    ],
+    "replicates": 20000,
+    "rng_seed": 2026072945,
+    "confidence_interval": "two-sided percentile 95%",
+    "procedure": "For each replicate, sample the three confirmation seeds with replacement. Within each sampled seed, resample paired inner-dev row positions with replacement separately inside each frozen gold-label stratum, preserving each stratum size and using identical sampled positions for candidate and D. Recompute the metric delta per sampled seed and average over the three sampled seeds. Use the 2.5th and 97.5th percentiles.",
+    "row_level_artifacts": "private and ignored"
+  },
+  "privacy_and_publication": {
+    "public_allowed": [
+      "this preregistration and its final frozen replacement",
+      "source, train, and inner-dev cryptographic commitments",
+      "aggregate counts and aggregate metrics",
+      "aggregate per-class support and metrics",
+      "configuration, software versions, Git identities, and file hashes",
+      "negative results and declared compute blockers"
+    ],
+    "private_ignored_only": [
+      "licensed or raw text",
+      "source IDs and partition membership",
+      "row digests and row-level gold or prediction labels",
+      "logits, probabilities, calibration rows, and confusion matrices",
+      "checkpoints, weights, optimizer state, and trainer state",
+      "local absolute paths and execution receipts"
+    ],
+    "forbidden_in_git_or_release": [
+      "API keys or other secrets",
+      "licensed/raw dataset rows",
+      "row-level predictions or model outputs",
+      "model weights or trainer state",
+      "private diagnostic artifacts"
+    ]
+  },
+  "execution_gate": {
+    "requirements_before_training_allowed": [
+      "a repository-external permission-0600 optimization-only artifact satisfies the source contract",
+      "exact train and inner-dev commitments replace both PENDING_PARTITION_FREEZE values",
+      "trainer implementation and selftests are complete",
+      "the exact trainer SHA-256 replaces PENDING_TRAINER_FREEZE",
+      "the exact deterministic analyzer SHA-256 replaces PENDING_ANALYZER_FREEZE",
+      "the exact pushed protocol-and-code base commit replaces PENDING_EXECUTION_BASE_COMMIT_FREEZE",
+      "the final preregistration commit is a later clean pushed HEAD because a commit cannot contain its own SHA; run identity records that live HEAD exactly",
+      "the local base-model files match every byte count and SHA-256 in the pinned general-base-model manifest",
+      "the final preregistration, trainer, and split commitments are committed and pushed",
+      "live remote branch SHA equals the clean current local HEAD recorded in the private run identity",
+      "sensitive-data and forbidden-path audits pass"
+    ],
+    "current_blocker": "No verified optimization-only artifact and no exact train/inner-dev freeze have been established in this draft.",
+    "on_unmet_requirement": "refuse execution without opening official valid, official test, full train, or frozen holdout"
+  },
+  "later_work_boundary": {
+    "decoupled_classifier_head": "requires a separate committed preregistration",
+    "three_seed_soft_ensemble_or_model_soup": "requires a separate committed preregistration",
+    "flat_head_plus_coarse_auxiliary_hierarchy": "requires a separate committed preregistration",
+    "clean_qwen35_4b": "requires a separate committed preregistration and must start from the general base model rather than released PsyGUARD task weights",
+    "other_benchmarks": "require independent task-specific specs, heads, splits, metrics, leakage gates, baselines, and evidence",
+    "jing_room_shadow_mode": "requires separate evidence and a separate app branch; this draft does not authorize integration or deployment"
+  }
+}

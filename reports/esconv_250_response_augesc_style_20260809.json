@@ -1,0 +1,48 @@
+{
+  "report_id": "esconv-250-response-augesc-style-20260809",
+  "interpretation": "AugESC has no independent accuracy. These are downstream response-generation metrics on the same held-out ESConv 250-item slice.",
+  "n": 250,
+  "tokenizer": "nltk.word_tokenize(lowercase=True), nltk=3.9.4",
+  "missing_policy": "empty hypothesis",
+  "models": {
+    "DeepSeek V4-Pro": {
+      "bleu_1": 15.003887017362011,
+      "bleu_2": 4.127769646049219,
+      "bleu_3": 1.2835275848978829,
+      "bleu_4": 0.41661518419860644,
+      "rouge_l": 12.142394269883392,
+      "distinct_1": 15.546331012319229,
+      "distinct_2": 56.77954388389772,
+      "distinct_3": 79.57726363896029,
+      "mean_length_tokens": 30.804,
+      "coverage": 0.956,
+      "missing_count": 11
+    },
+    "DeepSeek V4-Flash": {
+      "bleu_1": 14.051418439716311,
+      "bleu_2": 4.207275911084694,
+      "bleu_3": 1.4860394830143127,
+      "bleu_4": 0.5528054577069182,
+      "rouge_l": 13.416733069778248,
+      "distinct_1": 11.949229374433363,
+      "distinct_2": 50.57492581602374,
+      "distinct_3": 75.37483393433288,
+      "mean_length_tokens": 45.104,
+      "coverage": 0.988,
+      "missing_count": 3
+    },
+    "Qwen3.6-27B": {
+      "bleu_1": 16.185741998060134,
+      "bleu_2": 5.454240378454362,
+      "bleu_3": 2.354611628281404,
+      "bleu_4": 1.0863645892729556,
+      "rouge_l": 14.835895087898152,
+      "distinct_1": 14.991247811952988,
+      "distinct_2": 51.897263810015495,
+      "distinct_3": 72.9394505201387,
+      "mean_length_tokens": 32.992,
+      "coverage": 1.0,
+      "missing_count": 0
+    }
+  }
+}

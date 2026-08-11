@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "card_id": "pilot-0001",
+  "status": "UNLABELED",
+  "task_family": null,
+  "language": null,
+  "instruction": "",
+  "input": "",
+  "source": {
+    "source_type": null,
+    "license_id": null,
+    "source_revision": null,
+    "source_record_sha256": null
+  },
+  "author_private": null,
+  "reviewer_a": null,
+  "reviewer_b": null,
+  "adjudication": null,
+  "export_to_training": false
+}

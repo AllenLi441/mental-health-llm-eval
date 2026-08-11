@@ -1,0 +1,377 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/mental-health-llm-eval/benchmark-task-spec-v1.schema.json",
+  "title": "Mental-health benchmark task specification",
+  "description": "One self-contained, non-secret protocol record for one public runner task key.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "task_key",
+    "family",
+    "task_contract",
+    "dataset",
+    "use_policy",
+    "metrics",
+    "sample_protocol",
+    "provenance_requirements",
+    "paper_compatibility",
+    "current_status"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "task_key": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "family": {
+      "enum": [
+        "emobench", "mdd5k", "psysuicide", "cbtbench", "mentalmanip",
+        "imhi", "cpsyexam", "eatd"
+      ]
+    },
+    "task_contract": { "$ref": "#/$defs/taskContract" },
+    "dataset": { "$ref": "#/$defs/dataset" },
+    "use_policy": { "$ref": "#/$defs/usePolicy" },
+    "metrics": { "$ref": "#/$defs/metrics" },
+    "sample_protocol": { "$ref": "#/$defs/sampleProtocol" },
+    "provenance_requirements": { "$ref": "#/$defs/provenance" },
+    "supervised_classifier_profile": { "$ref": "#/$defs/supervisedClassifierProfile" },
+    "paper_compatibility": { "$ref": "#/$defs/paperCompatibility" },
+    "current_status": { "$ref": "#/$defs/currentStatus" }
+  },
+  "$defs": {
+    "taskContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_type", "output_representation", "canonical_output_labels", "label_order",
+        "dynamic_options", "composition_rule", "scoring_method", "invalid_counts_as_incorrect"
+      ],
+      "properties": {
+        "task_type": { "enum": ["single_label_classification", "multilabel_classification", "multiple_choice"] },
+        "output_representation": { "enum": ["fixed_label", "label_set", "single_option_token", "compound_option_tokens", "option_token_set"] },
+        "canonical_output_labels": { "type": "array", "minItems": 2, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "label_order": { "const": "declared" },
+        "dynamic_options": { "type": "boolean" },
+        "composition_rule": { "enum": ["single_label", "sorted_unique_label_set", "single_token", "emotion_token_plus_cause_token", "sorted_unique_option_tokens"] },
+        "scoring_method": { "enum": ["exact_match", "compound_exact_match", "multilabel_f1"] },
+        "invalid_counts_as_incorrect": { "const": true }
+      }
+    },
+    "metric": {
+      "enum": [
+        "accuracy",
+        "accuracy_by_language",
+        "balanced_accuracy",
+        "critical_class_recall",
+        "depressed_class_f1",
+        "exact_set_match",
+        "expected_calibration_error",
+        "group_accuracy",
+        "invalid_rate",
+        "macro_f1",
+        "micro_f1",
+        "multilabel_macro_f1",
+        "multilabel_micro_f1",
+        "per_class_f1",
+        "per_class_recall",
+        "positive_class_f1",
+        "sensitivity",
+        "specificity",
+        "top1_hit_accuracy",
+        "weighted_f1"
+      ]
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root_env", "relative_root", "revision", "availability"],
+      "properties": {
+        "root_env": { "const": "EVAL_DATASETS_DIR" },
+        "relative_root": { "type": "string", "minLength": 1 },
+        "revision": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value", "frozen"],
+          "properties": {
+            "kind": { "enum": ["git_commit", "dataset_release", "unversioned_local_copy"] },
+            "value": { "type": "string", "minLength": 1 },
+            "frozen": { "type": "boolean" }
+          }
+        },
+        "availability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "access", "redistribution"],
+          "properties": {
+            "status": { "enum": ["present", "partial", "not_present"] },
+            "access": { "enum": ["authorized_local_only", "public"] },
+            "redistribution": { "enum": ["aggregate_only", "metadata_only", "public_allowed"] }
+          }
+        }
+      }
+    },
+    "splitRole": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_split", "availability", "allowed_uses", "consumption_status", "notes"],
+      "properties": {
+        "source_split": { "type": ["string", "null"] },
+        "availability": { "enum": ["available", "not_registered", "derived_split_required"] },
+        "allowed_uses": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "training", "preprocessing_fit", "class_weight_estimation", "cross_validation",
+              "model_selection", "early_stopping", "threshold_tuning", "prompt_selection",
+              "parser_development", "exploratory_evaluation", "final_confirmation_once",
+              "paper_replication", "internal_tracking_only", "historical_reporting",
+              "protocol_correction_audit", "error_analysis_after_freeze"
+            ]
+          }
+        },
+        "consumption_status": {
+          "enum": [
+            "untouched", "development_used", "exploratory_used", "confirmation_used",
+            "not_applicable", "unknown"
+          ]
+        },
+        "notes": { "type": "string" }
+      }
+    },
+    "usePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selection_role", "test_selection_prohibited", "train", "dev", "test"],
+      "properties": {
+        "selection_role": { "enum": ["train", "dev", "none"] },
+        "test_selection_prohibited": { "const": true },
+        "train": { "$ref": "#/$defs/splitRole" },
+        "dev": { "$ref": "#/$defs/splitRole" },
+        "test": { "$ref": "#/$defs/splitRole" }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary", "secondary"],
+      "properties": {
+        "primary": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/metric" }
+        },
+        "secondary": {
+          "type": "array", "uniqueItems": true,
+          "items": { "$ref": "#/$defs/metric" }
+        }
+      }
+    },
+    "sampleProtocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_id", "evaluation_role", "source_split", "selection_forbidden", "mode",
+        "examples", "seed", "option_permutations", "repetitions_per_permutation",
+        "api_calls_per_example", "expected_total_api_calls", "scoring_unit"
+      ],
+      "properties": {
+        "protocol_id": { "type": "string", "minLength": 1 },
+        "evaluation_role": { "enum": ["train", "dev", "test"] },
+        "source_split": { "type": "string", "minLength": 1 },
+        "selection_forbidden": { "type": "boolean" },
+        "mode": {
+          "enum": [
+            "full", "deterministic_sample", "paper_permutation_majority",
+            "derived_patient_split", "prospective_fixed_split"
+          ]
+        },
+        "examples": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": { "enum": ["exact", "up_to", "derived"] },
+            "value": { "type": ["integer", "null"], "minimum": 1 }
+          }
+        },
+        "seed": { "type": ["integer", "null"] },
+        "option_permutations": { "type": "integer", "minimum": 1 },
+        "repetitions_per_permutation": { "type": "integer", "minimum": 1 },
+        "api_calls_per_example": { "type": "integer", "minimum": 1 },
+        "expected_total_api_calls": { "type": ["integer", "null"], "minimum": 1 },
+        "scoring_unit": { "type": "string", "minLength": 1 }
+      }
+    },
+    "provenancePart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_fields", "frozen_before_test"],
+      "properties": {
+        "required_fields": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "frozen_before_test": { "type": "boolean" },
+        "forbidden_aliases": {
+          "type": "array", "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "prompt", "parser", "dataset"],
+      "properties": {
+        "model": { "$ref": "#/$defs/provenancePart" },
+        "prompt": { "$ref": "#/$defs/provenancePart" },
+        "parser": { "$ref": "#/$defs/provenancePart" },
+        "dataset": { "$ref": "#/$defs/provenancePart" }
+      }
+    },
+    "supervisedClassifierProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id", "task_type", "labels", "text_columns", "cross_split_leakage_columns", "input_parser",
+        "label_column", "label_parser", "train_relative_path", "dev_relative_path", "split_commitments",
+        "test_access", "loss_arms", "seed", "primary_metric", "model",
+        "training_protocol", "source_rows", "used_rows", "data_cleaning_order", "provenance_fields"
+      ],
+      "properties": {
+        "profile_id": { "type": "string", "minLength": 1 },
+        "task_type": { "const": "single_label_text_classification" },
+        "labels": { "type": "array", "minItems": 2, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "text_columns": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "cross_split_leakage_columns": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "input_parser": { "type": "string", "minLength": 1 },
+        "label_column": { "type": "string", "minLength": 1 },
+        "label_parser": { "type": "string", "minLength": 1 },
+        "train_relative_path": { "type": "string", "minLength": 1 },
+        "dev_relative_path": { "type": "string", "minLength": 1 },
+        "split_commitments": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["hash_algorithm", "commitment_scope", "train_file_sha256", "dev_file_sha256"],
+          "properties": {
+            "hash_algorithm": { "const": "sha256" },
+            "commitment_scope": { "const": "raw_file_bytes_before_parsing" },
+            "train_file_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "dev_file_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+          }
+        },
+        "test_access": { "const": false },
+        "loss_arms": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["ce", "weighted-ce", "focal"] } },
+        "seed": { "type": "integer" },
+        "primary_metric": { "$ref": "#/$defs/metric" },
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["base_model_id", "base_model_revision", "tokenizer_id", "tokenizer_revision", "head_type"],
+          "properties": {
+            "base_model_id": { "type": "string", "minLength": 1 },
+            "base_model_revision": { "type": "string", "minLength": 1 },
+            "tokenizer_id": { "type": "string", "minLength": 1 },
+            "tokenizer_revision": { "type": "string", "minLength": 1 },
+            "head_type": { "const": "independent_sequence_classification_head" }
+          }
+        },
+        "training_protocol": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_length", "train_batch_size", "eval_batch_size", "gradient_accumulation_steps",
+            "epochs", "learning_rate", "weight_decay", "warmup_ratio", "optimizer", "scheduler",
+            "evaluation_strategy", "save_strategy", "early_stopping_patience", "best_model_metric",
+            "greater_is_better", "tie_break_rule", "focal_gamma", "class_weighting",
+            "max_grad_norm", "save_total_limit", "fp16", "bf16"
+          ],
+          "properties": {
+            "max_length": { "type": "integer", "minimum": 1 },
+            "train_batch_size": { "type": "integer", "minimum": 1 },
+            "eval_batch_size": { "type": "integer", "minimum": 1 },
+            "gradient_accumulation_steps": { "type": "integer", "minimum": 1 },
+            "epochs": { "type": "number", "exclusiveMinimum": 0 },
+            "learning_rate": { "type": "number", "exclusiveMinimum": 0 },
+            "weight_decay": { "type": "number", "minimum": 0 },
+            "warmup_ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+            "optimizer": { "type": "string", "minLength": 1 },
+            "scheduler": { "type": "string", "minLength": 1 },
+            "evaluation_strategy": { "type": "string", "minLength": 1 },
+            "save_strategy": { "type": "string", "minLength": 1 },
+            "early_stopping_patience": { "type": "integer", "minimum": 0 },
+            "best_model_metric": { "$ref": "#/$defs/metric" },
+            "greater_is_better": { "type": "boolean" },
+            "tie_break_rule": { "type": "string", "minLength": 1 },
+            "focal_gamma": { "type": "number", "exclusiveMinimum": 0 },
+            "class_weighting": { "type": "string", "minLength": 1 },
+            "max_grad_norm": { "type": "number", "exclusiveMinimum": 0 },
+            "save_total_limit": { "type": "integer", "minimum": 1 },
+            "fp16": { "type": "boolean" },
+            "bf16": { "type": "boolean" }
+          }
+        },
+        "source_rows": { "$ref": "#/$defs/trainDevCounts" },
+        "used_rows": { "$ref": "#/$defs/trainDevCounts" },
+        "data_cleaning_order": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "provenance_fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["model", "tokenizer", "head", "loss", "seed", "code", "run"],
+          "properties": {
+            "model": { "$ref": "#/$defs/stringSet" },
+            "tokenizer": { "$ref": "#/$defs/stringSet" },
+            "head": { "$ref": "#/$defs/stringSet" },
+            "loss": { "$ref": "#/$defs/stringSet" },
+            "seed": { "$ref": "#/$defs/stringSet" },
+            "code": { "$ref": "#/$defs/stringSet" },
+            "run": { "$ref": "#/$defs/stringSet" }
+          }
+        }
+      }
+    },
+    "trainDevCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["train", "dev"],
+      "properties": {
+        "train": { "type": "integer", "minimum": 1 },
+        "dev": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "stringSet": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "paperCompatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reference_protocol", "paper_primary_metrics", "blocking_differences"],
+      "properties": {
+        "status": { "enum": ["compatible", "partial", "incompatible", "project_defined"] },
+        "reference_protocol": { "type": "string", "minLength": 1 },
+        "paper_primary_metrics": {
+          "type": "array", "uniqueItems": true,
+          "items": { "$ref": "#/$defs/metric" }
+        },
+        "blocking_differences": {
+          "type": "array", "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "currentStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["as_of", "workflow_state", "evidence_level", "summary", "next_action"],
+      "properties": {
+        "as_of": { "type": "string", "pattern": "^20[0-9]{2}-[0-9]{2}-[0-9]{2}$" },
+        "workflow_state": { "enum": ["active", "planned", "paused", "blocked"] },
+        "evidence_level": {
+          "enum": ["none", "selftest_only", "exploratory", "historical_frozen", "confirmatory"]
+        },
+        "summary": { "type": "string", "minLength": 1 },
+        "next_action": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

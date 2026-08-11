@@ -1,0 +1,753 @@
+{
+  "protocol_id": "jingshi-cpcd-esconv-20260808-provider-api-v2",
+  "benchmark": "ESConv strategy prediction pilot",
+  "generated_at": "2026-08-09T05:21:51.239Z",
+  "target_sample_count": 100,
+  "generated_counts": {
+    "deepseek": 72,
+    "qwen": 100
+  },
+  "paired_sample_count": 72,
+  "classes": [
+    "Affirmation and Reassurance",
+    "Information",
+    "Other",
+    "Providing Suggestions",
+    "Questions",
+    "Reflection of feelings",
+    "Restatement or Paraphrasing",
+    "Self-disclosure"
+  ],
+  "paired_metrics": {
+    "deepseek": {
+      "n": 72,
+      "accuracy": 0.166667,
+      "accuracy_percent": 16.67,
+      "correct": 12,
+      "macro_f1": 0.094581,
+      "macro_f1_percent": 9.46,
+      "weighted_f1": 0.167132,
+      "weighted_f1_percent": 16.71,
+      "invalid_outputs": 0,
+      "invalid_rate": 0,
+      "latency_ms": {
+        "median": 8192,
+        "p95": 42519
+      },
+      "tokens": {
+        "prompt": 38699,
+        "completion": 27769,
+        "total": 66468
+      },
+      "per_class": {
+        "Affirmation and Reassurance": {
+          "support": 7,
+          "tp": 0,
+          "fp": 7,
+          "fn": 7,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Information": {
+          "support": 2,
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Other": {
+          "support": 18,
+          "tp": 2,
+          "fp": 0,
+          "fn": 16,
+          "precision": 1,
+          "recall": 0.111111,
+          "f1": 0.2
+        },
+        "Providing Suggestions": {
+          "support": 10,
+          "tp": 0,
+          "fp": 0,
+          "fn": 10,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Questions": {
+          "support": 19,
+          "tp": 6,
+          "fp": 4,
+          "fn": 13,
+          "precision": 0.6,
+          "recall": 0.315789,
+          "f1": 0.413793
+        },
+        "Reflection of feelings": {
+          "support": 4,
+          "tp": 4,
+          "fp": 48,
+          "fn": 0,
+          "precision": 0.076923,
+          "recall": 1,
+          "f1": 0.142857
+        },
+        "Restatement or Paraphrasing": {
+          "support": 4,
+          "tp": 0,
+          "fp": 1,
+          "fn": 4,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Self-disclosure": {
+          "support": 8,
+          "tp": 0,
+          "fp": 0,
+          "fn": 8,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        }
+      },
+      "confusion_matrix": {
+        "Affirmation and Reassurance": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 7,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Information": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 2,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Other": {
+          "Affirmation and Reassurance": 5,
+          "Information": 0,
+          "Other": 2,
+          "Providing Suggestions": 0,
+          "Questions": 1,
+          "Reflection of feelings": 10,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Providing Suggestions": {
+          "Affirmation and Reassurance": 1,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 9,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Questions": {
+          "Affirmation and Reassurance": 1,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 6,
+          "Reflection of feelings": 11,
+          "Restatement or Paraphrasing": 1,
+          "Self-disclosure": 0
+        },
+        "Reflection of feelings": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 4,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Restatement or Paraphrasing": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 4,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Self-disclosure": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 3,
+          "Reflection of feelings": 5,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        }
+      }
+    },
+    "qwen": {
+      "n": 72,
+      "accuracy": 0.069444,
+      "accuracy_percent": 6.94,
+      "correct": 5,
+      "macro_f1": 0.036162,
+      "macro_f1_percent": 3.62,
+      "weighted_f1": 0.052304,
+      "weighted_f1_percent": 5.23,
+      "invalid_outputs": 0,
+      "invalid_rate": 0,
+      "latency_ms": {
+        "median": 1207,
+        "p95": 1946
+      },
+      "tokens": {
+        "prompt": 39100,
+        "completion": 3314,
+        "total": 42414
+      },
+      "per_class": {
+        "Affirmation and Reassurance": {
+          "support": 7,
+          "tp": 0,
+          "fp": 14,
+          "fn": 7,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Information": {
+          "support": 2,
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Other": {
+          "support": 18,
+          "tp": 0,
+          "fp": 4,
+          "fn": 18,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Providing Suggestions": {
+          "support": 10,
+          "tp": 0,
+          "fp": 1,
+          "fn": 10,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Questions": {
+          "support": 19,
+          "tp": 2,
+          "fp": 2,
+          "fn": 17,
+          "precision": 0.5,
+          "recall": 0.105263,
+          "f1": 0.173913
+        },
+        "Reflection of feelings": {
+          "support": 4,
+          "tp": 3,
+          "fp": 45,
+          "fn": 1,
+          "precision": 0.0625,
+          "recall": 0.75,
+          "f1": 0.115385
+        },
+        "Restatement or Paraphrasing": {
+          "support": 4,
+          "tp": 0,
+          "fp": 0,
+          "fn": 4,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Self-disclosure": {
+          "support": 8,
+          "tp": 0,
+          "fp": 1,
+          "fn": 8,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        }
+      },
+      "confusion_matrix": {
+        "Affirmation and Reassurance": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 1,
+          "Reflection of feelings": 6,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Information": {
+          "Affirmation and Reassurance": 1,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 1,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Other": {
+          "Affirmation and Reassurance": 10,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 7,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 1
+        },
+        "Providing Suggestions": {
+          "Affirmation and Reassurance": 2,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 8,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Questions": {
+          "Affirmation and Reassurance": 1,
+          "Information": 0,
+          "Other": 4,
+          "Providing Suggestions": 0,
+          "Questions": 2,
+          "Reflection of feelings": 12,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Reflection of feelings": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 1,
+          "Reflection of feelings": 3,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Restatement or Paraphrasing": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 4,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Self-disclosure": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 1,
+          "Questions": 0,
+          "Reflection of feelings": 7,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        }
+      }
+    }
+  },
+  "all_available_metrics": {
+    "deepseek": {
+      "n": 72,
+      "accuracy": 0.166667,
+      "accuracy_percent": 16.67,
+      "correct": 12,
+      "macro_f1": 0.094581,
+      "macro_f1_percent": 9.46,
+      "weighted_f1": 0.167132,
+      "weighted_f1_percent": 16.71,
+      "invalid_outputs": 0,
+      "invalid_rate": 0,
+      "latency_ms": {
+        "median": 8192,
+        "p95": 42519
+      },
+      "tokens": {
+        "prompt": 38699,
+        "completion": 27769,
+        "total": 66468
+      },
+      "per_class": {
+        "Affirmation and Reassurance": {
+          "support": 7,
+          "tp": 0,
+          "fp": 7,
+          "fn": 7,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Information": {
+          "support": 2,
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Other": {
+          "support": 18,
+          "tp": 2,
+          "fp": 0,
+          "fn": 16,
+          "precision": 1,
+          "recall": 0.111111,
+          "f1": 0.2
+        },
+        "Providing Suggestions": {
+          "support": 10,
+          "tp": 0,
+          "fp": 0,
+          "fn": 10,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Questions": {
+          "support": 19,
+          "tp": 6,
+          "fp": 4,
+          "fn": 13,
+          "precision": 0.6,
+          "recall": 0.315789,
+          "f1": 0.413793
+        },
+        "Reflection of feelings": {
+          "support": 4,
+          "tp": 4,
+          "fp": 48,
+          "fn": 0,
+          "precision": 0.076923,
+          "recall": 1,
+          "f1": 0.142857
+        },
+        "Restatement or Paraphrasing": {
+          "support": 4,
+          "tp": 0,
+          "fp": 1,
+          "fn": 4,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Self-disclosure": {
+          "support": 8,
+          "tp": 0,
+          "fp": 0,
+          "fn": 8,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        }
+      },
+      "confusion_matrix": {
+        "Affirmation and Reassurance": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 7,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Information": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 2,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Other": {
+          "Affirmation and Reassurance": 5,
+          "Information": 0,
+          "Other": 2,
+          "Providing Suggestions": 0,
+          "Questions": 1,
+          "Reflection of feelings": 10,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Providing Suggestions": {
+          "Affirmation and Reassurance": 1,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 9,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Questions": {
+          "Affirmation and Reassurance": 1,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 6,
+          "Reflection of feelings": 11,
+          "Restatement or Paraphrasing": 1,
+          "Self-disclosure": 0
+        },
+        "Reflection of feelings": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 4,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Restatement or Paraphrasing": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 4,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Self-disclosure": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 3,
+          "Reflection of feelings": 5,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        }
+      }
+    },
+    "qwen": {
+      "n": 100,
+      "accuracy": 0.08,
+      "accuracy_percent": 8,
+      "correct": 8,
+      "macro_f1": 0.057929,
+      "macro_f1_percent": 5.79,
+      "weighted_f1": 0.070403,
+      "weighted_f1_percent": 7.04,
+      "invalid_outputs": 0,
+      "invalid_rate": 0,
+      "latency_ms": {
+        "median": 1232,
+        "p95": 1840
+      },
+      "tokens": {
+        "prompt": 55009,
+        "completion": 4705,
+        "total": 59714
+      },
+      "per_class": {
+        "Affirmation and Reassurance": {
+          "support": 9,
+          "tp": 0,
+          "fp": 18,
+          "fn": 9,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Information": {
+          "support": 3,
+          "tp": 0,
+          "fp": 0,
+          "fn": 3,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Other": {
+          "support": 27,
+          "tp": 0,
+          "fp": 4,
+          "fn": 27,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Providing Suggestions": {
+          "support": 17,
+          "tp": 0,
+          "fp": 1,
+          "fn": 17,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Questions": {
+          "support": 24,
+          "tp": 3,
+          "fp": 3,
+          "fn": 21,
+          "precision": 0.5,
+          "recall": 0.125,
+          "f1": 0.2
+        },
+        "Reflection of feelings": {
+          "support": 5,
+          "tp": 4,
+          "fp": 64,
+          "fn": 1,
+          "precision": 0.058824,
+          "recall": 0.8,
+          "f1": 0.109589
+        },
+        "Restatement or Paraphrasing": {
+          "support": 4,
+          "tp": 0,
+          "fp": 1,
+          "fn": 4,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0
+        },
+        "Self-disclosure": {
+          "support": 11,
+          "tp": 1,
+          "fp": 1,
+          "fn": 10,
+          "precision": 0.5,
+          "recall": 0.090909,
+          "f1": 0.153846
+        }
+      },
+      "confusion_matrix": {
+        "Affirmation and Reassurance": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 1,
+          "Reflection of feelings": 8,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Information": {
+          "Affirmation and Reassurance": 1,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 2,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Other": {
+          "Affirmation and Reassurance": 11,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 14,
+          "Restatement or Paraphrasing": 1,
+          "Self-disclosure": 1
+        },
+        "Providing Suggestions": {
+          "Affirmation and Reassurance": 4,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 1,
+          "Reflection of feelings": 12,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Questions": {
+          "Affirmation and Reassurance": 2,
+          "Information": 0,
+          "Other": 4,
+          "Providing Suggestions": 0,
+          "Questions": 3,
+          "Reflection of feelings": 15,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Reflection of feelings": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 1,
+          "Reflection of feelings": 4,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Restatement or Paraphrasing": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 0,
+          "Questions": 0,
+          "Reflection of feelings": 4,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 0
+        },
+        "Self-disclosure": {
+          "Affirmation and Reassurance": 0,
+          "Information": 0,
+          "Other": 0,
+          "Providing Suggestions": 1,
+          "Questions": 0,
+          "Reflection of feelings": 9,
+          "Restatement or Paraphrasing": 0,
+          "Self-disclosure": 1
+        }
+      }
+    }
+  },
+  "model_observations": {
+    "deepseek_requested": [
+      "deepseek-v4-pro"
+    ],
+    "deepseek_response": [
+      "deepseek-v4-pro"
+    ],
+    "qwen_requested": [
+      "qwen3.6-27b"
+    ],
+    "qwen_response": [
+      "qwen3.6-27b"
+    ]
+  },
+  "limitations": [
+    "Pilot only; not the full 2,775-item ESConv test set.",
+    "Paired comparison uses only task IDs completed by both arms.",
+    "DeepSeek generation stopped after one item returned no answer text after four attempts; unstarted or cancelled items are missing, not scored as wrong.",
+    "This report scores strategy classification only; open-ended response quality requires an independent judge and human audit."
+  ]
+}

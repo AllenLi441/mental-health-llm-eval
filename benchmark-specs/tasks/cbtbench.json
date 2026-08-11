@@ -1,0 +1,161 @@
+[
+  {
+    "schema_version": "1.0",
+    "task_key": "cbt-cd",
+    "family": "cbtbench",
+    "task_contract": { "task_type": "multilabel_classification", "output_representation": "label_set", "canonical_output_labels": ["all-or-nothing thinking", "overgeneralization", "mental filter", "should statements", "labeling", "personalization", "magnification", "emotional reasoning", "mind reading", "fortune-telling"], "label_order": "declared", "dynamic_options": false, "composition_rule": "sorted_unique_label_set", "scoring_method": "multilabel_f1", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "CBT-Bench/repo",
+      "revision": { "kind": "git_commit", "value": "bbd37514ba2e4db46bd9633d9207a57828c2ec9d", "frozen": true },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "none",
+      "test_selection_prohibited": true,
+      "train": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "The suite has not registered a training partition for this task." },
+      "dev": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "Create a non-test development partition before rebuilding the output protocol." },
+      "test": { "source_split": "distortions_test", "availability": "available", "allowed_uses": ["historical_reporting", "protocol_correction_audit"], "consumption_status": "exploratory_used", "notes": "The current test score uses a one-label top-1 hit proxy and cannot select a multi-label system." }
+    },
+    "metrics": { "primary": ["multilabel_macro_f1"], "secondary": ["multilabel_micro_f1", "exact_set_match", "top1_hit_accuracy", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "cbt-cd-multilabel-target-v1",
+      "evaluation_role": "test",
+      "source_split": "distortions_test",
+      "selection_forbidden": true,
+      "mode": "full",
+      "examples": { "kind": "exact", "value": 146 },
+      "seed": null,
+      "option_permutations": 1,
+      "repetitions_per_permutation": 1,
+      "api_calls_per_example": 1,
+      "expected_total_api_calls": 146,
+      "scoring_unit": "example with a predicted label set; legacy one-label hit is secondary internal tracking only"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "paper_compatibility": {
+      "status": "incompatible",
+      "reference_protocol": "CBT-Bench cognitive distortion multi-label classification with paper F1 reporting.",
+      "paper_primary_metrics": ["multilabel_macro_f1"],
+      "blocking_differences": ["The implemented runner emits exactly one label and scores a hit if it appears in the multi-label gold set."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "blocked",
+      "evidence_level": "exploratory",
+      "summary": "The historical 146-item result is a top-1 proxy, not paper-compatible multi-label F1.",
+      "next_action": "Implement real label-set output and a frozen multi-label scorer on non-test development data before any new confirmation."
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "task_key": "cbt-pc",
+    "family": "cbtbench",
+    "task_contract": { "task_type": "multilabel_classification", "output_representation": "label_set", "canonical_output_labels": ["helpless", "unlovable", "worthless"], "label_order": "declared", "dynamic_options": false, "composition_rule": "sorted_unique_label_set", "scoring_method": "multilabel_f1", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "CBT-Bench/repo",
+      "revision": { "kind": "git_commit", "value": "bbd37514ba2e4db46bd9633d9207a57828c2ec9d", "frozen": true },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "none",
+      "test_selection_prohibited": true,
+      "train": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "The suite has not registered a training partition for this task." },
+      "dev": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "Create a non-test development partition before rebuilding the output protocol." },
+      "test": { "source_split": "core_major_test", "availability": "available", "allowed_uses": ["historical_reporting", "protocol_correction_audit"], "consumption_status": "exploratory_used", "notes": "The current test score uses a one-label top-1 hit proxy and cannot select a multi-label system." }
+    },
+    "metrics": { "primary": ["multilabel_macro_f1"], "secondary": ["multilabel_micro_f1", "exact_set_match", "top1_hit_accuracy", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "cbt-pc-multilabel-target-v1",
+      "evaluation_role": "test",
+      "source_split": "core_major_test",
+      "selection_forbidden": true,
+      "mode": "full",
+      "examples": { "kind": "exact", "value": 184 },
+      "seed": null,
+      "option_permutations": 1,
+      "repetitions_per_permutation": 1,
+      "api_calls_per_example": 1,
+      "expected_total_api_calls": 184,
+      "scoring_unit": "example with a predicted label set; legacy one-label hit is secondary internal tracking only"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "paper_compatibility": {
+      "status": "incompatible",
+      "reference_protocol": "CBT-Bench primary core-belief multi-label classification with paper F1 reporting.",
+      "paper_primary_metrics": ["multilabel_macro_f1"],
+      "blocking_differences": ["The implemented runner emits exactly one label and scores a hit if it appears in the multi-label gold set."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "blocked",
+      "evidence_level": "exploratory",
+      "summary": "The historical 184-item result is a top-1 proxy, not paper-compatible multi-label F1.",
+      "next_action": "Implement real label-set output and a frozen multi-label scorer on non-test development data before any new confirmation."
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "task_key": "cbt-fc",
+    "family": "cbtbench",
+    "task_contract": { "task_type": "multilabel_classification", "output_representation": "label_set", "canonical_output_labels": ["I am incompetent", "I am helpless", "I am powerless, weak, vulnerable", "I am a victim", "I am needy", "I am trapped", "I am out of control", "I am a failure, loser", "I am defective", "I am unlovable", "I am unattractive", "I am undesirable, unwanted", "I am bound to be rejected", "I am bound to be abandoned", "I am bound to be alone", "I am worthless, waste", "I am immoral", "I am bad - dangerous, toxic, evil", "I don’t deserve to live"], "label_order": "declared", "dynamic_options": false, "composition_rule": "sorted_unique_label_set", "scoring_method": "multilabel_f1", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "CBT-Bench/repo",
+      "revision": { "kind": "git_commit", "value": "bbd37514ba2e4db46bd9633d9207a57828c2ec9d", "frozen": true },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "none",
+      "test_selection_prohibited": true,
+      "train": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "The suite has not registered a training partition for this task." },
+      "dev": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "Create a non-test development partition before rebuilding the output protocol." },
+      "test": { "source_split": "core_fine_test", "availability": "available", "allowed_uses": ["historical_reporting", "protocol_correction_audit"], "consumption_status": "exploratory_used", "notes": "The current test score uses a one-label top-1 hit proxy and cannot select a multi-label system." }
+    },
+    "metrics": { "primary": ["multilabel_macro_f1"], "secondary": ["multilabel_micro_f1", "exact_set_match", "top1_hit_accuracy", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "cbt-fc-multilabel-target-v1",
+      "evaluation_role": "test",
+      "source_split": "core_fine_test",
+      "selection_forbidden": true,
+      "mode": "full",
+      "examples": { "kind": "exact", "value": 112 },
+      "seed": null,
+      "option_permutations": 1,
+      "repetitions_per_permutation": 1,
+      "api_calls_per_example": 1,
+      "expected_total_api_calls": 112,
+      "scoring_unit": "example with a predicted label set; legacy one-label hit is secondary internal tracking only"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "paper_compatibility": {
+      "status": "incompatible",
+      "reference_protocol": "CBT-Bench fine-grained core-belief multi-label classification with paper F1 reporting.",
+      "paper_primary_metrics": ["multilabel_macro_f1"],
+      "blocking_differences": ["The implemented runner emits exactly one label and scores a hit if it appears in the multi-label gold set."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "blocked",
+      "evidence_level": "exploratory",
+      "summary": "The historical 112-item result is a top-1 proxy, not paper-compatible multi-label F1.",
+      "next_action": "Implement real label-set output and a frozen multi-label scorer on non-test development data before any new confirmation."
+    }
+  }
+]

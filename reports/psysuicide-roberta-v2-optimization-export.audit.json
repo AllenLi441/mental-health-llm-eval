@@ -1,0 +1,102 @@
+{
+  "completed_at_utc": "2026-07-31T17:11:44.572730Z",
+  "git_identity": {
+    "branch": "codex/psysuicide-accuracy-first-v2",
+    "execution_commit": "66cab405cdae2019c9542e2f968b9bc60e4f6a01",
+    "exporter_sha256": "4875aeb45cca68306904187780b548568181fa4088f23d2a8c769e7ad9309706",
+    "frozen_repository_files_sha256": {
+      "lib/psysuicide_partition.mjs": "6626eebf86761382efeaa039a45e72ae601598f312249750fd5389366a6b1368",
+      "reports/psysuicide-v2-train-holdout.commitment.json": "02c6776bd369b26bf882f3224f4e86dfc3f03a87e02f92c5e2088e581df6edab"
+    },
+    "stage_a_commit": "1a1c194dbb7168cadd839b17ef37c1ec0b16ca04"
+  },
+  "optimization_output": {
+    "basename": "psysuicide-optimization-only-v2-9342.jsonl",
+    "bytes": 1488283,
+    "permissions": "0600",
+    "rows": 9342,
+    "sha256": "240545ba568a27a1423f6a259291eb3d2596574285b07fad70c503dda9f6fca0"
+  },
+  "partition": {
+    "all_rows_commitment_sha256": "77e0e8d58aae55da70af8c5b6eb4b65047cf65749ba8ba895ed4abc87072033e",
+    "dropped_multi_label_rows": 164,
+    "dropped_unknown_label_rows": 0,
+    "holdout_commitment_sha256": "2691aca6db327d4e8c3b3cefe49b68716506d4181344883ae0f8a3e19a53fe30",
+    "holdout_fraction": 0.2,
+    "holdout_rows": 2329,
+    "holdout_rows_separately_collected_or_written": false,
+    "optimization_commitment_sha256": "0c3cbf98db02c609d500b4f9ef9bf95518b617bd4dffd1f4cde8a5c5e85a8dd9",
+    "optimization_rows": 9342,
+    "partition_id": "psysuicide-train-opt-holdout-v2",
+    "per_label": {
+      "与自杀/自伤/攻击行为无关": {
+        "holdout": 1720,
+        "optimization": 6883,
+        "retained": 8603
+      },
+      "主动自杀意图": {
+        "holdout": 210,
+        "optimization": 844,
+        "retained": 1054
+      },
+      "他人攻击行为": {
+        "holdout": 27,
+        "optimization": 112,
+        "retained": 139
+      },
+      "关于自杀的探索": {
+        "holdout": 58,
+        "optimization": 234,
+        "retained": 292
+      },
+      "用户攻击行为": {
+        "holdout": 43,
+        "optimization": 173,
+        "retained": 216
+      },
+      "自伤意图": {
+        "holdout": 4,
+        "optimization": 18,
+        "retained": 22
+      },
+      "自伤行为": {
+        "holdout": 15,
+        "optimization": 62,
+        "retained": 77
+      },
+      "自杀准备行为": {
+        "holdout": 2,
+        "optimization": 12,
+        "retained": 14
+      },
+      "自杀未遂": {
+        "holdout": 16,
+        "optimization": 65,
+        "retained": 81
+      },
+      "自杀计划": {
+        "holdout": 23,
+        "optimization": 93,
+        "retained": 116
+      },
+      "被动自杀意图": {
+        "holdout": 211,
+        "optimization": 846,
+        "retained": 1057
+      }
+    },
+    "retained_single_label_rows": 11671,
+    "schema_version": 1,
+    "seed": "psysuicide-model-optimization-v2-2026-07-28"
+  },
+  "private_claim_sha256": "036a620a58bf5827febb3faf40bfbb1e26f79cff115a875b1d6d207666a8c523",
+  "private_receipt_sha256": "112c709502908975c21de963e5d8f33dae41d155b0ed88672985dbe67c5bd799",
+  "publishing_boundary": "aggregate identities only; no text, row ids, membership, local paths, secrets, predictions, diagnostics, or weights",
+  "schema_version": 1,
+  "source": {
+    "basename": "train.json",
+    "bytes": 4409653,
+    "sha256": "6b84d36515c734963b7f43275756fe09a493b1c5cff16d15f2b27068f0c7979c"
+  },
+  "status": "VERIFIED_OPTIMIZATION_ONLY_EXPORT"
+}

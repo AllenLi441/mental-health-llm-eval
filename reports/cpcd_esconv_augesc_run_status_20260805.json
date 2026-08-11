@@ -1,0 +1,71 @@
+{
+  "as_of": "2026-08-06T01:06:31-07:00",
+  "protocol_id": "jingshi-cpcd-esconv-20260805-v1",
+  "protocol_sha256": "bed960e033b9ae0ff3b499b12e5045f3d76a6b4fe246ab3d683c3ecf13338718",
+  "status": "INCOMPLETE_NOT_SCOREABLE",
+  "formal_scores": null,
+  "reason_formal_scores_absent": [
+    "DeepSeek CPCD target generation is incomplete and the v1 output budget produced truncation evidence.",
+    "The six DeepSeek ESConv records used a superseded prompt without prior supporter strategy labels.",
+    "No Qwen3.6-27B endpoint or generation records are available.",
+    "No independent GPT-5.2 CPCD judgement records are available."
+  ],
+  "deepseek_v1_partial": {
+    "requested_model": "deepseek-v4-pro",
+    "response_model_verified_on_saved_rows": true,
+    "fingerprint": "fp_9954b31ca7_prod0820_fp8_kvcache_20260402",
+    "cpcd": {
+      "saved_rows": 140,
+      "expected_rows": 159,
+      "by_family": {
+        "srg": {
+          "saved": 99,
+          "expected": 99
+        },
+        "mr": {
+          "saved": 39,
+          "expected": 40
+        },
+        "tcr": {
+          "saved": 2,
+          "expected": 20
+        }
+      },
+      "usage": {
+        "prompt_tokens": 2382611,
+        "completion_tokens": 67677,
+        "reasoning_tokens": 49740,
+        "total_tokens": 2450288
+      },
+      "formal_use": "EXCLUDED_V1_PARTIAL_AND_TRUNCATION_RISK"
+    },
+    "esconv_legacy": {
+      "saved_rows": 6,
+      "expected_rows": 2775,
+      "formal_use": "EXCLUDED_SUPERSEDED_INPUT_METHOD"
+    },
+    "terminal_error": {
+      "http_status": 402,
+      "provider_code": "invalid_request_error",
+      "message": "Insufficient Balance"
+    }
+  },
+  "qwen_3_6_27b": {
+    "canonical_model": "Qwen/Qwen3.6-27B",
+    "revision": "6a9e13bd6fc8f0983b9b99948120bc37f49c13e9",
+    "endpoint_configured": false,
+    "saved_cpcd_rows": 0,
+    "saved_esconv_rows": 0
+  },
+  "cpcd_judge": {
+    "model": "openai/gpt-5.2",
+    "endpoint_route_declared": "https://openrouter.ai/api/v1",
+    "credential_configured": false,
+    "saved_rows": 0,
+    "expected_rows": 318
+  },
+  "augesc": {
+    "independent_accuracy": false,
+    "evaluation_policy": "No separate test run; downstream utility is evaluated on the frozen ESConv test set."
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "protocol": "emobench-paper-5x4-v1",
+  "scope": "developmental smoke: 2 deterministic items per task-language cell; 8 unique items; 160 paid calls",
+  "run_id": "emopaper-20260728-smoke",
+  "execution_commit": "85a0a94be8b5e77d773052cab808a54bee8d7436",
+  "model": "deepseek-v4-pro",
+  "response_models": [
+    "deepseek-v4-pro"
+  ],
+  "fingerprints": [
+    "fp_9954b31ca7_prod0820_fp8_kvcache_20260402"
+  ],
+  "temperature": 0.6,
+  "permutations": 4,
+  "repeats": 5,
+  "calls": 160,
+  "usage_coverage": 160,
+  "errors": 0,
+  "estimated_usd": 0.063801508,
+  "tasks": {
+    "EA": {
+      "unique_items": 4,
+      "calls": 80,
+      "paper_score_mean_accuracy": 0.75,
+      "paper_score_by_language": {
+        "en": 0.5,
+        "zh": 1.0
+      },
+      "dataset_commitment_sha256": "ccdc06b70072a6c63c43ae71d115ba0850913bd12ea34debe3bc08d92216a79c"
+    },
+    "EU": {
+      "unique_items": 4,
+      "calls": 80,
+      "paper_score_mean_accuracy": 0.5,
+      "paper_score_by_language": {
+        "en": 0.5,
+        "zh": 0.5
+      },
+      "dataset_commitment_sha256": "698399db365a911dbffcc3fe36d08ea93b84d823cb1c5afa617de9e0935ab3ef"
+    }
+  },
+  "protocol_fidelity": {
+    "paper_specified": "5 stochastic samples with majority vote; original plus three random option orderings; mean of four accuracies; temperature 0.6",
+    "implementation_assumptions": "deterministic permutation seed=1234; EU majority voted independently per field; ties choose first observed tied maximum",
+    "released_repository_gap": "official repository commit 3b4f84312541f8469e909965e1fff3691ef85c62 does not implement the paper aggregation or permutations"
+  },
+  "full_run_gate": {
+    "required_calls": 16000,
+    "smoke_calibrated_required_budget_usd_with_1_5x_reserve": 9.5702262,
+    "available_provider_balance_after_smoke": {
+      "currency": "CNY",
+      "amount": 6.81
+    },
+    "status": "BLOCKED_BY_PROVIDER_BALANCE",
+    "reason": "the calibrated full-run reserve materially exceeds the available provider balance; no partial full result will be reported as a benchmark"
+  },
+  "correction_2026_08_01": {
+    "status": "CORRECTED_AGGREGATE_METADATA",
+    "reason": "the earlier gate counted only one of the two 400-row tasks; the frozen protocol is EA and EU x 400 rows x 4 permutations x 5 repeats",
+    "superseded_required_calls": 8000,
+    "superseded_budget_usd_with_1_5x_reserve": 4.7851131,
+    "formula": "2 tasks * 400 rows * 4 permutations * 5 repeats = 16000 calls",
+    "note": "the 160-call smoke observations above are unchanged"
+  },
+  "publishing_boundary": "aggregate smoke evidence only; per-call rows and model outputs remain ignored"
+}

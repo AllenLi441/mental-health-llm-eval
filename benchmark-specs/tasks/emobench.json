@@ -1,0 +1,108 @@
+[
+  {
+    "schema_version": "1.0",
+    "task_key": "emobench-ea",
+    "family": "emobench",
+    "task_contract": { "task_type": "multiple_choice", "output_representation": "single_option_token", "canonical_output_labels": ["A", "B", "C", "D"], "label_order": "declared", "dynamic_options": false, "composition_rule": "single_token", "scoring_method": "exact_match", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "EmoBench/repo/data",
+      "revision": { "kind": "git_commit", "value": "3b4f84312541f8469e909965e1fff3691ef85c62", "frozen": true },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "none",
+      "test_selection_prohibited": true,
+      "train": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "No train split is registered for this paper-protocol task." },
+      "dev": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "A separate development set is required before prompt or model optimization." },
+      "test": { "source_split": "EA", "availability": "available", "allowed_uses": ["paper_replication", "historical_reporting"], "consumption_status": "exploratory_used", "notes": "Single-order proxy and a 160-call integrity smoke exist; the full paper protocol has not run." }
+    },
+    "metrics": { "primary": ["accuracy_by_language"], "secondary": ["accuracy", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "emobench-paper-ea-v1",
+      "evaluation_role": "test",
+      "source_split": "EA",
+      "selection_forbidden": true,
+      "mode": "paper_permutation_majority",
+      "examples": { "kind": "exact", "value": 400 },
+      "seed": null,
+      "option_permutations": 4,
+      "repetitions_per_permutation": 5,
+      "api_calls_per_example": 20,
+      "expected_total_api_calls": 8000,
+      "scoring_unit": "question after majority vote within each option order; report English and Chinese separately"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "paper_compatibility": {
+      "status": "partial",
+      "reference_protocol": "EmoBench ACL 2024 EA: 400 items, English/Chinese reporting, four option orders and five stochastic repetitions per order.",
+      "paper_primary_metrics": ["accuracy_by_language"],
+      "blocking_differences": ["The only completed full score is a temperature-zero single-order proxy; the registered 8000-call paper protocol is implemented but not completed."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "planned",
+      "evidence_level": "exploratory",
+      "summary": "A 160-call completeness smoke passed, but no 8000-call EA paper-protocol result exists.",
+      "next_action": "After an explicit cost approval, run the frozen paper protocol without using EA test outcomes for selection."
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "task_key": "emobench-eu",
+    "family": "emobench",
+    "task_contract": { "task_type": "multiple_choice", "output_representation": "compound_option_tokens", "canonical_output_labels": ["A", "B", "C", "D", "E", "F"], "label_order": "declared", "dynamic_options": true, "composition_rule": "emotion_token_plus_cause_token", "scoring_method": "compound_exact_match", "invalid_counts_as_incorrect": true },
+    "dataset": {
+      "root_env": "EVAL_DATASETS_DIR",
+      "relative_root": "EmoBench/repo/data",
+      "revision": { "kind": "git_commit", "value": "3b4f84312541f8469e909965e1fff3691ef85c62", "frozen": true },
+      "availability": { "status": "present", "access": "authorized_local_only", "redistribution": "aggregate_only" }
+    },
+    "use_policy": {
+      "selection_role": "none",
+      "test_selection_prohibited": true,
+      "train": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "No train split is registered for this paper-protocol task." },
+      "dev": { "source_split": null, "availability": "not_registered", "allowed_uses": [], "consumption_status": "not_applicable", "notes": "A separate development set is required before prompt or model optimization." },
+      "test": { "source_split": "EU", "availability": "available", "allowed_uses": ["paper_replication", "historical_reporting"], "consumption_status": "exploratory_used", "notes": "Single-order proxy and a 160-call integrity smoke exist; the full paper protocol has not run." }
+    },
+    "metrics": { "primary": ["accuracy_by_language"], "secondary": ["accuracy", "invalid_rate"] },
+    "sample_protocol": {
+      "protocol_id": "emobench-paper-eu-v1",
+      "evaluation_role": "test",
+      "source_split": "EU",
+      "selection_forbidden": true,
+      "mode": "paper_permutation_majority",
+      "examples": { "kind": "exact", "value": 400 },
+      "seed": null,
+      "option_permutations": 4,
+      "repetitions_per_permutation": 5,
+      "api_calls_per_example": 20,
+      "expected_total_api_calls": 8000,
+      "scoring_unit": "question; emotion and cause must both be correct after paper aggregation; report English and Chinese separately"
+    },
+    "provenance_requirements": {
+      "model": { "required_fields": ["requested_model", "response_model", "provider", "fingerprint", "temperature", "thinking", "reasoning_effort", "run_id"], "frozen_before_test": true, "forbidden_aliases": ["deepseek-chat", "deepseek-reasoner"] },
+      "prompt": { "required_fields": ["prompt_profile", "prompt_version", "prompt_template_sha256"], "frozen_before_test": true },
+      "parser": { "required_fields": ["parser_version", "parser_sha256", "invalid_policy"], "frozen_before_test": true },
+      "dataset": { "required_fields": ["dataset_revision", "dataset_manifest_sha256", "split", "seed", "case_sha256"], "frozen_before_test": true }
+    },
+    "paper_compatibility": {
+      "status": "partial",
+      "reference_protocol": "EmoBench ACL 2024 EU: 400 items, joint emotion-and-cause correctness, English/Chinese reporting, four option orders and five stochastic repetitions per order.",
+      "paper_primary_metrics": ["accuracy_by_language"],
+      "blocking_differences": ["The only completed full score is a temperature-zero single-order proxy; the registered 8000-call paper protocol is implemented but not completed."]
+    },
+    "current_status": {
+      "as_of": "2026-08-01",
+      "workflow_state": "planned",
+      "evidence_level": "exploratory",
+      "summary": "A 160-call completeness smoke passed, but no 8000-call EU paper-protocol result exists.",
+      "next_action": "After an explicit cost approval, run the frozen paper protocol without using EU test outcomes for selection."
+    }
+  }
+]

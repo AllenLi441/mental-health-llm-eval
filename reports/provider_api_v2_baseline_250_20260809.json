@@ -1,0 +1,314 @@
+{
+  "report_id": "provider-api-v2-baseline-250-20260809",
+  "protocol_id": "jingshi-cpcd-esconv-20260808-provider-api-v2",
+  "protocol_sha256": "397975e8409ae7af13874ab43cb6b09e39804072f6953b082a4b0497b91ab9a6",
+  "status": "PARTIAL_EXTERNAL_BLOCKERS",
+  "esconv": {
+    "target_n": 250,
+    "labels": [
+      "Affirmation and Reassurance",
+      "Information",
+      "Other",
+      "Providing Suggestions",
+      "Questions",
+      "Reflection of feelings",
+      "Restatement or Paraphrasing",
+      "Self-disclosure"
+    ],
+    "deepseek_success_coverage": 0.956,
+    "deepseek_intention_to_test_250": {
+      "n": 250,
+      "correct": 37,
+      "accuracy": 0.148,
+      "macro_f1": 0.09478838170888892,
+      "weighted_f1": 0.13084917967830428,
+      "invalid_or_missing": 17,
+      "per_class": {
+        "Affirmation and Reassurance": {
+          "precision": 0.1111111111111111,
+          "recall": 0.05128205128205128,
+          "f1": 0.07017543859649122,
+          "support": 39
+        },
+        "Information": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 8
+        },
+        "Other": {
+          "precision": 1.0,
+          "recall": 0.06557377049180328,
+          "f1": 0.12307692307692307,
+          "support": 61
+        },
+        "Providing Suggestions": {
+          "precision": 1.0,
+          "recall": 0.02857142857142857,
+          "f1": 0.05555555555555556,
+          "support": 35
+        },
+        "Questions": {
+          "precision": 0.48148148148148145,
+          "recall": 0.2549019607843137,
+          "f1": 0.3333333333333333,
+          "support": 51
+        },
+        "Reflection of feelings": {
+          "precision": 0.09826589595375723,
+          "recall": 0.85,
+          "f1": 0.1761658031088083,
+          "support": 20
+        },
+        "Restatement or Paraphrasing": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 14
+        },
+        "Self-disclosure": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 22
+        }
+      }
+    },
+    "paired_success_set": {
+      "task_count": 239,
+      "deepseek": {
+        "n": 239,
+        "correct": 37,
+        "accuracy": 0.15481171548117154,
+        "macro_f1": 0.09674683122037606,
+        "weighted_f1": 0.1362337295280754,
+        "invalid_or_missing": 6,
+        "per_class": {
+          "Affirmation and Reassurance": {
+            "precision": 0.1111111111111111,
+            "recall": 0.05128205128205128,
+            "f1": 0.07017543859649122,
+            "support": 39
+          },
+          "Information": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 7
+          },
+          "Other": {
+            "precision": 1.0,
+            "recall": 0.07017543859649122,
+            "f1": 0.13114754098360656,
+            "support": 57
+          },
+          "Providing Suggestions": {
+            "precision": 1.0,
+            "recall": 0.030303030303030304,
+            "f1": 0.05882352941176471,
+            "support": 33
+          },
+          "Questions": {
+            "precision": 0.48148148148148145,
+            "recall": 0.26,
+            "f1": 0.33766233766233766,
+            "support": 50
+          },
+          "Reflection of feelings": {
+            "precision": 0.09826589595375723,
+            "recall": 0.85,
+            "f1": 0.1761658031088083,
+            "support": 20
+          },
+          "Restatement or Paraphrasing": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 14
+          },
+          "Self-disclosure": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 19
+          }
+        }
+      },
+      "qwen": {
+        "n": 239,
+        "correct": 34,
+        "accuracy": 0.14225941422594143,
+        "macro_f1": 0.09912597896344028,
+        "weighted_f1": 0.11731759975862727,
+        "invalid_or_missing": 0,
+        "per_class": {
+          "Affirmation and Reassurance": {
+            "precision": 0.1346153846153846,
+            "recall": 0.1794871794871795,
+            "f1": 0.15384615384615383,
+            "support": 39
+          },
+          "Information": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 7
+          },
+          "Other": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 57
+          },
+          "Providing Suggestions": {
+            "precision": 0.5,
+            "recall": 0.06060606060606061,
+            "f1": 0.10810810810810813,
+            "support": 33
+          },
+          "Questions": {
+            "precision": 0.5,
+            "recall": 0.18,
+            "f1": 0.2647058823529412,
+            "support": 50
+          },
+          "Reflection of feelings": {
+            "precision": 0.09933774834437085,
+            "recall": 0.75,
+            "f1": 0.17543859649122806,
+            "support": 20
+          },
+          "Restatement or Paraphrasing": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 14
+          },
+          "Self-disclosure": {
+            "precision": 0.3333333333333333,
+            "recall": 0.05263157894736842,
+            "f1": 0.09090909090909091,
+            "support": 19
+          }
+        }
+      }
+    },
+    "qwen_all_250": {
+      "n": 250,
+      "correct": 35,
+      "accuracy": 0.14,
+      "macro_f1": 0.1044269026749223,
+      "weighted_f1": 0.11800651939857593,
+      "invalid_or_missing": 0,
+      "per_class": {
+        "Affirmation and Reassurance": {
+          "precision": 0.12962962962962962,
+          "recall": 0.1794871794871795,
+          "f1": 0.15053763440860213,
+          "support": 39
+        },
+        "Information": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 8
+        },
+        "Other": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 61
+        },
+        "Providing Suggestions": {
+          "precision": 0.5,
+          "recall": 0.05714285714285714,
+          "f1": 0.10256410256410256,
+          "support": 35
+        },
+        "Questions": {
+          "precision": 0.5,
+          "recall": 0.17647058823529413,
+          "f1": 0.2608695652173913,
+          "support": 51
+        },
+        "Reflection of feelings": {
+          "precision": 0.09433962264150944,
+          "recall": 0.75,
+          "f1": 0.16759776536312854,
+          "support": 20
+        },
+        "Restatement or Paraphrasing": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 14
+        },
+        "Self-disclosure": {
+          "precision": 0.5,
+          "recall": 0.09090909090909091,
+          "f1": 0.15384615384615385,
+          "support": 22
+        }
+      }
+    },
+    "run_stats": {
+      "deepseek": {
+        "records": 239,
+        "prompt_tokens": 129520,
+        "completion_tokens": 93696,
+        "latency_median_ms": 10623,
+        "latency_p95_ms": 45910
+      },
+      "qwen": {
+        "records": 250,
+        "prompt_tokens": 136393,
+        "completion_tokens": 11976,
+        "latency_median_ms": 1295.0,
+        "latency_p95_ms": 1842
+      }
+    },
+    "note": "DeepSeek missing records exhausted the frozen retry rule with reasoning-only responses and are counted wrong in intention_to_test_250."
+  },
+  "cpcd_generation": {
+    "expected_per_arm": {
+      "srg": 99,
+      "mr": 40,
+      "tcr": 20,
+      "total": 159
+    },
+    "deepseek": {
+      "records": 159,
+      "prompt_tokens": 3389195,
+      "completion_tokens": 108316,
+      "latency_median_ms": 11956,
+      "latency_p95_ms": 47056,
+      "by_family": {
+        "mr": 40,
+        "srg": 99,
+        "tcr": 20
+      },
+      "termination_status": {
+        "length": 12,
+        "stop": 147
+      }
+    },
+    "qwen": {
+      "records": 136,
+      "prompt_tokens": 2264465,
+      "completion_tokens": 27265,
+      "latency_median_ms": 3566.0,
+      "latency_p95_ms": 39533,
+      "by_family": {
+        "mr": 29,
+        "srg": 99,
+        "tcr": 8
+      },
+      "termination_status": {
+        "stop": 136
+      }
+    },
+    "scores_available": false,
+    "score_blocker": "No independent JUDGE_API_KEY for the frozen GPT-5.2 judge.",
+    "qwen_generation_blocker": "HTTP 429 insufficient_quota; successful records are resumable."
+  }
+}

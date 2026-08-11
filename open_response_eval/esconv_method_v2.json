@@ -1,0 +1,30 @@
+{
+  "method_id": "esconv-strategy-conditioned-v2",
+  "frozen_at": "2026-08-05T00:00:00-07:00",
+  "parent_protocol_id": "jingshi-cpcd-esconv-20260805-v1",
+  "scope": "Benchmark-scoped amendment for formal ESConv generation and scoring only; CPCD v1 is unchanged.",
+  "input_history_rule": "Preserve the exact strategy label on every prior supporter turn; never expose the target strategy.",
+  "target_output_rule": "One strict JSON object with exactly strategy and non-empty response fields; any format error is an invalid strategy prediction.",
+  "format_retry_rule": "At most one correction retry; persist and validate every raw output and request-message hash.",
+  "scoring_rule": "Official pinned gold labels; Accuracy, Macro-F1, Weighted-F1, invalid rate; NLTK 3.9.4 word_tokenize lowercase and corpus_bleu method3; released ROUGE-L and Distinct behavior.",
+  "strategy_labels": [
+    "Questions",
+    "Restatement or Paraphrasing",
+    "Reflection of feelings",
+    "Self-disclosure",
+    "Affirmation and Reassurance",
+    "Providing Suggestions",
+    "Information",
+    "Other"
+  ],
+  "implementation_source_sha256": {
+    "ESConvExample.from_tsv_line": "08a57593fc9903b29eec2869d7a2c0855dfc1fe542ee47c2d702f30f9129d4c2",
+    "build_esconv_target_messages": "3f84fb1d02a42ba8926d7a6414fc9de67b77bb7b8b3019f38a63d2c8af69456c",
+    "parse_strategy_response": "dc6eb1b5f331367660aa8bb794150c98a5b781a6325015fbddae94b20abca4da",
+    "score_strategy_predictions": "288bc73c440b9c5a38c7dd8b0a00a6c37d17dfa75da86b2ab0016603a54632ad",
+    "response_overlap_metrics_tokenized": "d803909db5c3abafc7a469921ccf9aab2559391516a615dd2d8ca20ace37667d",
+    "_esconv_correction_messages": "f5e30316aede0356eb29ed27e79c2c37d49578f3d28b066af3aeb7b02bc263f1",
+    "_validate_esconv_generation_content": "84783100dad08c15334783943ee29c39c2ee8c8a93125516f2dba039f4f5fe7e",
+    "_official_esconv_tokens": "21f1c4e52e263bd9dee4a497a2a6a0a6842df3d022f17e44ba33d2bda0e01d40"
+  }
+}
