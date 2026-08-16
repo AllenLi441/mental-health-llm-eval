@@ -1,0 +1,36 @@
+{
+  "protocol_id": "jingshi-cpcd-esconv-20260813-siliconflow-qwen-v1-flash-judge-addendum-v1",
+  "parent_protocol_id": "jingshi-cpcd-esconv-20260813-siliconflow-qwen-v1",
+  "frozen_at": "2026-08-14T00:00:00-07:00",
+  "status": "FROZEN_JUDGE_DEVIATION_ADDENDUM",
+  "research_question": "Record the deviation of the actual CPCD judge from the preregistered GPT-5.2 judge, so the frozen audit chain matches the executed pipeline.",
+  "deviation": {
+    "field": "judge.model",
+    "preregistered": {
+      "model": "openai/gpt-5.2",
+      "base_url": "https://openrouter.ai/api/v1",
+      "temperature": 0,
+      "max_output_tokens": 2200,
+      "blind_to_model_identity": true
+    },
+    "executed": {
+      "model": "deepseek-v4-flash",
+      "endpoint_id": "cpcd_proxy_deepseek_v4_flash",
+      "judge_mode": "proxy_non_thinking",
+      "temperature": 0,
+      "thinking": "disabled",
+      "max_output_tokens": 2200,
+      "blind_to_model_identity": true,
+      "blind_id_scheme": "sha256(model_id:task_id)[:16]",
+      "judgement_file": "outputs/cpcd_proxy_flash_judgements_20260809.jsonl"
+    },
+    "scope": "All four judged arms (deepseek_v4_pro, deepseek_v4_flash, qwen_3_6_27b, qwen_3_6_27b_siliconflow) were scored by the same proxy judge endpoint, so within-table pre/post comparison remains valid.",
+    "reporting_rule": "CPCD scores under this proxy judge are internal pre/post quality scores. They must never be presented as CPCD-Bench paper (GPT-5.2-judged) leaderboard results or ranked against paper-reported numbers.",
+    "notes": [
+      "The preregistered GPT-5.2 judge was not executed for these arms; no GPT-5.2 judgements exist in outputs/.",
+      "Blindness is preserved: the judge prompt contains only the anonymous blind_id, never the model identity.",
+      "deepseek_v4_pro has 12/159 generations with finish_reason=length (TCR 8, SR 3, MR 1) that were judged as stored; its scores are therefore a conservative lower bound and do not favor the DeepSeek arm.",
+      "The micro-finetune post-test must reuse this same proxy judge endpoint, temperature=0, non-thinking mode, and the same blind_id scheme to keep the pre/post delta meaningful."
+    ]
+  }
+}

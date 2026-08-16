@@ -64,3 +64,18 @@ The ACL 2021 paper did not publish strategy classification Accuracy. Any
 Accuracy produced here is a post-hoc project metric and must not be presented
 as an original paper result. PPL, BLEU-2, ROUGE-L, and Extrema are the paper's
 generation metrics.
+
+## Modern development artifacts
+
+- `scripts/prepare_esconv_modern_sft.py` builds train/dev-only one-letter
+  strategy SFT and strategy-conditioned generation SFT files.
+- `scripts/run_qwen36_esconv_lora.sh` launches the frozen LoRA starting point
+  and refuses non-Linux/non-CUDA hosts.
+- `scripts/analyze_esconv_fixed250_paired.py` computes dialogue-cluster
+  bootstrap intervals and exact paired McNemar tests for existing API outputs.
+- `open_response_eval/preregistration_esconv_modern_development_v1.json`
+  freezes the new strategy-only development protocol.
+- `EXECUTION_STATUS_20260812.md` records completed work and hardware blockers.
+
+The one-letter LoRA track is not the same output protocol as the existing JSON
+strategy-plus-response API track. Scores must never be inherited across them.

@@ -1,0 +1,54 @@
+{
+  "checked_at": "2026-08-11",
+  "scope": "Papers that explicitly use ESConv",
+  "papers": [
+    {
+      "short_name": "ESConv",
+      "year": 2021,
+      "source_url": "https://aclanthology.org/2021.acl-long.269/",
+      "pdf_file": "2021_ESConv_Liu_et_al_ACL.pdf",
+      "status": "downloaded_official_pdf",
+      "esconv_use": "Introduces the dataset"
+    },
+    {
+      "short_name": "MultiESC",
+      "year": 2022,
+      "source_url": "https://aclanthology.org/2022.emnlp-main.195/",
+      "pdf_file": "2022_MultiESC_Cheng_et_al_EMNLP.pdf",
+      "status": "downloaded_official_pdf",
+      "esconv_use": "Evaluation dataset; modified strategy labels and split"
+    },
+    {
+      "short_name": "EmoDynamiX",
+      "year": 2025,
+      "source_url": "https://aclanthology.org/2025.naacl-long.81/",
+      "pdf_file": "2025_EmoDynamiX_Wan_et_al_NAACL.pdf",
+      "status": "downloaded_official_pdf",
+      "esconv_use": "Eight-class next-strategy prediction"
+    },
+    {
+      "short_name": "GREEN",
+      "year": 2025,
+      "source_url": "https://journals.sagepub.com/doi/10.1177/21582440251395922",
+      "pdf_file": "/Users/allenli/Desktop/mental-health-llm-eval/数据集论文/yang-et-al-2025-green-generative-retrieval-enhanced-emotional-support-conversations.pdf",
+      "status": "downloaded_user_provided_publisher_pdf",
+      "esconv_use": "Retrieval-enhanced strategy prediction and response generation"
+    },
+    {
+      "short_name": "SAGE",
+      "year": 2026,
+      "source_url": "https://www.sciencedirect.com/science/article/pii/S0957417426004379",
+      "pdf_file": "/Users/allenli/Desktop/mental-health-llm-eval/数据集论文/1-s2.0-S0957417426004379-main.pdf",
+      "status": "downloaded_user_provided_publisher_pdf",
+      "esconv_use": "Self-retrieval-enhanced strategy prediction and response generation"
+    },
+    {
+      "short_name": "Causal-ESC",
+      "year": 2026,
+      "source_url": "https://aclanthology.org/2026.acl-long.886/",
+      "pdf_file": "2026_Causal_ESC_Wang_et_al_ACL.pdf",
+      "status": "downloaded_official_pdf",
+      "esconv_use": "Causal strategy policy learning and strategy-styled response generation"
+    }
+  ]
+}
