@@ -1,0 +1,13 @@
+{
+  "total": 60024,
+  "redacted_rows": 733,
+  "review_flagged_rows": 8059,
+  "kept": 60024,
+  "types": {
+    "URL": 992,
+    "EMAIL": 8,
+    "PHONE": 23,
+    "ADDRESS": 7,
+    "IDCARD": 1
+  }
+}

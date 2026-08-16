@@ -1,0 +1,36 @@
+{
+  "seed": 20260815,
+  "available": {
+    "CPsyCounD": 3108,
+    "PsyDial-D1": 2382,
+    "CPsDD": 54497
+  },
+  "sampled": {
+    "CPsyCounD": {
+      "train": 2800,
+      "val": 150,
+      "test": 150
+    },
+    "PsyDial-D1": {
+      "train": 2000,
+      "val": 150,
+      "test": 150
+    },
+    "CPsDD": {
+      "train": 3200,
+      "val": 200,
+      "test": 200
+    }
+  },
+  "language": {
+    "train": {
+      "zh": 8000
+    },
+    "val": {
+      "zh": 500
+    },
+    "test": {
+      "zh": 500
+    }
+  }
+}
