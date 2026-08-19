@@ -1,305 +1,247 @@
-# ESConv 论文、模型与 Strategy Accuracy 审计
+# ESConv Benchmark：Strategy Accuracy、F1 与生成指标原始证据审计
+
+**核查日期：2026-08-19**  
+**仓库：** `AllenLi441/mental-health-llm-eval`  
+**范围：** 明确使用 ESConv 或其衍生版本、并报告下一支持策略预测或策略控制生成结果的论文。原始论文表、出版社页面和本仓库机器可读结果优先于后续论文转引。
+
+## 一、最终结论
+
+1. **截至 2026-08-19，在本次原始证据审计找到并核实的最高论文自报 ESConv Strategy Accuracy 是 DPPLM：58.03%。** DOI/online-first 记录在 2025 年，最终卷期元数据为 IEEE Transactions on Computational Social Systems 13(2), 2060–2072（2026）。官方机构/出版社摘要明确给出 58.03%，但完整实验表、精确 split、代码和 checkpoint 未取得，因此证据等级为 **B**：数字有官方出处，但尚不是可独立复现的统一 SOTA。
+2. **目前完整原论文表中可直接核到的最高值是 Causal-ESC：53.53%。** 该数字确实出现在 ACL 2026 Table 2，并且论文把 ACC 定义为策略选择正确率；但它使用论文特定的 offline causal-policy + LLM rewriting 协议，不能直接继承为本仓库 frozen 2,775-turn 榜首。
+3. **SAGE 为 46.80% ACC、38.95% Macro-F1；CADSS 为 46.26% ACC。** 两篇都是 2026 年正式发表工作，但它们的数据版本、切分和系统输入都与 2021 原始 ESConv 或本仓库冻结测试不同。
+4. **2021 年原始 ESConv 论文没有发表 Strategy Accuracy。** 本仓库当前机器可读 replay 文件记录的是作者 BlenderBot-small Joint checkpoint 在 2,775 条冻结测试上的 **32.22%（894/2,775）**、Macro-F1 **21.83%**、Weighted-F1 **28.56%**。这是本项目后验复算，不是 ACL 2021 论文成绩。
+5. **不能制作一个不带协议列的“统一排行榜”。** 58.03、53.53、46.80、46.26、42.01 等均是正确存在的论文数字，但不是同一 test IDs、同一标签空间、同一数据版本和同一模型输入下的成绩。
+
+## 二、这里的“准确率”到底指什么
+
+- **Strategy ACC**：在该论文自己的评测协议下，预测策略与金标策略完全相同的样本比例。
+- **Macro-F1**：先逐类算 F1，再对各策略等权平均；对少数类更敏感。
+- **Weighted-F1**：按各策略样本量加权的 F1；更接近总体分布。
+- **Emotion ACC**：情绪标签准确率，不能当 Strategy ACC。
+- **Stage ACC**：Exploration / Comforting / Action 三阶段预测准确率，不能当 8 类策略准确率。
+- **PPL、BLEU、ROUGE、Distinct、METEOR、BERTScore**：回复生成指标，不是策略准确率。
+
+## 三、证据等级
+
+| 等级 | 标准 | 可怎么写 |
+|---|---|---|
+| **A** | 已查看原论文完整结果表，并核对任务/指标定义 | “论文报告 ACC = X%，协议见该论文” |
+| **B** | 官方出版社或作者机构记录明确给出 ACC，但完整表/协议不可访问 | “官方摘要报告 X%，尚待全文与代码复核” |
+| **X** | 数字属于别的任务、原论文没有该指标，或仅有无法核实的二手转引 | 不进入 Strategy-ACC 排名 |
+
+## 四、论文自报 Strategy Accuracy 排名
 
-日期：2026-08-19  
-状态：完成第一轮论文与代码可用性审计；Google Scholar 被引数等待人工直连复核  
-目标：判断 `53.53%` 是否是可用于本仓库的最佳 ESConv Accuracy，并确定下一批真正值得租 GPU 重跑的模型。
+> 这张表按数值排序，只表示“文献中报告过的 headline”；**不代表统一 benchmark 排名**。
 
-## 结论先说
+| 排名 | 模型 | 年份 | 期刊/会议 | Strategy ACC | F1 / 其他主要数据 | 数据/协议关键差异 | 证据 |
+|---:|---|---:|---|---:|---|---|:---:|
+| 1 | **DPPLM** | 2025 online / 2026 issue | IEEE Transactions on Computational Social Systems, 13(2), 2060–2072 | **58.03%** | Emotion ACC 65.42; D-1 4.63; D-2 32.24; R-L 12.10; BERTScore 0.8451 | not disclosed in the accessible official abstract；paper-reported headline only; not proven identical to the frozen 2,775-turn track | B |
+| 2 | **Causal-ESC** | 2026 | ACL 2026, Long Papers | **53.53%** | B-2 9.54; B-4 4.07; D-1 8.25; D-2 40.86; R-L 22.15; METEOR 10.23 | paper-specific offline-policy setup; appendix mentions a random 20% selection for policy training/style demonstrations；not identical to the frozen 2,775-turn track; exact test IDs and a reproducible checkpoint were not released | A |
+| 3 | **SAGE** | 2026 | Expert Systems with Applications, Vol. 313, Article 131524 | **46.80%** | Macro-F1 38.95; PPL 14.32; B-2 11.87; B-4 3.88; D-1 9.24; D-2 39.86; R-L 20.51 | 1,300-dialogue ESConv snapshot; 70/10/20 split (910/130/260 dialogues)；not identical to the original 1,053-dialogue 6:2:2 snapshot or the frozen 2,775-turn track | A |
+| 4 | **CADSS** | 2026 | AAAI 2026, Vol. 40 No. 21 | **46.26%** | PPL 30.14; B-2 15.06; B-4 5.64; D-1 8.88; D-2 32.49; R-L 16.57 | paper reports an 8:1:1 split；paper-specific multi-agent system; not a frozen-turn matched comparison | A |
+| 5 | **MultiESC** | 2022 | EMNLP 2022 | **42.01%** | Weighted-F1 34.01; Feedback 3.85 | 8:1:1 split；not directly comparable to original eight-class 6:2:2 or frozen 2,775-turn exact-match | A |
+| 6 | **PRCCF** | 2026 | arXiv preprint; submitted to TACL | **40.72%** | PPL 13.10; B-2 10.71; B-4 3.55; D-1 6.17; D-2 31.16; R-L 19.78 | paper-specific ESConv setup; exact frozen IDs not released；not independently reproduced; preprint status | A |
+| 7 | **GREEN** | 2025 | SAGE Open, Vol. 15 No. 4 | **38.80%** | PPL 15.87; B-4 2.88; D-1 6.24; D-2 32.86; R-L 18.51 | paper describes 1,300 dialogues and 38,365 utterances and says it follows the original split；data snapshot differs from the original 1,053-dialogue paper snapshot | A |
+| 8 | **Hao–Kong framework**（后续表格别名 DKPE/CKPI） | 2025 | COLING 2025 | **35.51%** | PPL 14.88; B-2 9.27; B-4 2.92; D-1 4.88; D-2 25.95; R-L 18.87 | 80/10/10 split；paper-specific system; no frozen task-ID match | A |
+| 9 | **D²RCU** | 2024 | SIGIR 2024 | **35.32%** | PPL 15.43; B-2 9.01; D-1 4.97; D-2 26.21; R-L 18.71; B-4 2.94* | paper-specific setup using ESConv/PESConv-derived retrieval information；not a frozen task-ID match | A |
+| 10 | **TransESC** | 2023 | Findings of ACL 2023 | **34.71%** | PPL 15.85; B-2 7.64; B-4 2.43; D-1 4.73; D-2 20.48; R-L 17.51 | paper-specific ESConv setup；not a frozen task-ID match | A |
+| 11 | **PAL** | 2023 | Findings of ACL 2023 | **34.51%** | PPL 15.92; B-2 8.75; B-4 2.66; D-1 5.00; D-2 30.27; R-L 18.06 | PESConv, 7:2:1 split；not the original ESConv split; persona-augmented dataset | A |
+| 12 | **CauESC** | 2024 | arXiv preprint | **33.33%** | PPL 15.30; B-2 8.17; B-4 2.82; D-1 4.70; D-2 19.85; R-L 18.20 | 8:1:1; 1,040/130/130 dialogues; averaged over three runs；paper-specific preprint setup | A |
+| 13 | **FADO** | 2023 | Knowledge-Based Systems, Vol. 264, Article 110340 | **32.90%** | PPL 15.72; B-4 2.32; D-2 21.84; R-L 17.53 | reports both the official ESConv split and the MISC re-split；the two scores must not be merged; 32.90 is the official-split row | A |
+| 14 | **MISC** | 2022 | ACL 2022, Long Papers | **31.63%** | PPL 16.16; B-2 7.31; B-4 2.20; D-1 4.41; D-2 19.71; R-L 17.91; METEOR 11.05 | paper re-split differs from the original official split；not a frozen task-ID match | A |
+| 15 | **CARE (SFT-RL)** | 2025 | arXiv preprint（under review） | **30.29%** | B-1 15.01; B-2 6.03; R-L 16.79; METEOR 14.56; BERTScore 16.75; D-1 4.73; D-2 27.80 | 910 train / 195 test；LLaMA-3.1-8B SFT + GRPO；preprint-specific protocol | A |
+
+### 排名怎么读
+
+- **DPPLM 58.03%**：截至核查日，本审计找到的最高官方论文摘要 headline；2025 为 DOI/online-first 年份，最终卷期为 2026。因为精确实验协议不可见，所以不能标成“已复现统一 SOTA”。
+- **Causal-ESC 53.53%**：原论文表中真实存在，证据比 DPPLM 更完整；但属于 offline policy learning + strategy-style rewriting 的论文专用协议。
+- **SAGE 46.80% / CADSS 46.26%**：均为正式发表的 2026 结果；SAGE 使用 1,300 对话版本和 70/10/20，CADSS 报告 8:1:1。
+- **MultiESC 42.01%**：合并 Suggestions 与 Information、提取 Greetings，并改变规划目标；不能和原始 8 类单 turn exact-match 直接相减。
+- **PAL 34.51%**：使用 persona-augmented PESConv、7:2:1，而非原始 ESConv split。
+- **FADO 32.90%**：这是 official split 行；同一论文另报 MISC re-split 32.41%，两者不能混成一个值。
+
+## 五、逐项证明 ACC 来自哪里
+
+| 模型 | ACC | 原始证据 | 为什么判定“数字正确” |
+|---|---:|---|---|
+| DPPLM | 58.03% | [官方机构出版记录](https://researchoutput.ncku.edu.tw/en/publications/applying-emotion-cause-entailment-for-help-seeker-guidance-in-emo/) · [DOI](https://doi.org/10.1109/TCSS.2025.3605971) | 官方机构/出版社摘要明确写出 Strategy Accuracy 58.03%。DOI 于 2025 年建立，最终卷期元数据为 2026；完整实验表、精确 split、代码和 checkpoint 未取得，因此只能判为 B 级论文 headline。 |
+| Causal-ESC | 53.53% | [原论文/出版社](https://aclanthology.org/2026.acl-long.886/) | ACC = 53.53 appears in the original ACL 2026 result table; the paper also explicitly defines Accuracy as correct strategy selection. |
+| SAGE | 46.80% | [原论文/出版社](https://www.sciencedirect.com/science/article/pii/S0957417426004379) | The Elsevier article highlights explicitly state 46.8% ACC and 38.95% Macro-F1; the full paper table supplies the generation metrics. |
+| CADSS | 46.26% | [原论文/出版社](https://ojs.aaai.org/index.php/AAAI/article/view/38825) | The AAAI paper result table and official repository README report ESConv ACC = 46.26. |
+| MultiESC | 42.01% | [原论文/出版社](https://aclanthology.org/2022.emnlp-main.195/) | ACC = 42.01 and Weighted-F1 = 34.01 are in the original EMNLP paper table. |
+| PRCCF | 40.72% | [原论文/出版社](https://arxiv.org/abs/2604.01671) | ACC = 40.72 appears in the original arXiv paper result table. |
+| GREEN | 38.80% | [原论文/出版社](https://journals.sagepub.com/doi/10.1177/21582440251395922) | The publisher full-text results table reports ACC = 38.8. |
+| Hao–Kong framework | 35.51% | [原论文/出版社](https://aclanthology.org/2025.coling-main.214/) | 原论文 Table 2 报 ACC = 35.51，并明确 ACC 是八类 ESConv 策略预测准确率。论文自身没有稳定使用 CKPI/DKPE 缩写；后续表格别名不作为官方模型名。 |
+| D²RCU | 35.32% | [原论文/出版社](https://arxiv.org/abs/2404.02505) | The original SIGIR paper table reports ACC = 35.32. |
+| TransESC | 34.71% | [原论文/出版社](https://aclanthology.org/2023.findings-acl.420/) | The original Findings ACL paper table reports ACC = 34.71. |
+| PAL | 34.51% | [原论文/出版社](https://aclanthology.org/2023.findings-acl.34/) | The original Findings ACL paper table reports ACC = 34.51. |
+| CauESC | 33.33% | [原论文/出版社](https://arxiv.org/abs/2401.17755) | The original arXiv PDF result table reports ACC = 33.33. |
+| FADO | 32.90% | [原论文/出版社](https://www.sciencedirect.com/science/article/abs/pii/S0950705123000904) | The original paper explicitly separates official-split ACC = 32.90 from MISC-re-split ACC = 32.41. |
+| MISC | 31.63% | [原论文/出版社](https://aclanthology.org/2022.acl-long.25/) | The original ACL paper table reports MISC ACC = 31.63; its BlenderBot-Joint baseline is 28.57. |
+| CARE (SFT-RL) | 30.29% | [原论文](https://arxiv.org/abs/2510.05122) | 原始 preprint Table 1 报 `ACC_Stra. = 30.29`，正文定义为预测支持策略与金标策略匹配的比例；属于 under-review preprint，而非正式会议/期刊结果。 |
+
+## 六、本仓库冻结 track：必须与论文 headline 分开
+
+| 项目 | 数值 |
+|---|---:|
+| 模型 | BlenderBot-small Joint，作者 checkpoint 后验重放 |
+| Test | 2,775 supporter turns |
+| Correct | 894 |
+| Strategy ACC | **32.2162%** |
+| Macro-F1 | **21.8272%** |
+| Weighted-F1 | **28.5626%** |
+| Invalid | 0 |
+| Test SHA-256 | `b85ae888bf747cefa54bba2a6c3e2f6ccb4c1005d4e0b6d1d3be3823cf040aef` |
+| Checkpoint SHA-256 | `c972037e051773afb505c14746daafaadc827e36d57588269b86fccbc56ee7c6` |
+| 机器可读证据 | `reports/esconv_joint_official_corrected_full_20260811.json` |
+
+### 关于此前的 19.60%：已经撤回，不是“尚待解释”
+
+`reports/esconv_original_joint_official_test_20260810.json` 已明确标记 `audit_status = RETRACTED`。撤回原因是：评测器使用了错误的策略 token 拼写/顺序，并用错误的标签映射解释 checkpoint embedding rows；其中 Accuracy、Macro-F1、Weighted-F1、逐类指标和混淆矩阵全部失效。替代评测器为 `scripts/eval_esconv_joint_corrected.py`。
+
+因此正式口径只有一个：
 
-`53.53%` 是真实的论文数字，来源是 ACL 2026 的 **Causal-ESC**。但它不能继续在本项目里显示为“ESConv 统一最高准确率”，因为论文采用了自己的离线策略学习协议：随机抽取 ESConv 的 20% 用于 policy training 和 style demonstration pool，未公布与本仓库冻结 2,775 个 supporter turn 完全一致的 test IDs、随机种子和评测脚本。它属于“论文特定 policy-learning 结果”，不是本仓库冻结 benchmark 的可替代基线。
+- 撤回值：`544 / 2775 = 19.6036%`；不得继续引用。
+- 修正替代值：`894 / 2775 = 32.2162%`。
+- 修正 Macro-F1：`21.8272%`。
+- 修正 Weighted-F1：`28.5626%`。
 
-本轮检索到的最高已发表 headline 是 **DPPLM 的 58.03% strategy accuracy**。然而目前只能从论文/机构元数据确认数字，拿不到完整协议、代码、权重和评测脚本，因此它只能叫“最高已发表 headline”，不能叫“已验证 SOTA”，也不值得现在就租服务器盲目重构。
+这仍然是本仓库对作者 checkpoint 的后验重放，不是 ACL 2021 论文原生公布的 Strategy ACC。
 
-真正可执行的候选分成两类：
+## 七、不能放入 8 类 Strategy-ACC 排名的数字
 
-1. **立即能跑的 strategy planner：EmoDynamiX。** 代码、ESConv checkpoint 下载项和测试脚本都公开。论文主指标是 Macro-F1 27.70、Weighted-F1 32.71，并没有报告 Accuracy，因此我们必须把 checkpoint 接到冻结 2,775 行上自行测。
-2. **端到端标准 ESConv 候选：PRCCF。** 论文报告 40.72% Accuracy，并描述标准 80/10/10 ESConv split；但论文给出的 GitHub 仓库在 2026-08-19 返回 404，当前无法下载代码或权重，暂时阻塞。
+### 1. KEMP 39.31%：任务被误配
+
+Causal-ESC Table 2 把 KEMP 39.31 写进 ACC 对照，但 KEMP 原论文 `Knowledge Bridging for Empathetic Dialogue Generation` 的 39.31 是 **EmpatheticDialogues 情绪分类准确率**。原论文不是 ESConv 下一策略预测论文，也没有提供一个公开的 ESConv 8 类重跑。因此本 benchmark 不把 KEMP 39.31 排入榜单。
+
+### 2. 三阶段 86.4%：不是 8 类策略
+
+`Improving Next Stage Prediction in Multi-turn Emotional Support Conversations via Multi-task Learning` 的 86.4% 是 Exploration / Comforting / Action 三阶段分类。类别数、目标和难度均不同，不可写成 ESConv Strategy ACC。
 
-所以目前最正确的状态不是把 `53.53` 换成 `58.03`，而是：
+### 3. EmoDynamiX：没有报告 Accuracy
 
-- 冻结榜继续保留已复算的 **BlenderBot Joint 19.60% / 2,775**；
-- 新建协议分层 registry；
-- 第一优先租一张约 24 GB VRAM 的 CUDA GPU，重跑 **EmoDynamiX checkpoint → frozen 2,775**；
-- DPPLM、SAGE、Causal-ESC 和 PRCCF 在关键材料释放前不租卡盲跑；
-- 未来“静室”核心的替代决策必须同时通过策略、回复质量、安全、延迟、成本和统计显著性门禁。
+EmoDynamiX 在 ESConv 上报告 Macro-F1 **27.70**、Weighted-F1 **32.71**、Preference Bias **0.45**，没有报告 Strategy ACC。任何把 DailyDialog 情绪识别 Accuracy 或自行猜测值填给 EmoDynamiX 的做法都不正确。
 
-## 1. 为什么不存在一个可以直接排序的“ESConv Accuracy 榜”
+### 4. ACL 2021 原论文：没有 Strategy ACC
 
-同样写着 ESConv 和 Accuracy，实际可能至少有以下差异：
+原论文只报告生成指标，例如 BlenderBot Joint 的 BLEU-2 5.35、ROUGE-L 15.46、BOW Extrema 50.27；Strategy ACC 是本项目后来用 checkpoint 复算的，不应倒写回 2021 Table 4。
 
-- 原始 8 类还是合并/新增过的策略标签；
-- 单个 supporter turn，还是未来策略序列；
-- 官方 80/10/10 split，还是随机抽样的 policy-learning 数据；
-- 完整 2,775 个 supporter turn，还是论文自己重构的样本；
-- exact-match Accuracy，还是 Macro-F1 / Weighted-F1；
-- 模型直接预测策略，还是由 API 生成回复；
-- 是否把当前 target response 或 target strategy 泄露进输入。
+### 5. ESCA 的 47.44%：是 SR@10，不是 Strategy ACC
 
-因此，本审计禁止维护一个跨协议 global leader。只有使用本仓库冻结文件、同一 2,775 个 task IDs、原始 8 类标签和同一 target construction 的运行，才允许进入正式榜。
+AAAI 2026 的 ESCA 报告交互式任务目标成功率 `SR@10 = 47.44%` 和平均轮数 `AT = 8.96`。这衡量的是最多 10 轮内是否完成情绪支持目标及交互效率，不是单个 supporter turn 的八类策略 exact-match Accuracy，因此不能插入 58.03/53.53/46.80 的 Strategy-ACC 排名。
 
-## 2. 当前论文结果分层
+### 6. 多策略单轮任务：目标结构已经改变
 
-| 层级 | 论文/模型 | 论文数字 | 现在能否当本项目 SOTA | 代码/权重状态 |
-|---|---|---:|---|---|
-| 最高 headline、协议未知 | DPPLM | Strategy ACC 58.03 | 否 | 未找到代码、权重、完整评测协议 |
-| 论文特定 offline-policy | Causal-ESC, ACL 2026 | ACC 53.53 | 否 | 未找到对应 ACL 2026 代码；生成还依赖 GPT-4o/DeepSeek API |
-| 近期 8 类 ESConv 论文 | SAGE, 2026 | ACC 46.80；Macro-F1 38.95 | 不能直接进入冻结榜 | 未找到代码/权重；数据 on request |
-| 修改标签/规划协议 | MultiESC, EMNLP 2022 | ACC 42.01 | 否 | 代码与数据公开；无训练后 checkpoint，需要多阶段训练 |
-| 标准 split 的端到端候选 | PRCCF, 2026 | ACC 40.72 | 复现后才可能 | 论文声称公开，但仓库当前 404 |
-| 可立即运行的 planner | EmoDynamiX, NAACL 2025 | Macro-F1 27.70；Weighted-F1 32.71 | 必须自行测 Accuracy | 代码、checkpoint 与测试脚本公开 |
-| 外部策略测试 | CSO, Findings EMNLP 2025 | 主表 LoRA CSO-DPO：Macro-F1 35.77；Weighted-F1 52.34 | 否 | 数据构造代码公开；无训练权重；测试不是 frozen ESConv |
-| 本仓库正式冻结结果 | BlenderBot Joint, 2021 checkpoint | ACC 19.60 / 2,775 | 是，当前正式 baseline | 已复现 |
+2026 年的 multi-strategy formulation 允许一个 supporter turn 中连续出现多个 strategy–response pairs。它预测的是策略序列/片段，而不是经典单标签下一策略，必须另建 track。
 
-### 2.1 DPPLM：58.03 是“最高 headline”，不是已验证冠军
+## 八、Google Scholar 链接
 
-论文为 *Applying Emotion-Cause Entailment for Help-Seeker Guidance in Emotional Support Conversations*，模型称 DPPLM。可访问元数据给出的结果为：
+Google Scholar 的 `Cited by` 数会变化，而且本次自动访问触发限流，所以没有拿 Semantic Scholar、Scopus、PWC 或其他网站的数字冒充 Scholar cited-by。下面全部是**精确题名查询链接**；它们用于定位论文和 citation graph，**不是 ACC 数字本身的证据**。ACC 的证据仍然是原论文表或官方出版社摘要。需要引用数时，应手动打开并记录日期、结果条目和 `Cited by` URL。
 
-- Strategy Accuracy 58.03%
-- Emotion Accuracy 65.42%
-- BERTScore 0.8451
-- ROUGE-L 12.10
-- Distinct-1 4.63
-- Distinct-2 32.24
+| 模型/论文 | Google Scholar 精确题名查询 | 当前 cited-by 字段 |
+|---|---|---|
+| DPPLM | [Google Scholar](https://scholar.google.com/scholar?q=%22Applying+Emotion-Cause+Entailment+for+Help-Seeker+Guidance+in+Emotional+Support+Conversations%22) | `null`（动态，2026-08-19 未冻结） |
+| Causal-ESC | [Google Scholar](https://scholar.google.com/scholar?q=%22Causal-ESC%3A+Reliable+Policy+Learning+for+Emotional+Support+Conversation+via+Causal+Inference%22) | `null`（动态，2026-08-19 未冻结） |
+| SAGE | [Google Scholar](https://scholar.google.com/scholar?q=%22SAGE%3A+Self-retrieval-augmented+generative+LLM+for+emotional+support+conversation%22) | `null`（动态，2026-08-19 未冻结） |
+| CADSS | [Google Scholar](https://scholar.google.com/scholar?q=%22Simulating+Human-Like+Counseling%3A+A+Path-+and+Scenario-Guided+Framework+for+Psychological+Support+Dialogue%22) | `null`（动态，2026-08-19 未冻结） |
+| MultiESC | [Google Scholar](https://scholar.google.com/scholar?q=%22Improving+Multi-turn+Emotional+Support+Dialogue+Generation+with+Lookahead+Strategy+Planning%22) | `null`（动态，2026-08-19 未冻结） |
+| PRCCF | [Google Scholar](https://scholar.google.com/scholar?q=%22PRCCF%3A+A+Persona-guided+Retrieval+and+Causal-aware+Cognitive+Filtering+Framework+for+Emotional+Support+Conversation%22) | `null`（动态，2026-08-19 未冻结） |
+| GREEN | [Google Scholar](https://scholar.google.com/scholar?q=%22GREEN%3A+Generative+Retrieval-Enhanced+Emotional+Support+Conversations%22) | `null`（动态，2026-08-19 未冻结） |
+| Hao–Kong framework | [Google Scholar](https://scholar.google.com/scholar?q=%22Enhancing+Emotional+Support+Conversations%3A+A+Framework+for+Dynamic+Knowledge+Filtering+and+Persona+Extraction%22) | `null`（动态，2026-08-19 未冻结） |
+| D²RCU | [Google Scholar](https://scholar.google.com/scholar?q=%22Dynamic+Demonstration+Retrieval+and+Cognitive+Understanding+for+Emotional+Support+Conversation%22) | `null`（动态，2026-08-19 未冻结） |
+| TransESC | [Google Scholar](https://scholar.google.com/scholar?q=%22TransESC%3A+Smoothing+Emotional+Support+Conversation+via+Turn-Level+State+Transition%22) | `null`（动态，2026-08-19 未冻结） |
+| PAL | [Google Scholar](https://scholar.google.com/scholar?q=%22PAL%3A+Persona-Augmented+Emotional+Support+Conversation+Generation%22) | `null`（动态，2026-08-19 未冻结） |
+| CauESC | [Google Scholar](https://scholar.google.com/scholar?q=%22CauESC%3A+A+Causal+Aware+Model+for+Emotional+Support+Conversation%22) | `null`（动态，2026-08-19 未冻结） |
+| FADO | [Google Scholar](https://scholar.google.com/scholar?q=%22FADO%3A+Feedback-Aware+Double+COntrolling+Network+for+Emotional+Support+Conversation%22) | `null`（动态，2026-08-19 未冻结） |
+| MISC | [Google Scholar](https://scholar.google.com/scholar?q=%22MISC%3A+A+Mixed+Strategy-Aware+Model+integrating+COMET+for+Emotional+Support+Conversation%22) | `null`（动态，2026-08-19 未冻结） |
+| CARE | [Google Scholar](https://scholar.google.com/scholar?q=%22CARE%3A+Cognitive-reasoning+Augmented+Reinforcement+for+Emotional+Support+Conversation%22) | `null`（动态，2026-08-19 未冻结） |
+| ESCA（非 ACC track） | [Google Scholar](https://scholar.google.com/scholar?q=%22ESCA%3A+An+Emotional+Support+Conversation+Agent+for+Enhancing+Reasonable+Strategy+Planning+and+Effective+Expression%22) | `null`（动态，2026-08-19 未冻结） |
+| BlenderBot-small Joint (author checkpoint replay in this repository) | [Google Scholar](https://scholar.google.com/scholar?q=%22Towards+Emotional+Support+Dialog+Systems%22) | `null`（动态，2026-08-19 未冻结） |
+| EmoDynamiX | [Google Scholar](https://scholar.google.com/scholar?q=%22EmoDynamiX%3A+Emotional+Support+Dialogue+Strategy+Prediction+by+Modelling+MiXed+Emotions+and+Discourse+Dynamics%22) | `null`（动态，2026-08-19 未冻结） |
 
-阻塞点：
+## 九、Papers With Code 链接与限制
 
-- 未取得完整可执行代码和权重；
-- 无法确认 exact split、测试条数、标签映射和 target unit；
-- 无法把 58.03 与 53.53、46.80 或冻结 19.60 做配对统计；
-- 目前不应为它租 GPU，因为没有可运行对象。
+这里必须区分两个不同站点：
 
-登记状态：`unknown_protocol_headline`。
+1. **原始 `paperswithcode.com`**：原来的 Meta Papers With Code benchmark/leaderboard 服务在 2025 年 7 月停止运行，后来旧域名转向其他页面。它留下的论文页与数据归档只能作为历史索引。
+2. **用户给出的 `paperswithcode.co`**：截至 2026-08-19 目前可以打开，首页和 paper archive 会收录 2026 论文；但本次检查到的页面没有说明它是原 Meta Papers With Code 的官方继承者，也没有找到可核验的 ESConv Strategy-ACC leaderboard 或上述 ESConv 论文的精确条目。因此不能拿 `.co` 的存在替代原论文 ACC 证据。
 
-### 2.2 Causal-ESC：53.53 的来源已确认，但协议不同
+当前可核查入口：
 
-ACL 2026 Table 2 报告：
+- [`paperswithcode.co` 首页](https://paperswithcode.co/)
+- [`paperswithcode.co` Paper Archive](https://paperswithcode.co/papers/archive)
+- [原始 Papers With Code 历史数据归档](https://github.com/paperswithcode/paperswithcode-data)
 
-| 模型 | ACC | BLEU-2 | BLEU-4 | Dist-1 | Dist-2 | ROUGE-L | METEOR |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Causal-ESC | 53.53 | 9.54 | 4.07 | 8.25 | 40.86 | 22.15 | 10.23 |
+结论：**Papers With Code 类站点用于找论文/代码；ACC 是否正确仍必须回到原论文表或官方出版社记录。** 本次 `.co` 检索没有发现能证明 DPPLM 58.03、Causal-ESC 53.53 或 SAGE 46.80 的独立 leaderboard 页面，所以 registry 对这些条目的 `paperswithcode_co_url` 保持 `null`。
 
-论文附录进一步说明：
+| 论文 | 原始 `.com` 历史 PWC 证据 | 当前 `.co` 核查 |
+|---|---|---|
+| DPPLM | —（发布时间接近原服务停止） | 未找到精确条目/ESConv leaderboard |
+| Causal-ESC | —（2026 发表） | 未找到精确条目/ESConv leaderboard |
+| SAGE | —（2026 发表） | 未找到精确条目/ESConv leaderboard |
+| CADSS | —（2026 发表） | 未找到精确条目/ESConv leaderboard |
+| MultiESC | [历史作者索引](https://paperswithcode.com/author/yefeng-zheng) | 未找到可核验的精确条目 |
+| PRCCF | —（2026 preprint） | 未找到精确条目/ESConv leaderboard |
+| GREEN | — | 未找到精确条目/ESConv leaderboard |
+| Hao–Kong framework | — | 未找到精确条目/ESConv leaderboard |
+| D²RCU | — | 未找到精确条目/ESConv leaderboard |
+| TransESC | [历史作者索引](https://paperswithcode.com/author/weixiang-zhao) | 未找到可核验的精确条目 |
+| PAL | [历史作者索引](https://paperswithcode.com/author/minlie-huang) | 未找到可核验的精确条目 |
+| CauESC | — | 未找到精确条目/ESConv leaderboard |
+| FADO | [历史论文页](https://paperswithcode.com/paper/fado-feedback-aware-double-controlling) | 未找到可核验的精确条目 |
+| MISC | [历史作者索引](https://paperswithcode.com/author/quan-tu) | 未找到可核验的精确条目 |
+| CARE | —（原服务停止后提交） | 未找到精确条目/ESConv leaderboard |
+| ESConv 2021 | [历史论文页](https://paperswithcode.com/paper/towards-emotional-support-dialog-systems) | 未找到可核验的精确条目；历史页本身也没有 Strategy-ACC 结果 |
 
-- 使用 GPT-4o 和 DeepSeek API 做 strategy-styled response generation；
-- 对 ESConv 随机抽取 20% 用于 policy training 和 style demonstration pool；
-- 未提供与本仓库 frozen test 完全一致的 test ID list、seed、checkpoint 和评测脚本。
+## 十、代码和 checkpoint 可用性
 
-因此 `53.53` 可以写成：
+| 模型 | 代码状态 |
+|---|---|
+| DPPLM | not found |
+| Causal-ESC | [https://github.com/zze-00/Causal-ESC](https://github.com/zze-00/Causal-ESC) — public repository found, but release identity/checkpoint equivalence to the ACL paper is not sufficiently documented |
+| SAGE | not found; publisher says data available on request |
+| CADSS | [https://github.com/FakerBoom/CPsDD](https://github.com/FakerBoom/CPsDD) — repository public; README says CADSS/PGSim code will be released later |
+| MultiESC | [https://github.com/lwgkzl/MultiESC](https://github.com/lwgkzl/MultiESC) — public code/data; no released trained checkpoint found |
+| PRCCF | [https://github.com/YancyLyx/PRCCF](https://github.com/YancyLyx/PRCCF) — paper claims public code; repository returned 404 during the 2026-08-19 audit |
+| GREEN | not found |
+| Hao–Kong framework | not found |
+| D²RCU | [https://github.com/Bat-Reality/DDRCU](https://github.com/Bat-Reality/DDRCU) — public code link stated in the paper |
+| TransESC | paper says source code would be released; no checkpoint used in this audit |
+| PAL | [https://github.com/chengjl19/PAL](https://github.com/chengjl19/PAL) — public code and data |
+| CauESC | not found |
+| FADO | [https://github.com/Thedatababbler/FADO](https://github.com/Thedatababbler/FADO) — paper states code is available; historical PWC page lists no implementation entry |
+| MISC | [https://github.com/morecry/MISC](https://github.com/morecry/MISC) — public code |
+| CARE | no verified official code release used in this audit |
+| ESCA | [official AAAI paper](https://ojs.aaai.org/index.php/AAAI/article/view/38807); its SR@10 belongs to a separate interactive track |
+| EmoDynamiX | [https://github.com/cw-wan/EmoDynamiX-v2](https://github.com/cw-wan/EmoDynamiX-v2) — 代码、ESConv checkpoint 下载项和测试脚本公开；需要在 frozen 2,775 上自行测 ACC |
 
-> Causal-ESC 论文特定 offline-policy 协议下的 strategy accuracy = 53.53%。
+## 十一、正式 benchmark 应该怎么保存
 
-不能写成：
+本项目以后应固定为两个榜，禁止混用：
 
-> ESConv 当前最高 Accuracy = 53.53%。
+### A. `paper_reported_protocol_specific`
 
-登记状态：`paper_specific_policy_learning`。
+保存论文自报值、年份、venue、表格位置、数据版本、标签空间、split、代码/权重状态和证据等级。该榜用于文献综述，不能宣称是本项目统一 SOTA。
 
-### 2.3 SAGE：46.80 很强，但当前不可下载复现
+### B. `frozen_2775_reproduced`
 
-SAGE 报告 Strategy Accuracy 46.80%、Macro-F1 38.95%、Distinct-2 39.86，并使用 emotion-state strategy prediction、strategy-specific trie-constrained decoding、COMET 与 HEAL knowledge fusion。它对改进路线很有价值，但出版页面目前仅写数据可按需提供，未找到公开代码和 checkpoint。
+只有满足以下条件才能进入：
 
-登记状态：`paper_reported_standard_esconv_8class`，复现状态：blocked。
+1. 完全相同的 2,775 个 task IDs；
+2. 原始 8 类标签与冻结映射；
+3. 当前 target strategy/response 不进入输入；
+4. 同一 exact-match scorer；
+5. 保存逐条预测、checkpoint hash、代码 commit 和环境；
+6. 报 ACC、Macro-F1、Weighted-F1、逐类 F1、混淆矩阵；
+7. 按 dialogue cluster 做 bootstrap 95% CI；
+8. 模型间做配对 McNemar，而不是只比较两个百分数。
 
-### 2.4 PRCCF：标准 split 候选，但“公开代码”当前失效
+## 十二、现在可以下的结论
 
-PRCCF 论文报告：
+- **截至 2026-08-19，本次审计找到的最高论文自报 headline：DPPLM 58.03%，证据 B。**
+- **最高完整原论文表核实值：Causal-ESC 53.53%，证据 A，但协议特殊。**
+- **最高明确 8 类且同时给 Macro-F1 的正式期刊结果：SAGE 46.80% ACC / 38.95% Macro-F1。**
+- **当前本仓库机器可读 frozen replay：32.22% ACC，不是论文成绩；旧 19.60% 已明确撤回。**
+- **KEMP 39.31、三阶段 86.4、EmoDynamiX 的非 ACC 指标均不得混入 8 类 Strategy-ACC 排名。**
 
-- Accuracy 40.72
-- PPL 13.10
-- BLEU-4 3.55
-- ROUGE-L 19.78
-
-论文描述标准 ESConv 80/10/10 split，并写明单张 NVIDIA 3090 Ti；从协议角度看，它比 53.53 更接近本仓库要复现的端到端 baseline。
-
-但论文给出的 `YancyLyx/PRCCF` 在审计当天返回 404。不能因为摘要写着 code public 就把它登记成可运行。
-
-登记状态：`blocked_repository_unavailable`。
-
-### 2.5 EmoDynamiX：本轮最值得先实际跑的模型
-
-EmoDynamiX 是独立 strategy planner，而不是回复生成器。其公开仓库提供：
-
-- ESConv checkpoint 下载项；
-- pretrained submodules；
-- `test_roberta_hg_esconv.sh`；
-- `train_roberta_hg_esconv.sh`；
-- Python quick-start 接口。
-
-论文刻意使用 Macro-F1 / Weighted-F1 来处理类别不平衡，报告 27.70 / 32.71，没有给 Accuracy。正因为没有 Accuracy，它正好符合用户提出的第 3 项：下载模型并在统一数据上自行跑。
-
-本分支新增 `scripts/run_emodynamix_frozen_esconv.py`，把这一步从“计划”推进为可审计执行入口。脚本固定外部 commit
-`c9213d718a9684a5e05ce5daa947f9cbbfb7b927`，严格复刻作者的输入构造：
-
-- 在对话开头加入作者代码中的 `<START>` 伪 turn；
-- 只保留 target 前最后 5 个 turn；
-- 历史 supporter strategy 可以输入，但当前 target strategy 和 target response 永不输入；
-- 只允许两项显式标签拼写映射：`Questions -> Question`、`Other -> Others`；
-- checkpoint、frozen test、adapter 和逐条输入都记录 SHA-256；
-- 支持续跑，但发现 checkpoint、commit 或 adapter protocol 改变时拒绝混写；
-- 输出与现有 paired analyzer 兼容的 JSONL。
-
-正式运行形式：
-
-```bash
-python scripts/run_emodynamix_frozen_esconv.py \
-  --emodynamix-repo /path/to/EmoDynamiX-v2 \
-  --checkpoint /path/to/released-esconv-checkpoint \
-  --test-file /path/to/frozen/esconv/test.txt \
-  --output results/esconv/emodynamix_frozen2775.jsonl
-```
-
-然后使用现有 paired analyzer，并将 `--n` 设为 `2775`，与已冻结 baseline prediction arm 做逐条比较。
-
-第一轮正式 GPU 任务应当是：
-
-1. checkout 上述外部 commit；
-2. 下载 checkpoint，计算并保存文件 SHA-256；
-3. 先用少量 `--limit` smoke test 检查依赖和输出；
-4. 用本仓库 frozen 2,775 task IDs 完整推理；
-5. 计算 Accuracy、Macro-F1、Weighted-F1、逐类 F1、混淆矩阵；
-6. 按 dialogue cluster 做 bootstrap 95% CI；
-7. 与 BlenderBot Joint、DeepSeek/Qwen arms 做配对 McNemar；
-8. 保存 GPU 型号、运行时、环境锁、完整 JSONL 和 manifest。
-
-登记状态：`adapter_ready_checkpoint_download_pending`。
-
-### 2.6 MultiESC 和 CSO 为什么不能直接当冠军
-
-MultiESC 的 42.01 来自 lookahead strategy planning 管线；其标签处理和预测对象不等同于冻结 8 类单 turn exact-match。代码和数据公开，但仓库没有训练后权重，多阶段命令还显式使用两张 GPU。
-
-CSO 公开的是 MCTS、偏好数据构造和 ESC-Pro 数据入口；论文主表的 LoRA CSO-DPO 结果为 Macro-F1 35.77、Weighted-F1 52.34，附录还报告了不同优化变体，但这些数字都来自 ExTES 派生策略测试，不是 frozen ESConv Accuracy。它适合以后做 preference optimization，不适合做当前 Accuracy baseline。
-
-## 3. Google Scholar cited-by 审计状态
-
-用户要求论文与 cited-by 数全部以 Google Scholar 为准。本次环境无法直接打开 Google Scholar 结果页，因此：
-
-- 所有 `cited_by_count` 保持 `null`；
-- 没有拿 Semantic Scholar、Scopus、ResearchGate 或出版商引用数冒充 Google Scholar；
-- 每篇论文的精确 Scholar 查询字符串已写入 JSON registry；
-- 待人工直连 Google Scholar 后填写 `count + result URL + verified_at`；
-- cited-by 数只用于了解影响力，不用于判断模型成绩是否可比较。
-
-这是有意的“不填”，不是漏项。错误地填一个非 Scholar 数字，会破坏整个证据链。
-
-## 4. GPU 复现队列
-
-### P1：EmoDynamiX frozen-2775
-
-这是唯一已经同时满足代码、checkpoint 下载项、公开测试入口的近期 planner。
-
-必须产物：
-
-- 外部 commit、环境锁、checkpoint SHA-256；
-- 2,775 条逐条 prediction JSONL；
-- 显式 8 类映射表；
-- Accuracy / Macro-F1 / Weighted-F1 / confusion matrix；
-- dialogue-cluster bootstrap CI；
-- 完整运行日志与 GPU/耗时记录。
-
-### P2：MultiESC paper-native reproduction
-
-先复现其自己的 42.01，再讨论是否能映射回原始 8 类。禁止边改标签边声称复现论文。因为没有 checkpoint，需要训练；作者命令的若干阶段使用两个 CUDA device。
-
-### P3：PRCCF
-
-先等待官方仓库恢复或作者提供归档。代码不可用前不租卡。
-
-### P4：CSO preference stage
-
-只作为训练改进，不作为 ESConv Accuracy arm。先审计 ESC-Pro 与冻结 benchmarks 的污染风险。
-
-### 暂停：DPPLM / SAGE / Causal-ESC
-
-缺少代码、权重或 exact protocol。继续租卡只会变成“猜论文实现”，无法形成可审计证据。
-
-## 5. 基于最好思想改进，而不是照抄一个不可复现模型
-
-建议的新“静室”开源核心采用 **planner + generator + safety gate**：
-
-### A. 显式策略规划器
-
-起点：EmoDynamiX。
-
-加入：
-
-- 类别平衡 loss；
-- 概率校准和 abstention；
-- Causal-ESC 启发的 propensity / outcome 双模型，但只在 train split 上训练；
-- emotion-cause 与 emotion trajectory 特征；
-- 预测完整 8 类概率，不只输出 argmax。
-
-### B. 开源生成器
-
-使用可本地部署的 instruction-tuned 开源模型，输入：
-
-- 对话上下文；
-- planner 概率和最终策略；
-- 检索证据；
-- 安全约束。
-
-先做 SFT，再做 preference optimization；不能先拿冻结 test 调 prompt 或训练。
-
-### C. 检索与知识模块
-
-吸收 SAGE / PRCCF 的可解释思想：
-
-- persona-aware retrieval；
-- emotion-trajectory retrieval；
-- causality-aware knowledge filtering；
-- strategy-specific retrieval；
-- 只从 train-side 索引检索，避免 test response 泄漏。
-
-### D. CSO 式偏好优化
-
-在 planner + SFT generator 固定后，再使用 MCTS/偏好对训练。CSO 的论文分数不能继承给新模型，必须重新跑全部冻结 benchmark。
-
-### E. 安全 fallback
-
-模型部署在心理支持场景，不能因为策略 Accuracy 上升就自动取代 API。必须有：
-
-- 风险分类与安全模板；
-- 低置信度回退；
-- 工具/事实检索边界；
-- 失败日志和人工审计；
-- 可一键切回当前 API 的 rollback。
-
-## 6. 取代 DeepSeek API 的门禁
-
-新模型至少同时满足：
-
-1. frozen 2,775 strategy Accuracy、Macro-F1、Weighted-F1 全部报告；
-2. 对当前 DeepSeek arm 做逐条配对比较，而不是只比两个百分数；
-3. Accuracy 差值的 dialogue-cluster bootstrap 95% CI；
-4. exact McNemar + Holm correction；
-5. 未见场景的盲评回复质量；
-6. 安全任务不得退步；
-7. invalid output、延迟、吞吐、成本、宕机恢复满足部署要求；
-8. 所有训练数据与 benchmark 去污染记录可审计；
-9. 保留 API fallback 和 rollback。
-
-任何一个论文 Accuracy 都不能单独触发生产替换。
-
-## 7. 本分支新增的审计资产
-
-- `reports/esconv_sota_registry_20260819.json`  
-  机器可读论文/模型/协议/指标/代码权重状态；强制按 track 分层。
-- `scripts/check_esconv_sota_registry.py`  
-  阻止跨协议 global leader、伪造 Scholar 数字和非法百分比。
-- `scripts/run_emodynamix_frozen_esconv.py`  
-  已完成的 frozen 2,775 适配器，固定外部 commit、输入窗口、标签映射、resume 和哈希证据。
-- `configs/esconv_reproduction_queue_20260819.json`  
-  GPU 复现优先级、产物和阻塞条件。
-- 本报告  
-  给出研究结论、改进路线和替代门禁。
-
-## 8. 当前最终判定
-
-- **58.03%**：最高已发表 headline；不可复现，协议未核实。
-- **53.53%**：真实论文值；不是 frozen 2,775 协议。
-- **46.80%**：SAGE 强结果；无代码/权重。
-- **42.01%**：MultiESC 修改协议；有代码、无权重。
-- **40.72%**：PRCCF 标准 split 候选；仓库当前 404。
-- **EmoDynamiX**：本轮唯一“代码 + checkpoint + 测试脚本”明确可执行的近期策略规划器。
-- **19.60%**：当前唯一已在本仓库 frozen full test 上完成复算的正式基线。
-
-下一步不是改榜单数字，而是完成 `EmoDynamiX → frozen 2,775` 的第一次外部 checkpoint 统一重跑。
+机器可读版本：`reports/esconv_benchmark_registry_20260819.json`。该 JSON 对每项保存年份、venue、ACC/F1/生成指标、原始证据 URL、Google Scholar 精确题名查询、历史 PWC 状态、代码状态和协议可比性。
