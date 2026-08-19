@@ -1,0 +1,423 @@
+{
+  "v": "1.1",
+  "date": "2026-08-19",
+  "dataset": "ESConv",
+  "warning": "paper values are protocol-specific; only frozen_2775 is directly comparable",
+  "leaders": {
+    "highest_official_headline": {
+      "model": "DPPLM",
+      "acc": 58.03,
+      "grade": "B",
+      "note": "2025 online-first; 2026 issue"
+    },
+    "highest_full_table": {
+      "model": "Causal-ESC",
+      "acc": 53.53,
+      "grade": "A",
+      "note": "special offline-policy protocol"
+    },
+    "highest_acc_plus_macro_f1_journal": {
+      "model": "SAGE",
+      "acc": 46.8,
+      "macro_f1": 38.95
+    }
+  },
+  "scholar_policy": "exact-title links only; cited-by counts not frozen because Scholar access was rate-limited; Scholar is not the ACC source",
+  "pwc_policy": {
+    "dot_com": "original service stopped July 2025; historical only",
+    "dot_co": "reachable separate index; no verified ESConv ACC leaderboard found",
+    "dot_co_home": "https://paperswithcode.co/",
+    "dot_co_archive": "https://paperswithcode.co/papers/archive"
+  },
+  "papers": [
+    {
+      "r": 1,
+      "model": "DPPLM",
+      "paper": "Applying Emotion-Cause Entailment for Help-Seeker Guidance in Emotional Support Conversations",
+      "year": 2026,
+      "venue": "IEEE Transactions on Computational Social Systems, 13(2), 2060–2072",
+      "acc": 58.03,
+      "grade": "B",
+      "split": "not disclosed in the accessible official abstract",
+      "paper_url": "https://researchoutput.ncku.edu.tw/en/publications/applying-emotion-cause-entailment-for-help-seeker-guidance-in-emo/",
+      "scholar": "https://scholar.google.com/scholar?q=%22Applying+Emotion-Cause+Entailment+for+Help-Seeker+Guidance+in+Emotional+Support+Conversations%22",
+      "pwc_com": null,
+      "pwc_co": null,
+      "metrics": {
+        "emotion_accuracy_percent": 65.42,
+        "bertscore": 0.8451,
+        "rouge_l": 12.1,
+        "distinct_1": 4.63,
+        "distinct_2": 32.24
+      }
+    },
+    {
+      "r": 2,
+      "model": "Causal-ESC",
+      "paper": "Causal-ESC: Reliable Policy Learning for Emotional Support Conversation via Causal Inference",
+      "year": 2026,
+      "venue": "ACL 2026, Long Papers",
+      "acc": 53.53,
+      "grade": "A",
+      "split": "paper-specific offline-policy setup; appendix mentions a random 20% selection for policy training/style demonstrations",
+      "paper_url": "https://aclanthology.org/2026.acl-long.886/",
+      "scholar": "https://scholar.google.com/scholar?q=%22Causal-ESC%3A+Reliable+Policy+Learning+for+Emotional+Support+Conversation+via+Causal+Inference%22",
+      "pwc_com": null,
+      "pwc_co": null,
+      "metrics": {
+        "bleu_2": 9.54,
+        "bleu_4": 4.07,
+        "distinct_1": 8.25,
+        "distinct_2": 40.86,
+        "rouge_l": 22.15,
+        "meteor": 10.23
+      }
+    },
+    {
+      "r": 3,
+      "model": "SAGE",
+      "paper": "SAGE: Self-retrieval-augmented generative LLM for emotional support conversation",
+      "year": 2026,
+      "venue": "Expert Systems with Applications, Vol. 313, Article 131524",
+      "acc": 46.8,
+      "grade": "A",
+      "split": "1,300-dialogue ESConv snapshot; 70/10/20 split (910/130/260 dialogues)",
+      "paper_url": "https://www.sciencedirect.com/science/article/pii/S0957417426004379",
+      "scholar": "https://scholar.google.com/scholar?q=%22SAGE%3A+Self-retrieval-augmented+generative+LLM+for+emotional+support+conversation%22",
+      "pwc_com": null,
+      "pwc_co": null,
+      "macro_f1": 38.95,
+      "metrics": {
+        "ppl": 14.32,
+        "bleu_2": 11.87,
+        "bleu_4": 3.88,
+        "distinct_1": 9.24,
+        "distinct_2": 39.86,
+        "rouge_l": 20.51
+      }
+    },
+    {
+      "r": 4,
+      "model": "CADSS",
+      "paper": "Simulating Human-Like Counseling: A Path- and Scenario-Guided Framework for Psychological Support Dialogue",
+      "year": 2026,
+      "venue": "AAAI 2026, Vol. 40 No. 21",
+      "acc": 46.26,
+      "grade": "A",
+      "split": "paper reports an 8:1:1 split",
+      "paper_url": "https://ojs.aaai.org/index.php/AAAI/article/view/38825",
+      "scholar": "https://scholar.google.com/scholar?q=%22Simulating+Human-Like+Counseling%3A+A+Path-+and+Scenario-Guided+Framework+for+Psychological+Support+Dialogue%22",
+      "pwc_com": null,
+      "pwc_co": null,
+      "metrics": {
+        "ppl": 30.14,
+        "bleu_1": 27.54,
+        "bleu_2": 15.06,
+        "bleu_3": 10.05,
+        "bleu_4": 5.64,
+        "distinct_1": 8.88,
+        "distinct_2": 32.49,
+        "rouge_l": 16.57
+      }
+    },
+    {
+      "r": 5,
+      "model": "MultiESC",
+      "paper": "Improving Multi-turn Emotional Support Dialogue Generation with Lookahead Strategy Planning",
+      "year": 2022,
+      "venue": "EMNLP 2022",
+      "acc": 42.01,
+      "grade": "A",
+      "split": "8:1:1 split",
+      "paper_url": "https://aclanthology.org/2022.emnlp-main.195/",
+      "scholar": "https://scholar.google.com/scholar?q=%22Improving+Multi-turn+Emotional+Support+Dialogue+Generation+with+Lookahead+Strategy+Planning%22",
+      "pwc_com": "https://paperswithcode.com/author/yefeng-zheng",
+      "pwc_co": null,
+      "weighted_f1": 34.01,
+      "metrics": {
+        "feedback_score": 3.85
+      }
+    },
+    {
+      "r": 6,
+      "model": "PRCCF",
+      "paper": "PRCCF: A Persona-guided Retrieval and Causal-aware Cognitive Filtering Framework for Emotional Support Conversation",
+      "year": 2026,
+      "venue": "arXiv preprint; submitted to TACL",
+      "acc": 40.72,
+      "grade": "A",
+      "split": "paper-specific ESConv setup; exact frozen IDs not released",
+      "paper_url": "https://arxiv.org/abs/2604.01671",
+      "scholar": "https://scholar.google.com/scholar?q=%22PRCCF%3A+A+Persona-guided+Retrieval+and+Causal-aware+Cognitive+Filtering+Framework+for+Emotional+Support+Conversation%22",
+      "pwc_com": null,
+      "pwc_co": null,
+      "metrics": {
+        "ppl": 13.1,
+        "bleu_1": 23.94,
+        "bleu_2": 10.71,
+        "bleu_3": 5.87,
+        "bleu_4": 3.55,
+        "distinct_1": 6.17,
+        "distinct_2": 31.16,
+        "rouge_l": 19.78
+      }
+    },
+    {
+      "r": 7,
+      "model": "GREEN",
+      "paper": "GREEN: Generative Retrieval-Enhanced Emotional Support Conversations",
+      "year": 2025,
+      "venue": "SAGE Open, Vol. 15 No. 4",
+      "acc": 38.8,
+      "grade": "A",
+      "split": "paper describes 1,300 dialogues and 38,365 utterances and says it follows the original split",
+      "paper_url": "https://journals.sagepub.com/doi/10.1177/21582440251395922",
+      "scholar": "https://scholar.google.com/scholar?q=%22GREEN%3A+Generative+Retrieval-Enhanced+Emotional+Support+Conversations%22",
+      "pwc_com": null,
+      "pwc_co": null,
+      "metrics": {
+        "ppl": 15.87,
+        "bleu_4": 2.88,
+        "distinct_1": 6.24,
+        "distinct_2": 32.86,
+        "rouge_l": 18.51
+      }
+    },
+    {
+      "r": 8,
+      "model": "Hao–Kong framework",
+      "paper": "Enhancing Emotional Support Conversations: A Framework for Dynamic Knowledge Filtering and Persona Extraction",
+      "year": 2025,
+      "venue": "COLING 2025",
+      "acc": 35.51,
+      "grade": "A",
+      "split": "80/10/10 split",
+      "paper_url": "https://aclanthology.org/2025.coling-main.214/",
+      "scholar": "https://scholar.google.com/scholar?q=%22Enhancing+Emotional+Support+Conversations%3A+A+Framework+for+Dynamic+Knowledge+Filtering+and+Persona+Extraction%22",
+      "pwc_com": null,
+      "pwc_co": null,
+      "metrics": {
+        "ppl": 14.88,
+        "bleu_1": 21.38,
+        "bleu_2": 9.27,
+        "bleu_3": 4.93,
+        "bleu_4": 2.92,
+        "distinct_1": 4.88,
+        "distinct_2": 25.95,
+        "rouge_l": 18.87
+      }
+    },
+    {
+      "r": 9,
+      "model": "D²RCU",
+      "paper": "Dynamic Demonstration Retrieval and Cognitive Understanding for Emotional Support Conversation",
+      "year": 2024,
+      "venue": "SIGIR 2024",
+      "acc": 35.32,
+      "grade": "A",
+      "split": "paper-specific setup using ESConv/PESConv-derived retrieval information",
+      "paper_url": "https://arxiv.org/abs/2404.02505",
+      "scholar": "https://scholar.google.com/scholar?q=%22Dynamic+Demonstration+Retrieval+and+Cognitive+Understanding+for+Emotional+Support+Conversation%22",
+      "pwc_com": null,
+      "pwc_co": null,
+      "metrics": {
+        "ppl": 15.43,
+        "bleu_1": 21.2,
+        "bleu_2": 9.01,
+        "bleu_3": 4.81,
+        "bleu_4_original_table": 2.94,
+        "bleu_4_reprinted_by_green": 2.31,
+        "distinct_1": 4.97,
+        "distinct_2": 26.21,
+        "rouge_l": 18.71
+      }
+    },
+    {
+      "r": 10,
+      "model": "TransESC",
+      "paper": "TransESC: Smoothing Emotional Support Conversation via Turn-Level State Transition",
+      "year": 2023,
+      "venue": "Findings of ACL 2023",
+      "acc": 34.71,
+      "grade": "A",
+      "split": "paper-specific ESConv setup",
+      "paper_url": "https://aclanthology.org/2023.findings-acl.420/",
+      "scholar": "https://scholar.google.com/scholar?q=%22TransESC%3A+Smoothing+Emotional+Support+Conversation+via+Turn-Level+State+Transition%22",
+      "pwc_com": "https://paperswithcode.com/author/weixiang-zhao",
+      "pwc_co": null,
+      "metrics": {
+        "ppl": 15.85,
+        "bleu_1": 17.92,
+        "bleu_2": 7.64,
+        "bleu_3": 4.01,
+        "bleu_4": 2.43,
+        "distinct_1": 4.73,
+        "distinct_2": 20.48,
+        "rouge_l": 17.51
+      }
+    },
+    {
+      "r": 11,
+      "model": "PAL",
+      "paper": "PAL: Persona-Augmented Emotional Support Conversation Generation",
+      "year": 2023,
+      "venue": "Findings of ACL 2023",
+      "acc": 34.51,
+      "grade": "A",
+      "split": "PESConv, 7:2:1 split",
+      "paper_url": "https://aclanthology.org/2023.findings-acl.34/",
+      "scholar": "https://scholar.google.com/scholar?q=%22PAL%3A+Persona-Augmented+Emotional+Support+Conversation+Generation%22",
+      "pwc_com": "https://paperswithcode.com/author/minlie-huang",
+      "pwc_co": null,
+      "metrics": {
+        "ppl": 15.92,
+        "bleu_2": 8.75,
+        "bleu_4": 2.66,
+        "distinct_1": 5.0,
+        "distinct_2": 30.27,
+        "rouge_l": 18.06,
+        "cosine_similarity": 0.244
+      }
+    },
+    {
+      "r": 12,
+      "model": "CauESC",
+      "paper": "CauESC: A Causal Aware Model for Emotional Support Conversation",
+      "year": 2024,
+      "venue": "arXiv preprint",
+      "acc": 33.33,
+      "grade": "A",
+      "split": "8:1:1; 1,040/130/130 dialogues; averaged over three runs",
+      "paper_url": "https://arxiv.org/abs/2401.17755",
+      "scholar": "https://scholar.google.com/scholar?q=%22CauESC%3A+A+Causal+Aware+Model+for+Emotional+Support+Conversation%22",
+      "pwc_com": null,
+      "pwc_co": null,
+      "metrics": {
+        "ppl": 15.3,
+        "bleu_2": 8.17,
+        "bleu_3": 4.55,
+        "bleu_4": 2.82,
+        "distinct_1": 4.7,
+        "distinct_2": 19.85,
+        "rouge_l": 18.2
+      }
+    },
+    {
+      "r": 13,
+      "model": "FADO",
+      "paper": "FADO: Feedback-Aware Double COntrolling Network for Emotional Support Conversation",
+      "year": 2023,
+      "venue": "Knowledge-Based Systems, Vol. 264, Article 110340",
+      "acc": 32.9,
+      "grade": "A",
+      "split": "reports both the official ESConv split and the MISC re-split",
+      "paper_url": "https://www.sciencedirect.com/science/article/abs/pii/S0950705123000904",
+      "scholar": "https://scholar.google.com/scholar?q=%22FADO%3A+Feedback-Aware+Double+COntrolling+Network+for+Emotional+Support+Conversation%22",
+      "pwc_com": "https://paperswithcode.com/paper/fado-feedback-aware-double-controlling",
+      "pwc_co": null,
+      "metrics": {
+        "official_split": {
+          "ppl": 15.72,
+          "bleu_2": 8.0,
+          "bleu_3": 4.0,
+          "bleu_4": 2.32,
+          "distinct_1": 3.84,
+          "distinct_2": 21.84,
+          "rouge_l": 17.53
+        },
+        "misc_resplit": {
+          "strategy_accuracy_percent": 32.41,
+          "ppl": 15.52,
+          "bleu_2": 8.31,
+          "bleu_3": 4.36,
+          "bleu_4": 2.66,
+          "distinct_1": 3.8,
+          "distinct_2": 21.39,
+          "rouge_l": 18.09
+        }
+      }
+    },
+    {
+      "r": 14,
+      "model": "MISC",
+      "paper": "MISC: A Mixed Strategy-Aware Model integrating COMET for Emotional Support Conversation",
+      "year": 2022,
+      "venue": "ACL 2022, Long Papers",
+      "acc": 31.63,
+      "grade": "A",
+      "split": "paper re-split differs from the original official split",
+      "paper_url": "https://aclanthology.org/2022.acl-long.25/",
+      "scholar": "https://scholar.google.com/scholar?q=%22MISC%3A+A+Mixed+Strategy-Aware+Model+integrating+COMET+for+Emotional+Support+Conversation%22",
+      "pwc_com": "https://paperswithcode.com/author/quan-tu",
+      "pwc_co": null,
+      "metrics": {
+        "ppl": 16.16,
+        "bleu_2": 7.31,
+        "bleu_4": 2.2,
+        "distinct_1": 4.41,
+        "distinct_2": 19.71,
+        "rouge_l": 17.91,
+        "meteor": 11.05
+      }
+    },
+    {
+      "r": 15,
+      "model": "CARE (SFT-RL)",
+      "paper": "CARE: Cognitive-reasoning Augmented Reinforcement for Emotional Support Conversation",
+      "year": 2025,
+      "venue": "arXiv preprint; under review",
+      "acc": 30.29,
+      "grade": "A",
+      "split": "paper states 910 training and 195 test conversations; CARE is trained on ESConv reasoning-augmented data",
+      "paper_url": "https://arxiv.org/abs/2510.05122",
+      "scholar": "https://scholar.google.com/scholar?q=%22CARE%3A+Cognitive-reasoning+Augmented+Reinforcement+for+Emotional+Support+Conversation%22",
+      "pwc_com": null,
+      "pwc_co": null,
+      "metrics": {
+        "bleu_1": 15.01,
+        "bleu_2": 6.03,
+        "rouge_l": 16.79,
+        "meteor": 14.56,
+        "bertscore": 16.75,
+        "distinct_1": 4.73,
+        "distinct_2": 27.8
+      }
+    }
+  ],
+  "frozen_2775": {
+    "model": "BlenderBot-small Joint author checkpoint",
+    "acc": 32.21621621621622,
+    "correct": 894,
+    "total": 2775,
+    "macro_f1": 21.827168949288343,
+    "weighted_f1": 28.562612272020278,
+    "invalid": 0,
+    "test_sha256": "b85ae888bf747cefa54bba2a6c3e2f6ccb4c1005d4e0b6d1d3be3823cf040aef",
+    "checkpoint_sha256": "c972037e051773afb505c14746daafaadc827e36d57588269b86fccbc56ee7c6",
+    "source": "reports/esconv_joint_official_corrected_full_20260811.json",
+    "retracted": {
+      "acc": 19.603603603603602,
+      "correct": 544,
+      "source": "reports/esconv_original_joint_official_test_20260810.json",
+      "reason": "wrong strategy-token spelling/order and wrong checkpoint label map"
+    }
+  },
+  "excluded": [
+    {
+      "claim": "KEMP 39.31",
+      "why": "EmpatheticDialogues emotion ACC, not ESConv strategy ACC"
+    },
+    {
+      "claim": "Stage 86.4",
+      "why": "3-stage prediction, not 8-strategy ACC"
+    },
+    {
+      "claim": "ESCA 47.44",
+      "why": "SR@10 interactive success rate; AT=8.96, not strategy ACC"
+    },
+    {
+      "claim": "EmoDynamiX ACC",
+      "why": "paper reports macro-F1 27.70, weighted-F1 32.71, no ACC"
+    }
+  ]
+}
