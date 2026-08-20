@@ -9,9 +9,16 @@ configuration is not enough to recover an ESConv label map safely.
 
 Only prior dialogue turns are passed to a model.  The target strategy is kept
 as scorer-only gold data and the target supporter response is discarded while
-parsing.  ModernBERT artifacts are recorded below, but remain disabled until
-their authors publish an input construction contract; the frozen test must not
-be used to choose a template.
+parsing.  XLM-R and ModernBERT artifacts are recorded below, but remain
+disabled until an immutable frozen input construction contract is approved;
+the frozen test must not be used to choose a template.
+
+Before this process opens the frozen test or loads a model, it requires a
+pre-existing one-candidate/one-prediction-run campaign authorization bound to
+the immutable checkpoint, test hash, run name, ``--limit`` value, and output
+paths.  Full leaderboard eligibility additionally requires a complete
+zero-overlap training-provenance audit.  Third-party checkpoints without that
+evidence remain diagnostic even when their inference campaign was authorized.
 """
 
 from __future__ import annotations
@@ -40,6 +47,15 @@ if str(ROOT) not in sys.path:
 EXPECTED_FROZEN_ROWS = 2_775
 EXPECTED_FROZEN_TEST_SHA256 = (
     "b85ae888bf747cefa54bba2a6c3e2f6ccb4c1005d4e0b6d1d3be3823cf040aef"
+)
+TRAINING_PROVENANCE_AUDIT_SCHEMA = (
+    "esconv-checkpoint-training-provenance-audit-v1"
+)
+CAMPAIGN_AUTHORIZATION_SCHEMA = "esconv-frozen-campaign-authorization-v1"
+CHECKPOINT_TRAINING_PROVENANCE_CHOICES = (
+    "frozen_train_dev_only",
+    "external_unknown",
+    "known_overlap",
 )
 
 CANONICAL_LABELS = (
@@ -111,9 +127,13 @@ def _enabled_profile(
     template: str,
     max_length: int,
     reported_metrics: dict[str, Any] | None = None,
+    enabled: bool = True,
+    block_reason: str | None = None,
+    input_template_source: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
-        "enabled": True,
+        "enabled": enabled,
+        "block_reason": block_reason,
         "model_id": model_id,
         "revision": revision,
         "expected_architecture": architecture,
@@ -131,6 +151,8 @@ def _enabled_profile(
         "canonical_label_order": CANONICAL_LABELS,
         "label_mapping_source": f"README.md at immutable revision {revision}",
         "template": template,
+        "profile_requires_frozen_input_contract": True,
+        "input_template_source": input_template_source,
         "max_length": max_length,
         "truncation_side": "right",
         "reported_metrics": reported_metrics,
@@ -161,6 +183,8 @@ def _blocked_modernbert_profile(
         "canonical_label_order": CANONICAL_LABELS,
         "label_mapping_source": f"config.json at immutable revision {revision}",
         "template": None,
+        "profile_requires_frozen_input_contract": True,
+        "input_template_source": None,
         "max_length": 8_192,
         "truncation_side": None,
         "reported_metrics": None,
@@ -185,6 +209,16 @@ PROFILES: dict[str, dict[str, Any]] = {
             "source": "model card",
             "comparability": "not assumed to be the frozen original-ESConv test",
         },
+        input_template_source={
+            "kind": "immutable_model_card",
+            "url": (
+                "https://huggingface.co/heegyu/TinyLlama-augesc-context/blob/"
+                "4fd4cdc278812afd572e34040ecf433a31c8623e/README.md"
+            ),
+            "revision": "4fd4cdc278812afd572e34040ecf433a31c8623e",
+            "sha256": "84a4f2cecb97a5f39f876455cf4579b782a16c35a504612e1f284eba74bafa16",
+            "evidence": "Top-1 strategy-prediction example with usr:/sys: turns",
+        },
     ),
     "esconv-xlm-roberta-base": _enabled_profile(
         model_id="heegyu/esconv-xlm-roberta-base",
@@ -196,6 +230,12 @@ PROFILES: dict[str, dict[str, Any]] = {
         weight_size=1_112_223_464,
         template="heegyu_context_with_prior_strategy",
         max_length=512,
+        enabled=False,
+        block_reason=(
+            "profile requires an immutable frozen input contract; current adapter "
+            "must not choose an XLM-R template on the frozen test"
+        ),
+        input_template_source=None,
     ),
     "esconv-xlm-roberta-large": _enabled_profile(
         model_id="heegyu/esconv-xlm-roberta-large",
@@ -207,6 +247,12 @@ PROFILES: dict[str, dict[str, Any]] = {
         weight_size=2_239_643_272,
         template="heegyu_context_with_prior_strategy",
         max_length=512,
+        enabled=False,
+        block_reason=(
+            "profile requires an immutable frozen input contract; current adapter "
+            "must not choose an XLM-R template on the frozen test"
+        ),
+        input_template_source=None,
     ),
     "modernbert-singleturn": _blocked_modernbert_profile(
         model_id=(
@@ -261,6 +307,202 @@ def canonical_json_sha256(value: Any) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def load_json_artifact(path: Path, *, description: str) -> dict[str, Any]:
+    path = Path(path)
+    if not path.is_file():
+        raise ValueError(f"{description} does not exist: {path}")
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError(f"cannot read {description} JSON: {error}") from error
+    if not isinstance(document, dict):
+        raise ValueError(f"{description} must contain one JSON object")
+    return {
+        "path": str(path.resolve()),
+        "sha256": sha256_file(path),
+        "document": document,
+    }
+
+
+def validate_training_provenance_audit(
+    audit: dict[str, Any], *, dataset_hash: str
+) -> None:
+    if audit.get("schema_version") != TRAINING_PROVENANCE_AUDIT_SCHEMA:
+        raise ValueError(
+            "training provenance audit schema_version must equal "
+            f"{TRAINING_PROVENANCE_AUDIT_SCHEMA!r}"
+        )
+    if audit.get("audit_status") != "COMPLETE":
+        raise ValueError("training provenance audit status must be COMPLETE")
+    frozen_test = audit.get("frozen_test")
+    if not isinstance(frozen_test, dict):
+        raise ValueError("training provenance audit lacks frozen_test binding")
+    if frozen_test.get("sha256") != dataset_hash:
+        raise ValueError("training provenance audit test hash does not match this run")
+    if frozen_test.get("rows") != EXPECTED_FROZEN_ROWS:
+        raise ValueError(
+            f"training provenance audit must bind {EXPECTED_FROZEN_ROWS} test rows"
+        )
+    overlap = audit.get("train_test_overlap")
+    if not isinstance(overlap, dict):
+        raise ValueError("training provenance audit lacks train/test overlap result")
+    overlap_rows = overlap.get("rows")
+    if isinstance(overlap_rows, bool) or not isinstance(overlap_rows, int):
+        raise ValueError("training provenance audit overlap rows must be an integer")
+    if overlap_rows != 0:
+        raise ValueError(
+            f"training provenance audit reports train/test overlap={overlap_rows}, expected 0"
+        )
+
+
+def validate_campaign_authorization(
+    manifest: dict[str, Any],
+    *,
+    dataset_hash: str,
+    campaign_context: dict[str, Any],
+) -> None:
+    if manifest.get("schema_version") != CAMPAIGN_AUTHORIZATION_SCHEMA:
+        raise ValueError(
+            "campaign authorization schema_version must equal "
+            f"{CAMPAIGN_AUTHORIZATION_SCHEMA!r}"
+        )
+    if manifest.get("authorization_status") != "AUTHORIZED":
+        raise ValueError("campaign authorization status must be AUTHORIZED")
+    if manifest.get("authorization_scope") != "one_frozen_test_prediction_run":
+        raise ValueError(
+            "campaign authorization scope must be one_frozen_test_prediction_run"
+        )
+    campaign_id = manifest.get("campaign_id")
+    if not isinstance(campaign_id, str) or not campaign_id.strip():
+        raise ValueError("campaign authorization needs a non-empty campaign_id")
+    if manifest.get("candidate_frozen_before_test") is not True:
+        raise ValueError(
+            "campaign authorization must confirm candidate frozen before test"
+        )
+    unique_candidate_count = manifest.get("unique_candidate_count")
+    if isinstance(unique_candidate_count, bool) or unique_candidate_count != 1:
+        raise ValueError("campaign authorization must identify one unique candidate")
+    authorized_prediction_runs = manifest.get("authorized_prediction_runs")
+    if isinstance(authorized_prediction_runs, bool) or authorized_prediction_runs != 1:
+        raise ValueError("campaign authorization must permit exactly one prediction run")
+
+    frozen_test = manifest.get("frozen_test")
+    if not isinstance(frozen_test, dict):
+        raise ValueError("campaign authorization lacks frozen_test binding")
+    if frozen_test.get("sha256") != dataset_hash:
+        raise ValueError("campaign authorization test hash does not match this run")
+    if frozen_test.get("rows") != EXPECTED_FROZEN_ROWS:
+        raise ValueError(
+            f"campaign authorization must bind {EXPECTED_FROZEN_ROWS} test rows"
+        )
+
+    candidate = manifest.get("candidate")
+    expected_candidate = {
+        "profile_key": campaign_context["profile_key"],
+        "model_id": campaign_context["model_id"],
+        "revision": campaign_context["revision"],
+        "weights_manifest_sha256": campaign_context["weights_manifest_sha256"],
+    }
+    if candidate != expected_candidate:
+        raise ValueError(
+            f"campaign candidate binding mismatch: expected={expected_candidate!r} "
+            f"actual={candidate!r}"
+        )
+    if manifest.get("authorized_run_name") != campaign_context["run_name"]:
+        raise ValueError("campaign authorized run name does not match this run")
+    if manifest.get("authorized_limit") != campaign_context["limit"]:
+        raise ValueError("campaign authorized --limit does not match this run")
+    expected_outputs = {
+        "predictions": campaign_context["predictions_out"],
+        "summary": campaign_context["summary_out"],
+    }
+    if manifest.get("authorized_outputs") != expected_outputs:
+        raise ValueError(
+            f"campaign authorized output binding mismatch: expected={expected_outputs!r}"
+        )
+
+
+def assess_frozen_leaderboard_eligibility(
+    *,
+    checkpoint_training_provenance: str,
+    dataset_artifact: dict[str, Any],
+    metrics: dict[str, Any],
+    training_provenance_audit: dict[str, Any] | None,
+    campaign_authorization_manifest: dict[str, Any] | None,
+    campaign_context: dict[str, Any],
+) -> dict[str, Any]:
+    if checkpoint_training_provenance not in CHECKPOINT_TRAINING_PROVENANCE_CHOICES:
+        raise ValueError(
+            "unsupported checkpoint training provenance "
+            f"{checkpoint_training_provenance!r}"
+        )
+
+    def diagnostic(status: str, reason: str) -> dict[str, Any]:
+        return {
+            "frozen_leaderboard_eligible": False,
+            "diagnostic_only": True,
+            "status": status,
+            "reason": reason,
+            "checkpoint_training_provenance": checkpoint_training_provenance,
+        }
+
+    if checkpoint_training_provenance == "external_unknown":
+        return diagnostic(
+            "DIAGNOSTIC_ONLY_EXTERNAL_UNKNOWN",
+            "The third-party checkpoint's original frozen train/dev membership is unproven.",
+        )
+    if checkpoint_training_provenance == "known_overlap":
+        return diagnostic(
+            "DIAGNOSTIC_ONLY_KNOWN_OVERLAP",
+            "The checkpoint is known to overlap the frozen evaluation partition.",
+        )
+    if training_provenance_audit is None:
+        return diagnostic(
+            "DIAGNOSTIC_ONLY_MISSING_PROVENANCE_AUDIT",
+            "frozen_train_dev_only was declared without a complete zero-overlap audit.",
+        )
+
+    validate_training_provenance_audit(
+        training_provenance_audit,
+        dataset_hash=str(dataset_artifact["sha256"]),
+    )
+    if dataset_artifact.get("limit") is not None:
+        return diagnostic(
+            "SMOKE_ONLY_NOT_LEADERBOARD_ELIGIBLE",
+            "A prefix --limit smoke run is never a formal frozen evaluation.",
+        )
+    if int(metrics.get("invalid", 0)) != 0:
+        return diagnostic(
+            "DIAGNOSTIC_ONLY_INVALID_PREDICTIONS",
+            "Formal frozen eligibility requires zero invalid predictions.",
+        )
+    if campaign_authorization_manifest is None:
+        return diagnostic(
+            "DIAGNOSTIC_ONLY_MISSING_CAMPAIGN_AUTHORIZATION",
+            "No unique-candidate, one-run frozen campaign authorization was supplied.",
+        )
+    if campaign_authorization_manifest.get("authorization_status") != "AUTHORIZED":
+        return diagnostic(
+            "DIAGNOSTIC_ONLY_UNAUTHORIZED_CAMPAIGN",
+            "Campaign authorization is absent, UNKNOWN, or not AUTHORIZED.",
+        )
+    validate_campaign_authorization(
+        campaign_authorization_manifest,
+        dataset_hash=str(dataset_artifact["sha256"]),
+        campaign_context=campaign_context,
+    )
+    return {
+        "frozen_leaderboard_eligible": True,
+        "diagnostic_only": False,
+        "status": "ELIGIBLE_AUDITED_FROZEN_TRAIN_DEV_ONLY",
+        "reason": (
+            "The complete zero-overlap audit and one-candidate/one-run campaign "
+            "authorization both match this immutable checkpoint and frozen test."
+        ),
+        "checkpoint_training_provenance": checkpoint_training_provenance,
+    }
+
+
 def git_commit(repo: Path) -> str | None:
     try:
         return subprocess.check_output(
@@ -280,9 +522,22 @@ def get_enabled_profile(key: str) -> dict[str, Any]:
     profile = PROFILES[key]
     if not profile["enabled"]:
         raise ValueError(
-            f"profile {key!r} is blocked: {profile['block_reason']} (input template "
-            "must be documented before frozen-test inference)"
+            f"profile {key!r} is blocked: {profile['block_reason']}"
         )
+    if profile.get("profile_requires_frozen_input_contract"):
+        source = profile.get("input_template_source")
+        if not isinstance(source, dict):
+            raise ValueError(
+                f"profile {key!r} has no immutable frozen input contract"
+            )
+        if (
+            source.get("revision") != profile["revision"]
+            or source.get("sha256") != profile["expected_card_sha256"]
+            or source.get("kind") != "immutable_model_card"
+        ):
+            raise ValueError(
+                f"profile {key!r} frozen input contract is not bound to its card/revision"
+            )
     if profile.get("expected_config_id2label") is None:
         raise ValueError(f"profile {key!r} has no explicitly approved label mapping")
     return copy.deepcopy(profile)
@@ -898,6 +1153,7 @@ def _profile_summary(key: str, profile: dict[str, Any]) -> dict[str, Any]:
         "source_model_id": profile["model_id"],
         "immutable_revision": profile["revision"],
         "input_template": profile["template"],
+        "input_template_source": profile.get("input_template_source"),
         "input_template_literal": (
             "usr: {seeker_text}\\nsys: {supporter_text}"
             if profile["template"] == "heegyu_context_without_strategy"
@@ -923,6 +1179,10 @@ def build_summary(
     records: Sequence[dict[str, Any]],
     metrics: dict[str, Any],
     runtime: dict[str, Any],
+    checkpoint_training_provenance: str,
+    training_provenance_audit_artifact: dict[str, Any] | None,
+    campaign_authorization_artifact: dict[str, Any] | None,
+    campaign_context: dict[str, Any],
 ) -> dict[str, Any]:
     invalid_reasons: dict[str, int] = {}
     for record in records:
@@ -930,12 +1190,34 @@ def build_summary(
             reason = str(record.get("invalid_reason", "unspecified"))
             invalid_reasons[reason] = invalid_reasons.get(reason, 0) + 1
     is_smoke = dataset_artifact["limit"] is not None
+    training_audit_document = (
+        training_provenance_audit_artifact["document"]
+        if training_provenance_audit_artifact is not None
+        else None
+    )
+    campaign_document = (
+        campaign_authorization_artifact["document"]
+        if campaign_authorization_artifact is not None
+        else None
+    )
+    eligibility = assess_frozen_leaderboard_eligibility(
+        checkpoint_training_provenance=checkpoint_training_provenance,
+        dataset_artifact=dataset_artifact,
+        metrics=metrics,
+        training_provenance_audit=training_audit_document,
+        campaign_authorization_manifest=campaign_document,
+        campaign_context=campaign_context,
+    )
+    if is_smoke:
+        audit_status = "SMOKE_ONLY"
+    elif metrics["invalid"]:
+        audit_status = "COMPLETE_WITH_INVALID"
+    elif eligibility["diagnostic_only"]:
+        audit_status = eligibility["status"]
+    else:
+        audit_status = "COMPLETE"
     return {
-        "audit_status": (
-            "SMOKE_ONLY"
-            if is_smoke
-            else ("COMPLETE_WITH_INVALID" if metrics["invalid"] else "COMPLETE")
-        ),
+        "audit_status": audit_status,
         "created_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
         "run_name": run_name,
         "task": "8-way next-support-strategy prediction",
@@ -949,6 +1231,11 @@ def build_summary(
         },
         "metrics": metrics,
         "invalid_reasons": invalid_reasons,
+        "checkpoint_training_provenance": checkpoint_training_provenance,
+        "training_provenance_audit": training_provenance_audit_artifact,
+        "campaign_authorization": campaign_authorization_artifact,
+        "eligibility": eligibility,
+        "diagnostic_only": eligibility["diagnostic_only"],
         "protocol": {
             "frozen_2775": not is_smoke,
             "prefix_smoke": is_smoke,
@@ -961,6 +1248,8 @@ def build_summary(
             "test_tuning_prohibited": True,
             "modernbert_template_selection_on_test_prohibited": True,
             "invalid_rows_retained_in_accuracy_denominator": True,
+            "campaign_authorization_required_before_any_frozen_test_prediction": True,
+            "formal_outputs_may_not_be_overwritten": True,
         },
         "runtime": runtime,
         "evaluator": {
@@ -968,9 +1257,9 @@ def build_summary(
             "sha256": sha256_file(Path(__file__)),
             "repository_commit": git_commit(ROOT),
         },
-        "eligible_for_frozen_leaderboard": (
-            not is_smoke and metrics["invalid"] == 0
-        ),
+        "eligible_for_frozen_leaderboard": eligibility[
+            "frozen_leaderboard_eligible"
+        ],
     }
 
 
@@ -991,11 +1280,57 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     _ensure_outputs_available(
         args.predictions_out, args.summary_out, overwrite=args.overwrite
     )
+    if args.overwrite:
+        raise ValueError(
+            "authorized frozen-test prediction outputs may not be overwritten"
+        )
+    if getattr(args, "campaign_authorization_manifest", None) is None:
+        raise ValueError(
+            "a valid --campaign-authorization-manifest is required before any "
+            "frozen-test read or prediction"
+        )
     model_artifact, _ = audit_model_directory(
         args.model_dir,
         profile=profile,
         declared_revision=args.model_revision,
     )
+    campaign_context = {
+        "run_name": args.run_name,
+        "profile_key": args.profile,
+        "model_id": model_artifact["source_model_id"],
+        "revision": model_artifact["revision"],
+        "weights_manifest_sha256": model_artifact["weights"]["manifest_sha256"],
+        "limit": args.limit,
+        "predictions_out": str(args.predictions_out.resolve()),
+        "summary_out": str(args.summary_out.resolve()),
+    }
+    campaign_authorization_artifact = load_json_artifact(
+        args.campaign_authorization_manifest,
+        description="campaign authorization manifest",
+    )
+    validate_campaign_authorization(
+        campaign_authorization_artifact["document"],
+        dataset_hash=EXPECTED_FROZEN_TEST_SHA256,
+        campaign_context=campaign_context,
+    )
+    training_provenance_audit_artifact = (
+        load_json_artifact(
+            args.training_provenance_audit,
+            description="checkpoint training provenance audit",
+        )
+        if args.training_provenance_audit is not None
+        else None
+    )
+    if (
+        args.checkpoint_training_provenance == "frozen_train_dev_only"
+        and training_provenance_audit_artifact is not None
+    ):
+        validate_training_provenance_audit(
+            training_provenance_audit_artifact["document"],
+            dataset_hash=EXPECTED_FROZEN_TEST_SHA256,
+        )
+
+    # The first frozen-test read occurs only after campaign authorization passes.
     records, dataset_artifact = prepare_frozen_file(
         args.test_file, profile=profile, limit=args.limit
     )
@@ -1031,6 +1366,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         records=records,
         metrics=metrics,
         runtime=runtime,
+        checkpoint_training_provenance=args.checkpoint_training_provenance,
+        training_provenance_audit_artifact=training_provenance_audit_artifact,
+        campaign_authorization_artifact=campaign_authorization_artifact,
+        campaign_context=campaign_context,
     )
     write_json(args.summary_out, summary)
     return summary
@@ -1053,6 +1392,28 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--predictions-out", type=Path, required=True)
     parser.add_argument("--summary-out", type=Path, required=True)
     parser.add_argument("--run-name", required=True)
+    parser.add_argument(
+        "--checkpoint-training-provenance",
+        choices=CHECKPOINT_TRAINING_PROVENANCE_CHOICES,
+        required=True,
+    )
+    parser.add_argument(
+        "--training-provenance-audit",
+        type=Path,
+        help=(
+            "JSON using esconv-checkpoint-training-provenance-audit-v1; required "
+            "for leaderboard eligibility and must bind zero overlap to the test hash"
+        ),
+    )
+    parser.add_argument(
+        "--campaign-authorization-manifest",
+        type=Path,
+        required=True,
+        help=(
+            "One-candidate/one-prediction-run authorization bound to model, "
+            "revision, weight manifest, test hash, --limit, run name, and outputs"
+        ),
+    )
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--limit", type=int)
@@ -1071,6 +1432,10 @@ def main() -> None:
                 "macro_f1": summary["metrics"]["macro_f1"],
                 "weighted_f1": summary["metrics"]["weighted_f1"],
                 "invalid": summary["metrics"]["invalid"],
+                "eligibility_status": summary["eligibility"]["status"],
+                "eligible_for_frozen_leaderboard": summary[
+                    "eligible_for_frozen_leaderboard"
+                ],
                 "summary": str(args.summary_out.resolve()),
             },
             ensure_ascii=False,
