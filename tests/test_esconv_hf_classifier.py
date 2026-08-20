@@ -1,6 +1,9 @@
 import copy
+import hashlib
 import importlib.util
 import json
+import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -51,27 +54,43 @@ def valid_training_provenance_audit():
 
 def campaign_context(limit=None):
     return {
+        "campaign_id": "esconv-tinyllama-001",
+        "trusted_commit": "1" * 40,
         "run_name": "tinyllama-frozen-campaign-001",
         "profile_key": "tinyllama-augesc-context",
         "model_id": "heegyu/TinyLlama-augesc-context",
         "revision": "4fd4cdc278812afd572e34040ecf433a31c8623e",
         "weights_manifest_sha256": "a" * 64,
+        "model_tree_sha256": "b" * 64,
+        "tokenizer_tree_sha256": "c" * 64,
+        "checkpoint_training_provenance": "frozen_train_dev_only",
+        "training_provenance_audit_path": "campaign/training-audit.json",
+        "training_provenance_audit_sha256": "d" * 64,
+        "evaluator_path": "scripts/eval_esconv_hf_classifier.py",
+        "evaluator_sha256": "e" * 64,
+        "evaluator_commit": "1" * 40,
+        "selection_path": "campaign/selection.json",
+        "selection_sha256": "f" * 64,
+        "authorization_path": "campaign/authorization.json",
+        "authorization_sha256": "0" * 64,
+        "receipt_path": "campaign/consumption-receipt.json",
+        "receipt_armed_sha256": "2" * 64,
         "limit": limit,
-        "predictions_out": "/authorized/predictions.jsonl",
-        "summary_out": "/authorized/summary.json",
+        "run_dir": "/authorized/tinyllama-frozen-campaign-001",
     }
 
 
 def valid_campaign_authorization(limit=None, context=None):
     context = context or campaign_context(limit=limit)
     return {
-        "schema_version": "esconv-frozen-campaign-authorization-v1",
+        "schema_version": "esconv-frozen-campaign-authorization-v2",
         "authorization_status": "AUTHORIZED",
         "authorization_scope": "one_frozen_test_prediction_run",
-        "campaign_id": "esconv-tinyllama-001",
+        "campaign_id": context["campaign_id"],
         "candidate_frozen_before_test": True,
         "unique_candidate_count": 1,
         "authorized_prediction_runs": 1,
+        "selection_artifact_path": context["selection_path"],
         "frozen_test": {
             "sha256": EVAL.EXPECTED_FROZEN_TEST_SHA256,
             "rows": EVAL.EXPECTED_FROZEN_ROWS,
@@ -81,14 +100,91 @@ def valid_campaign_authorization(limit=None, context=None):
             "model_id": context["model_id"],
             "revision": context["revision"],
             "weights_manifest_sha256": context["weights_manifest_sha256"],
+            "model_tree_sha256": context["model_tree_sha256"],
+            "tokenizer_tree_sha256": context["tokenizer_tree_sha256"],
         },
-        "authorized_run_name": context["run_name"],
-        "authorized_limit": context["limit"],
-        "authorized_outputs": {
-            "predictions": context["predictions_out"],
-            "summary": context["summary_out"],
+        "checkpoint_training_provenance": context[
+            "checkpoint_training_provenance"
+        ],
+        "training_provenance_audit": {
+            "path": context["training_provenance_audit_path"],
+            "sha256": context["training_provenance_audit_sha256"],
+        },
+        "evaluator": {
+            "path": context["evaluator_path"],
+            "sha256": context["evaluator_sha256"],
+            "commit": context["evaluator_commit"],
+        },
+        "formal_run": {
+            "run_name": context["run_name"],
+            "limit": context["limit"],
+            "run_dir": context["run_dir"],
+        },
+        "consumption_receipt": {
+            "path": context["receipt_path"],
+            "armed_sha256": context["receipt_armed_sha256"],
         },
     }
+
+
+def valid_candidate_selection(context=None):
+    context = context or campaign_context()
+    return {
+        "schema_version": "esconv-frozen-candidate-selection-v1",
+        "selection_status": "FROZEN",
+        "campaign_id": context["campaign_id"],
+        "unique_candidate_count": 1,
+        "frozen_test": {
+            "sha256": EVAL.EXPECTED_FROZEN_TEST_SHA256,
+            "rows": EVAL.EXPECTED_FROZEN_ROWS,
+        },
+        "candidate": valid_campaign_authorization(context=context)["candidate"],
+        "checkpoint_training_provenance": context[
+            "checkpoint_training_provenance"
+        ],
+        "training_provenance_audit": {
+            "path": context["training_provenance_audit_path"],
+            "sha256": context["training_provenance_audit_sha256"],
+        },
+        "evaluator": valid_campaign_authorization(context=context)["evaluator"],
+        "formal_run": valid_campaign_authorization(context=context)["formal_run"],
+        "authorization_artifact": {
+            "path": context["authorization_path"],
+            "sha256": context["authorization_sha256"],
+        },
+        "consumption_receipt": valid_campaign_authorization(context=context)[
+            "consumption_receipt"
+        ],
+    }
+
+
+def valid_armed_receipt(context=None):
+    context = context or campaign_context()
+    return {
+        "schema_version": "esconv-frozen-campaign-consumption-v1",
+        "campaign_id": context["campaign_id"],
+        "authorization_sha256": context["authorization_sha256"],
+        "run_name": context["run_name"],
+        "run_dir": context["run_dir"],
+        "status": "ARMED",
+        "claimed_at_utc": None,
+        "claim_nonce": None,
+    }
+
+
+def sha256_bytes(value):
+    return hashlib.sha256(value).hexdigest()
+
+
+def init_git_repo(path):
+    subprocess.run(["git", "init", "-q", str(path)], check=True)
+    subprocess.run(
+        ["git", "-C", str(path), "config", "user.email", "test@example.com"],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(path), "config", "user.name", "Test"], check=True
+    )
 
 
 class HFClassifierEvaluatorTests(unittest.TestCase):
@@ -287,319 +383,365 @@ class HFClassifierEvaluatorTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "explicitly approved"):
             EVAL.validate_config_contract(config, profile)
 
-    def test_checkpoint_training_provenance_cli_is_required_and_closed(self):
+    def test_formal_cli_requires_anchored_campaign_and_has_no_limit_or_overwrite(self):
         parser = EVAL.build_parser()
-        action = next(
-            item
-            for item in parser._actions
-            if item.dest == "checkpoint_training_provenance"
-        )
-        self.assertTrue(action.required)
-        self.assertEqual(
-            set(action.choices),
-            {"frozen_train_dev_only", "external_unknown", "known_overlap"},
-        )
-        campaign_action = next(
-            item
-            for item in parser._actions
-            if item.dest == "campaign_authorization_manifest"
-        )
-        self.assertTrue(campaign_action.required)
-
-    def test_external_unknown_and_known_overlap_are_diagnostic_only(self):
-        dataset = {
-            "sha256": EVAL.EXPECTED_FROZEN_TEST_SHA256,
-            "limit": None,
-        }
-        metrics = {"invalid": 0}
-        for provenance, status in (
-            ("external_unknown", "DIAGNOSTIC_ONLY_EXTERNAL_UNKNOWN"),
-            ("known_overlap", "DIAGNOSTIC_ONLY_KNOWN_OVERLAP"),
+        actions = {item.dest: item for item in parser._actions}
+        for destination in (
+            "checkpoint_training_provenance",
+            "campaign_trusted_commit",
+            "campaign_selection_manifest",
+            "campaign_selection_expected_sha256",
+            "campaign_authorization_manifest",
+            "campaign_authorization_expected_sha256",
+            "campaign_consumption_receipt",
+            "campaign_consumption_receipt_expected_sha256",
+            "run_dir",
         ):
-            result = EVAL.assess_frozen_leaderboard_eligibility(
-                checkpoint_training_provenance=provenance,
-                dataset_artifact=dataset,
-                metrics=metrics,
-                training_provenance_audit=None,
-                campaign_authorization_manifest=None,
-                campaign_context=campaign_context(),
+            self.assertIn(destination, actions)
+            self.assertTrue(actions[destination].required)
+        self.assertNotIn("limit", actions)
+        self.assertNotIn("overwrite", actions)
+
+    def test_json_document_and_hash_are_derived_from_one_byte_snapshot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "artifact.json"
+            original = b'{"authorization_status":"AUTHORIZED"}\n'
+            path.write_bytes(original)
+            with mock.patch.object(EVAL, "sha256_file", return_value="0" * 64):
+                artifact = EVAL.load_json_artifact(
+                    path, description="authorization"
+                )
+        self.assertEqual(artifact["sha256"], sha256_bytes(original))
+        self.assertEqual(
+            artifact["document"], {"authorization_status": "AUTHORIZED"}
+        )
+
+    def test_committed_artifact_gate_rejects_untracked_dirty_and_wrong_expected_sha(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            init_git_repo(repo)
+            tracked = repo / "campaign.json"
+            payload = b'{"status":"FROZEN"}\n'
+            tracked.write_bytes(payload)
+            subprocess.run(["git", "-C", str(repo), "add", "campaign.json"], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "commit", "-qm", "campaign"], check=True
             )
-            self.assertFalse(result["frozen_leaderboard_eligible"])
-            self.assertTrue(result["diagnostic_only"])
-            self.assertEqual(result["status"], status)
+            commit = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+            ).strip()
+            artifact = EVAL.load_committed_json_artifact(
+                tracked,
+                description="campaign",
+                repo_root=repo,
+                trusted_commit=commit,
+                expected_sha256=sha256_bytes(payload),
+            )
+            self.assertEqual(artifact["trusted_commit"], commit)
 
-    def test_frozen_train_dev_declaration_without_audit_is_not_eligible(self):
-        result = EVAL.assess_frozen_leaderboard_eligibility(
-            checkpoint_training_provenance="frozen_train_dev_only",
-            dataset_artifact={
-                "sha256": EVAL.EXPECTED_FROZEN_TEST_SHA256,
-                "limit": None,
-            },
-            metrics={"invalid": 0},
-            training_provenance_audit=None,
-            campaign_authorization_manifest=None,
-            campaign_context=campaign_context(),
-        )
-        self.assertFalse(result["frozen_leaderboard_eligible"])
-        self.assertTrue(result["diagnostic_only"])
-        self.assertEqual(
-            result["status"], "DIAGNOSTIC_ONLY_MISSING_PROVENANCE_AUDIT"
-        )
-
-    def test_only_audited_zero_overlap_authorized_unique_candidate_is_eligible(self):
-        result = EVAL.assess_frozen_leaderboard_eligibility(
-            checkpoint_training_provenance="frozen_train_dev_only",
-            dataset_artifact={
-                "sha256": EVAL.EXPECTED_FROZEN_TEST_SHA256,
-                "limit": None,
-            },
-            metrics={"invalid": 0},
-            training_provenance_audit=valid_training_provenance_audit(),
-            campaign_authorization_manifest=valid_campaign_authorization(),
-            campaign_context=campaign_context(),
-        )
-        self.assertTrue(result["frozen_leaderboard_eligible"])
-        self.assertFalse(result["diagnostic_only"])
-        self.assertEqual(
-            result["status"], "ELIGIBLE_AUDITED_FROZEN_TRAIN_DEV_ONLY"
-        )
-
-    def test_provenance_audit_rejects_wrong_hash_overlap_or_incomplete_status(self):
-        dataset = {
-            "sha256": EVAL.EXPECTED_FROZEN_TEST_SHA256,
-            "limit": None,
-        }
-        metrics = {"invalid": 0}
-        mutations = (
-            (("frozen_test", "sha256"), "0" * 64, "test hash"),
-            (("train_test_overlap", "rows"), 1, "overlap"),
-            (("audit_status",), "INCOMPLETE", "COMPLETE"),
-        )
-        for path, value, message in mutations:
-            audit = valid_training_provenance_audit()
-            target = audit
-            for key in path[:-1]:
-                target = target[key]
-            target[path[-1]] = value
-            with self.assertRaisesRegex(ValueError, message):
-                EVAL.assess_frozen_leaderboard_eligibility(
-                    checkpoint_training_provenance="frozen_train_dev_only",
-                    dataset_artifact=dataset,
-                    metrics=metrics,
-                    training_provenance_audit=audit,
-                    campaign_authorization_manifest=valid_campaign_authorization(),
-                    campaign_context=campaign_context(),
+            with self.assertRaisesRegex(ValueError, "expected SHA-256"):
+                EVAL.load_committed_json_artifact(
+                    tracked,
+                    description="campaign",
+                    repo_root=repo,
+                    trusted_commit=commit,
+                    expected_sha256="0" * 64,
+                )
+            tracked.write_text('{"status":"CHANGED"}\n', encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "clean|committed"):
+                EVAL.load_committed_json_artifact(
+                    tracked,
+                    description="campaign",
+                    repo_root=repo,
+                    trusted_commit=commit,
+                    expected_sha256=sha256_bytes(payload),
+                )
+            untracked = repo / "temporary.json"
+            untracked.write_text("{}\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "tracked|committed"):
+                EVAL.load_committed_json_artifact(
+                    untracked,
+                    description="temporary authorization",
+                    repo_root=repo,
+                    trusted_commit=commit,
+                    expected_sha256=sha256_bytes(b"{}\n"),
                 )
 
-    def test_missing_campaign_authorization_is_diagnostic_only(self):
-        result = EVAL.assess_frozen_leaderboard_eligibility(
-            checkpoint_training_provenance="frozen_train_dev_only",
-            dataset_artifact={
-                "sha256": EVAL.EXPECTED_FROZEN_TEST_SHA256,
-                "limit": None,
-            },
-            metrics={"invalid": 0},
-            training_provenance_audit=valid_training_provenance_audit(),
-            campaign_authorization_manifest=None,
-            campaign_context=campaign_context(),
-        )
-        self.assertFalse(result["frozen_leaderboard_eligible"])
-        self.assertTrue(result["diagnostic_only"])
-        self.assertEqual(
-            result["status"], "DIAGNOSTIC_ONLY_MISSING_CAMPAIGN_AUTHORIZATION"
-        )
-        unknown = valid_campaign_authorization()
-        unknown["authorization_status"] = "UNKNOWN"
-        unknown_result = EVAL.assess_frozen_leaderboard_eligibility(
-            checkpoint_training_provenance="frozen_train_dev_only",
-            dataset_artifact={
-                "sha256": EVAL.EXPECTED_FROZEN_TEST_SHA256,
-                "limit": None,
-            },
-            metrics={"invalid": 0},
-            training_provenance_audit=valid_training_provenance_audit(),
-            campaign_authorization_manifest=unknown,
-            campaign_context=campaign_context(),
-        )
-        self.assertFalse(unknown_result["frozen_leaderboard_eligible"])
-        self.assertEqual(
-            unknown_result["status"], "DIAGNOSTIC_ONLY_UNAUTHORIZED_CAMPAIGN"
-        )
+    def test_model_snapshot_covers_tokenizer_and_rejects_symlinks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            model_dir = Path(directory) / "model"
+            model_dir.mkdir()
+            (model_dir / "config.json").write_text("{}\n", encoding="utf-8")
+            (model_dir / "README.md").write_text("card\n", encoding="utf-8")
+            (model_dir / "model.safetensors").write_bytes(b"weights")
+            tokenizer = model_dir / "tokenizer.json"
+            tokenizer.write_bytes(b"tokenizer-v1")
+            before = EVAL.snapshot_model_tree(model_dir)
+            tokenizer.write_bytes(b"tokenizer-v2")
+            after = EVAL.snapshot_model_tree(model_dir)
+            self.assertNotEqual(
+                before["tree_manifest_sha256"], after["tree_manifest_sha256"]
+            )
+            self.assertNotEqual(
+                before["tokenizer_manifest_sha256"],
+                after["tokenizer_manifest_sha256"],
+            )
+            os.symlink(model_dir / "README.md", model_dir / "linked-card")
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                EVAL.snapshot_model_tree(model_dir)
 
-    def test_campaign_authorization_must_bind_one_exact_candidate_and_run(self):
-        dataset = {
-            "sha256": EVAL.EXPECTED_FROZEN_TEST_SHA256,
-            "limit": None,
+    def test_loaded_model_is_reaudited_before_inference(self):
+        profile = EVAL.get_enabled_profile("tinyllama-augesc-context")
+        before = {
+            "tree_manifest_sha256": "a" * 64,
+            "tokenizer_manifest_sha256": "b" * 64,
         }
-        mutations = (
-            (("candidate_frozen_before_test",), False, "frozen before test"),
-            (("unique_candidate_count",), 2, "unique candidate"),
-            (("authorized_prediction_runs",), 2, "one prediction"),
-            (("candidate", "revision"), "0" * 40, "candidate binding"),
-            (("authorized_run_name",), "another-run", "run name"),
-        )
-        for path, value, message in mutations:
-            manifest = valid_campaign_authorization()
-            target = manifest
-            for key in path[:-1]:
-                target = target[key]
-            target[path[-1]] = value
-            with self.assertRaisesRegex(ValueError, message):
-                EVAL.assess_frozen_leaderboard_eligibility(
-                    checkpoint_training_provenance="frozen_train_dev_only",
-                    dataset_artifact=dataset,
-                    metrics={"invalid": 0},
-                    training_provenance_audit=valid_training_provenance_audit(),
-                    campaign_authorization_manifest=manifest,
-                    campaign_context=campaign_context(),
-                )
-
-    def test_limit_smoke_and_invalid_full_runs_stay_ineligible_with_valid_audit(self):
-        audit = valid_training_provenance_audit()
-        smoke = EVAL.assess_frozen_leaderboard_eligibility(
-            checkpoint_training_provenance="frozen_train_dev_only",
-            dataset_artifact={
-                "sha256": EVAL.EXPECTED_FROZEN_TEST_SHA256,
-                "limit": 10,
-            },
-            metrics={"invalid": 0},
-            training_provenance_audit=audit,
-            campaign_authorization_manifest=valid_campaign_authorization(limit=10),
-            campaign_context=campaign_context(limit=10),
-        )
-        invalid = EVAL.assess_frozen_leaderboard_eligibility(
-            checkpoint_training_provenance="frozen_train_dev_only",
-            dataset_artifact={
-                "sha256": EVAL.EXPECTED_FROZEN_TEST_SHA256,
-                "limit": None,
-            },
-            metrics={"invalid": 1},
-            training_provenance_audit=audit,
-            campaign_authorization_manifest=valid_campaign_authorization(),
-            campaign_context=campaign_context(),
-        )
-        self.assertFalse(smoke["frozen_leaderboard_eligible"])
-        self.assertEqual(smoke["status"], "SMOKE_ONLY_NOT_LEADERBOARD_ELIGIBLE")
-        self.assertFalse(invalid["frozen_leaderboard_eligible"])
-        self.assertEqual(invalid["status"], "DIAGNOSTIC_ONLY_INVALID_PREDICTIONS")
-
-    def test_run_rejects_invalid_campaign_before_test_read_model_load_or_output(self):
-        invalid_manifest = valid_campaign_authorization()
-        invalid_manifest["authorization_status"] = "UNKNOWN"
-        args = Namespace(
-            profile="tinyllama-augesc-context",
-            model_dir=Path("/model"),
-            model_revision=None,
-            test_file=Path("/frozen/test.tsv"),
-            predictions_out=Path("/authorized/predictions.jsonl"),
-            summary_out=Path("/authorized/summary.json"),
-            run_name="tinyllama-frozen-campaign-001",
-            batch_size=1,
-            device="cpu",
-            limit=None,
-            overwrite=False,
-            checkpoint_training_provenance="external_unknown",
-            training_provenance_audit=None,
-            campaign_authorization_manifest=Path("/authorization.json"),
-        )
-        fake_model_artifact = {
-            "source_model_id": "heegyu/TinyLlama-augesc-context",
-            "revision": "4fd4cdc278812afd572e34040ecf433a31c8623e",
-            "weights": {"manifest_sha256": "a" * 64},
-        }
-        artifact = {
-            "path": "/authorization.json",
-            "sha256": "b" * 64,
-            "document": invalid_manifest,
+        changed = {
+            "tree_manifest_sha256": "c" * 64,
+            "tokenizer_manifest_sha256": "b" * 64,
         }
         with (
             mock.patch.object(
                 EVAL,
-                "audit_model_directory",
-                return_value=(fake_model_artifact, {}),
+                "load_hf_model",
+                return_value=(object(), object(), "cpu", {}),
             ),
-            mock.patch.object(EVAL, "load_json_artifact", return_value=artifact),
-            mock.patch.object(EVAL, "prepare_frozen_file") as prepare_test,
-            mock.patch.object(EVAL, "load_hf_model") as load_model,
-            mock.patch.object(EVAL, "write_predictions") as write_predictions,
-            mock.patch.object(EVAL, "write_json") as write_summary,
+            mock.patch.object(
+                EVAL,
+                "audit_model_directory",
+                return_value=(changed, {}),
+            ),
         ):
-            with self.assertRaisesRegex(ValueError, "AUTHORIZED"):
-                EVAL.run(args)
-        prepare_test.assert_not_called()
-        load_model.assert_not_called()
-        write_predictions.assert_not_called()
-        write_summary.assert_not_called()
+            with self.assertRaisesRegex(ValueError, "changed.*load"):
+                EVAL.load_hf_model_verified(
+                    Path("/model"),
+                    profile=profile,
+                    requested_device="cpu",
+                    declared_revision=profile["revision"],
+                    pre_load_artifact=before,
+                )
 
-        missing_args = Namespace(**vars(args))
-        missing_args.campaign_authorization_manifest = None
-        with (
-            mock.patch.object(EVAL, "audit_model_directory") as audit_model,
-            mock.patch.object(EVAL, "prepare_frozen_file") as prepare_test,
-            mock.patch.object(EVAL, "load_hf_model") as load_model,
+    def test_selection_and_authorization_bind_every_frozen_input(self):
+        context = campaign_context()
+        selection = valid_candidate_selection(context)
+        authorization = valid_campaign_authorization(context=context)
+        EVAL.validate_campaign_documents(
+            selection, authorization, campaign_context=context
+        )
+        mutations = (
+            (selection, ("authorization_artifact", "sha256"), "9" * 64),
+            (selection, ("checkpoint_training_provenance",), "known_overlap"),
+            (authorization, ("training_provenance_audit", "sha256"), "9" * 64),
+            (authorization, ("candidate", "tokenizer_tree_sha256"), "9" * 64),
+            (authorization, ("candidate", "model_tree_sha256"), "9" * 64),
+            (authorization, ("evaluator", "commit"), "9" * 40),
+            (authorization, ("formal_run", "limit"), 1),
+        )
+        for original, path, value in mutations:
+            mutated_selection = copy.deepcopy(selection)
+            mutated_authorization = copy.deepcopy(authorization)
+            target = (
+                mutated_selection if original is selection else mutated_authorization
+            )
+            for key in path[:-1]:
+                target = target[key]
+            target[path[-1]] = value
+            with self.assertRaisesRegex(ValueError, "binding|formal full"):
+                EVAL.validate_campaign_documents(
+                    mutated_selection,
+                    mutated_authorization,
+                    campaign_context=context,
+                )
+
+    def test_eligibility_requires_full_2775_metrics_and_two_campaign_documents(self):
+        context = campaign_context()
+        dataset = {
+            "sha256": EVAL.EXPECTED_FROZEN_TEST_SHA256,
+            "full_rows": EVAL.EXPECTED_FROZEN_ROWS,
+            "evaluated_rows": EVAL.EXPECTED_FROZEN_ROWS,
+            "limit": None,
+        }
+        valid = EVAL.assess_frozen_leaderboard_eligibility(
+            checkpoint_training_provenance="frozen_train_dev_only",
+            dataset_artifact=dataset,
+            metrics={"invalid": 0, "total": EVAL.EXPECTED_FROZEN_ROWS},
+            training_provenance_audit=valid_training_provenance_audit(),
+            campaign_selection_manifest=valid_candidate_selection(context),
+            campaign_authorization_manifest=valid_campaign_authorization(
+                context=context
+            ),
+            campaign_context=context,
+        )
+        self.assertTrue(valid["frozen_leaderboard_eligible"])
+        for broken_dataset, broken_metrics in (
+            ({**dataset, "evaluated_rows": 1}, {"invalid": 0, "total": 1}),
+            (dataset, {"invalid": 0, "total": 1}),
+            ({**dataset, "limit": 1}, {"invalid": 0, "total": 2775}),
         ):
-            with self.assertRaisesRegex(ValueError, "campaign-authorization-manifest"):
-                EVAL.run(missing_args)
-        audit_model.assert_not_called()
-        prepare_test.assert_not_called()
-        load_model.assert_not_called()
+            result = EVAL.assess_frozen_leaderboard_eligibility(
+                checkpoint_training_provenance="frozen_train_dev_only",
+                dataset_artifact=broken_dataset,
+                metrics=broken_metrics,
+                training_provenance_audit=valid_training_provenance_audit(),
+                campaign_selection_manifest=valid_candidate_selection(context),
+                campaign_authorization_manifest=valid_campaign_authorization(
+                    context=context
+                ),
+                campaign_context=context,
+            )
+            self.assertFalse(result["frozen_leaderboard_eligible"])
 
-    def test_summary_requires_both_audits_before_marking_formal_result_eligible(self):
+    def test_prediction_integrity_rejects_one_record_fake_full_result(self):
         with tempfile.TemporaryDirectory() as directory:
-            directory = Path(directory)
-            predictions = directory / "predictions.jsonl"
-            predictions.write_text("{}\n", encoding="utf-8")
-            context = campaign_context()
-            context["predictions_out"] = str(predictions.resolve())
-            context["summary_out"] = str((directory / "summary.json").resolve())
-            training_artifact = {
-                "path": str((directory / "training-audit.json").resolve()),
-                "sha256": "c" * 64,
-                "document": valid_training_provenance_audit(),
-            }
-            campaign_artifact = {
-                "path": str((directory / "campaign.json").resolve()),
-                "sha256": "d" * 64,
-                "document": valid_campaign_authorization(context=context),
-            }
+            predictions = Path(directory) / "predictions.jsonl"
             records = [
                 {
+                    "item_id": 0,
                     "gold": "Questions",
                     "prediction": "Questions",
                     "invalid": False,
                 }
             ]
-            summary = EVAL.build_summary(
-                run_name=context["run_name"],
-                profile_key=context["profile_key"],
-                profile=EVAL.get_enabled_profile(context["profile_key"]),
-                model_artifact={
-                    "source_model_id": context["model_id"],
-                    "revision": context["revision"],
-                    "weights": {
-                        "manifest_sha256": context["weights_manifest_sha256"]
+            EVAL.write_predictions(predictions, records)
+            with self.assertRaisesRegex(ValueError, "2775"):
+                EVAL.validate_formal_result_integrity(
+                    records=records,
+                    dataset_artifact={
+                        "sha256": EVAL.EXPECTED_FROZEN_TEST_SHA256,
+                        "full_rows": EVAL.EXPECTED_FROZEN_ROWS,
+                        "evaluated_rows": 1,
+                        "limit": None,
                     },
-                },
-                dataset_artifact={
-                    "sha256": EVAL.EXPECTED_FROZEN_TEST_SHA256,
-                    "limit": None,
-                },
-                predictions_path=predictions,
-                records=records,
-                metrics=EVAL.compute_metrics(records),
-                runtime={},
-                checkpoint_training_provenance="frozen_train_dev_only",
-                training_provenance_audit_artifact=training_artifact,
-                campaign_authorization_artifact=campaign_artifact,
+                    metrics=EVAL.compute_metrics(records),
+                    predictions_path=predictions,
+                )
+
+    def test_campaign_claim_is_atomic_persistent_and_single_use(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            init_git_repo(repo)
+            context = campaign_context()
+            receipt_path = repo / "campaign/consumption-receipt.json"
+            receipt_path.parent.mkdir()
+            receipt_document = valid_armed_receipt(context)
+            payload = (
+                json.dumps(receipt_document, sort_keys=True, indent=2) + "\n"
+            ).encode()
+            receipt_path.write_bytes(payload)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "commit", "-qm", "arm campaign"],
+                check=True,
+            )
+            commit = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+            ).strip()
+            context["trusted_commit"] = commit
+            artifact = EVAL.load_committed_json_artifact(
+                receipt_path,
+                description="consumption receipt",
+                repo_root=repo,
+                trusted_commit=commit,
+                expected_sha256=sha256_bytes(payload),
+            )
+            claim_path = EVAL.consume_campaign_slot(
+                repo_root=repo,
+                receipt_artifact=artifact,
                 campaign_context=context,
             )
-        self.assertTrue(summary["eligible_for_frozen_leaderboard"])
-        self.assertFalse(summary["diagnostic_only"])
-        self.assertEqual(summary["audit_status"], "COMPLETE")
-        self.assertEqual(
-            summary["profile"]["input_template_source"]["revision"],
-            context["revision"],
+            self.assertTrue(claim_path.is_file())
+            consumed = json.loads(receipt_path.read_text(encoding="utf-8"))
+            self.assertEqual(consumed["status"], "CONSUMED")
+            self.assertTrue(
+                subprocess.check_output(
+                    ["git", "-C", str(repo), "status", "--porcelain", "--", str(receipt_path)],
+                    text=True,
+                ).strip()
+            )
+            with self.assertRaisesRegex(ValueError, "claimed|consumed|single-use"):
+                EVAL.consume_campaign_slot(
+                    repo_root=repo,
+                    receipt_artifact=artifact,
+                    campaign_context=context,
+                )
+
+    def test_run_rejects_static_errors_and_untrusted_artifacts_before_test_or_model(self):
+        base = Namespace(
+            profile="tinyllama-augesc-context",
+            model_dir=Path("/model"),
+            model_revision=None,
+            test_file=Path("/frozen/test.tsv"),
+            run_dir=Path("/authorized/tinyllama-frozen-campaign-001"),
+            run_name="tinyllama-frozen-campaign-001",
+            batch_size=1,
+            device="cpu",
+            limit=None,
+            overwrite=False,
+            checkpoint_training_provenance="frozen_train_dev_only",
+            training_provenance_audit=Path("/campaign/training-audit.json"),
+            training_provenance_audit_expected_sha256="d" * 64,
+            campaign_trusted_commit="1" * 40,
+            campaign_selection_manifest=Path("/campaign/selection.json"),
+            campaign_selection_expected_sha256="f" * 64,
+            campaign_authorization_manifest=Path("/campaign/authorization.json"),
+            campaign_authorization_expected_sha256="0" * 64,
+            campaign_consumption_receipt=Path("/campaign/receipt.json"),
+            campaign_consumption_receipt_expected_sha256="2" * 64,
         )
+        for field, value, message in (
+            ("limit", 1, "limit"),
+            ("batch_size", 0, "batch"),
+            ("checkpoint_training_provenance", "invented", "provenance"),
+        ):
+            args = Namespace(**vars(base))
+            setattr(args, field, value)
+            with (
+                mock.patch.object(EVAL, "load_json_artifact") as load_artifact,
+                mock.patch.object(EVAL, "audit_model_directory") as audit_model,
+                mock.patch.object(EVAL, "prepare_frozen_file") as prepare_test,
+                mock.patch.object(EVAL, "load_hf_model") as load_model,
+            ):
+                with self.assertRaisesRegex(ValueError, message):
+                    EVAL.run(args)
+            load_artifact.assert_not_called()
+            audit_model.assert_not_called()
+            prepare_test.assert_not_called()
+            load_model.assert_not_called()
+
+        with (
+            mock.patch.object(
+                EVAL,
+                "load_committed_json_artifact",
+                side_effect=ValueError("artifact is not tracked and committed"),
+                create=True,
+            ),
+            mock.patch.object(EVAL, "audit_model_directory") as audit_model,
+            mock.patch.object(EVAL, "prepare_frozen_file") as prepare_test,
+            mock.patch.object(EVAL, "load_hf_model") as load_model,
+            mock.patch.object(EVAL, "write_predictions") as write_predictions,
+            mock.patch.object(EVAL, "write_json") as write_summary,
+        ):
+            with self.assertRaisesRegex(ValueError, "tracked and committed"):
+                EVAL.run(base)
+        audit_model.assert_not_called()
+        prepare_test.assert_not_called()
+        load_model.assert_not_called()
+        write_predictions.assert_not_called()
+        write_summary.assert_not_called()
+
+    def test_output_directory_rejects_existing_target_and_symlink_parent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            real_parent = root / "real"
+            real_parent.mkdir()
+            existing = real_parent / "existing"
+            existing.mkdir()
+            with self.assertRaisesRegex(ValueError, "already exists"):
+                EVAL.validate_run_directory(existing)
+            linked_parent = root / "linked"
+            linked_parent.symlink_to(real_parent, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                EVAL.validate_run_directory(linked_parent / "new-run")
 
 
 if __name__ == "__main__":
