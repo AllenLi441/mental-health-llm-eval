@@ -3,7 +3,10 @@ import importlib.util
 import json
 import sys
 import tempfile
+import types
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from pathlib import Path
 from unittest import mock
 
@@ -89,8 +92,9 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "train/dev"):
             TRAINER.parse_split_lines(sample_rows(), split="test", expected_rows=None)
         parser = TRAINER.build_parser()
-        with self.assertRaises(SystemExit):
-            parser.parse_args(["--test-file", "/tmp/test.tsv"])
+        with redirect_stderr(StringIO()):
+            with self.assertRaises(SystemExit):
+                parser.parse_args(["--test-file", "/tmp/test.tsv"])
         for action in parser._actions:
             self.assertNotIn("test", " ".join(action.option_strings).lower())
 
@@ -248,6 +252,147 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
         self.assertEqual(result["status"], "ok")
         self.assertEqual(result["target_response_retained"], False)
         self.assertEqual(result["selection_primary"], "dev_macro_f1")
+
+    def test_manual_loop_writes_selected_checkpoint_with_fake_local_model(self):
+        import torch
+
+        class FakeTokenizer:
+            truncation_side = "right"
+
+            def __call__(self, texts, **_kwargs):
+                ids = [[2 + (len(text) % 7), 3, 4] for text in texts]
+                return {
+                    "input_ids": ids,
+                    "attention_mask": [[1] * len(row) for row in ids],
+                }
+
+            def pad(self, features, *, padding, return_tensors):
+                self.assert_pad_contract(padding, return_tensors)
+                return {
+                    key: torch.tensor([feature[key] for feature in features])
+                    for key in features[0]
+                }
+
+            @staticmethod
+            def assert_pad_contract(padding, return_tensors):
+                if padding is not True or return_tensors != "pt":
+                    raise AssertionError("unexpected padding contract")
+
+        class FakeModel(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.classifier = torch.nn.Linear(1, len(TRAINER.LABELS))
+
+            def forward(self, input_ids, attention_mask):
+                del attention_mask
+                feature = input_ids.float().mean(dim=1, keepdim=True)
+                return types.SimpleNamespace(logits=self.classifier(feature))
+
+        class Factory:
+            @staticmethod
+            def from_pretrained(*_args, **_kwargs):
+                return FakeModel()
+
+        class TokenizerFactory:
+            @staticmethod
+            def from_pretrained(*_args, **_kwargs):
+                return FakeTokenizer()
+
+        class ConfigFactory:
+            @staticmethod
+            def from_pretrained(*_args, **_kwargs):
+                return types.SimpleNamespace(model_type="roberta")
+
+        class Scheduler:
+            def __init__(self, optimizer):
+                self.optimizer = optimizer
+
+            def step(self):
+                return None
+
+            def get_last_lr(self):
+                return [self.optimizer.param_groups[0]["lr"]]
+
+        fake_transformers = types.ModuleType("transformers")
+        fake_transformers.__version__ = "5.0.fake"
+        fake_transformers.AutoConfig = ConfigFactory
+        fake_transformers.AutoModelForSequenceClassification = Factory
+        fake_transformers.AutoTokenizer = TokenizerFactory
+        fake_transformers.get_linear_schedule_with_warmup = (
+            lambda optimizer, **_kwargs: Scheduler(optimizer)
+        )
+        fake_transformers.utils = types.SimpleNamespace(
+            logging=types.SimpleNamespace(disable_progress_bar=lambda: None)
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            base = root / "base"
+            base.mkdir()
+            (base / "config.json").write_text(
+                json.dumps({"model_type": "roberta"}), encoding="utf-8"
+            )
+            (base / "tokenizer.json").write_text("{}", encoding="utf-8")
+            (base / "model.safetensors").write_bytes(b"immutable base")
+            base_hash, _entries = TRAINER.hash_model_tree(base)
+            base_audit = TRAINER.validate_base_model_dir(base, base_hash)
+            output = root / "output"
+            args = TRAINER.build_parser().parse_args(
+                [
+                    "--train-file",
+                    "/data/trainWithStrategy_short.tsv",
+                    "--dev-file",
+                    "/data/devWithStrategy_short.tsv",
+                    "--base-model-dir",
+                    str(base),
+                    "--base-model-sha256",
+                    base_hash,
+                    "--output-dir",
+                    str(output),
+                    "--execute",
+                    "--device",
+                    "cpu",
+                    "--epochs",
+                    "1",
+                    "--train-batch-size",
+                    "8",
+                    "--eval-batch-size",
+                    "8",
+                    "--gradient-accumulation-steps",
+                    "1",
+                ]
+            )
+            records = [
+                {
+                    "input_text": f"Seeker: record {index}",
+                    "label": label,
+                    "label_id": index,
+                }
+                for index, label in enumerate(TRAINER.LABELS)
+            ]
+            with mock.patch.dict(sys.modules, {"transformers": fake_transformers}):
+                with redirect_stdout(StringIO()):
+                    result = TRAINER.train_policy(
+                        args,
+                        records,
+                        records,
+                        {"split": "train", "rows": 8},
+                        {"split": "dev", "rows": 8},
+                        base_audit,
+                    )
+            manifest_path = Path(result["manifest_path"])
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(manifest["selection"]["primary"], "dev_macro_f1")
+            self.assertEqual(manifest["selection"]["selected_epoch"], 1)
+            self.assertEqual(manifest["training"]["epochs_completed"], 1)
+            self.assertEqual(
+                manifest["run_scope"]["run_scope"],
+                "developmental_smoke_or_nonfrozen_configuration",
+            )
+            self.assertEqual(
+                result["checkpoint_sha256"],
+                TRAINER.sha256_file(output / TRAINER.CHECKPOINT_NAME),
+            )
 
 
 if __name__ == "__main__":
