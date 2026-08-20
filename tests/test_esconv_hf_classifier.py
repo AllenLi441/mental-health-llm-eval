@@ -73,6 +73,10 @@ def campaign_context(limit=None):
         "selection_sha256": "f" * 64,
         "authorization_path": "campaign/authorization.json",
         "authorization_sha256": "0" * 64,
+        "external_claim_path": "campaign/external-single-writer-claim.json",
+        "external_claim_sha256": "3" * 64,
+        "external_claim_receipt_id": "remote-cas-receipt-001",
+        "external_claim_issued_at_utc": "2026-08-20T00:00:00+00:00",
         "receipt_path": "campaign/consumption-receipt.json",
         "receipt_armed_sha256": "2" * 64,
         "limit": limit,
@@ -120,9 +124,13 @@ def valid_campaign_authorization(limit=None, context=None):
             "limit": context["limit"],
             "run_dir": context["run_dir"],
         },
+        "external_single_writer_claim": {
+            "path": context["external_claim_path"],
+            "schema_version": "esconv-external-single-writer-claim-v1",
+        },
         "consumption_receipt": {
             "path": context["receipt_path"],
-            "armed_sha256": context["receipt_armed_sha256"],
+            "schema_version": "esconv-frozen-campaign-consumption-v1",
         },
     }
 
@@ -152,9 +160,14 @@ def valid_candidate_selection(context=None):
             "path": context["authorization_path"],
             "sha256": context["authorization_sha256"],
         },
+        "external_single_writer_claim": {
+            "path": context["external_claim_path"],
+            "sha256": context["external_claim_sha256"],
+        },
         "consumption_receipt": valid_campaign_authorization(context=context)[
             "consumption_receipt"
-        ],
+        ]
+        | {"armed_sha256": context["receipt_armed_sha256"]},
     }
 
 
@@ -164,6 +177,9 @@ def valid_armed_receipt(context=None):
         "schema_version": "esconv-frozen-campaign-consumption-v1",
         "campaign_id": context["campaign_id"],
         "authorization_sha256": context["authorization_sha256"],
+        "external_single_writer_claim_sha256": context[
+            "external_claim_sha256"
+        ],
         "run_name": context["run_name"],
         "run_dir": context["run_dir"],
         "status": "ARMED",
@@ -172,8 +188,27 @@ def valid_armed_receipt(context=None):
     }
 
 
+def valid_external_single_writer_claim(context=None):
+    context = context or campaign_context()
+    return {
+        "schema_version": "esconv-external-single-writer-claim-v1",
+        "claim_status": "ACQUIRED",
+        "coordinator_kind": "remote_atomic_compare_and_set",
+        "claim_key": f"esconv-frozen:{EVAL.EXPECTED_FROZEN_TEST_SHA256}",
+        "frozen_test_sha256": EVAL.EXPECTED_FROZEN_TEST_SHA256,
+        "campaign_id": context["campaign_id"],
+        "authorization_sha256": context["authorization_sha256"],
+        "receipt_id": context["external_claim_receipt_id"],
+        "issued_at_utc": context["external_claim_issued_at_utc"],
+    }
+
+
 def sha256_bytes(value):
     return hashlib.sha256(value).hexdigest()
+
+
+def json_bytes(document):
+    return (json.dumps(document, sort_keys=True, indent=2) + "\n").encode()
 
 
 def init_git_repo(path):
@@ -393,6 +428,8 @@ class HFClassifierEvaluatorTests(unittest.TestCase):
             "campaign_selection_expected_sha256",
             "campaign_authorization_manifest",
             "campaign_authorization_expected_sha256",
+            "external_single_writer_claim",
+            "external_single_writer_claim_expected_sha256",
             "campaign_consumption_receipt",
             "campaign_consumption_receipt_expected_sha256",
             "run_dir",
@@ -528,6 +565,9 @@ class HFClassifierEvaluatorTests(unittest.TestCase):
         EVAL.validate_campaign_documents(
             selection, authorization, campaign_context=context
         )
+        EVAL.validate_external_single_writer_claim(
+            valid_external_single_writer_claim(context), campaign_context=context
+        )
         mutations = (
             (selection, ("authorization_artifact", "sha256"), "9" * 64),
             (selection, ("checkpoint_training_provenance",), "known_overlap"),
@@ -535,6 +575,11 @@ class HFClassifierEvaluatorTests(unittest.TestCase):
             (authorization, ("candidate", "tokenizer_tree_sha256"), "9" * 64),
             (authorization, ("candidate", "model_tree_sha256"), "9" * 64),
             (authorization, ("evaluator", "commit"), "9" * 40),
+            (
+                authorization,
+                ("external_single_writer_claim", "path"),
+                "campaign/another-claim.json",
+            ),
             (authorization, ("formal_run", "limit"), 1),
         )
         for original, path, value in mutations:
@@ -552,6 +597,164 @@ class HFClassifierEvaluatorTests(unittest.TestCase):
                     mutated_authorization,
                     campaign_context=context,
                 )
+
+    def test_real_committed_campaign_dag_passes_full_preflight_without_sha_cycle(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            init_git_repo(repo)
+            evaluator_path = repo / "scripts/eval_esconv_hf_classifier.py"
+            evaluator_path.parent.mkdir()
+            evaluator_payload = b"# frozen evaluator fixture\n"
+            evaluator_path.write_bytes(evaluator_payload)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "commit", "-qm", "evaluator"],
+                check=True,
+            )
+            evaluator_commit = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+            ).strip()
+
+            context = campaign_context()
+            context.update(
+                {
+                    "evaluator_commit": evaluator_commit,
+                    "evaluator_sha256": sha256_bytes(evaluator_payload),
+                    "run_dir": str((repo / "authorized-run").resolve()),
+                }
+            )
+            authorization = valid_campaign_authorization(context=context)
+            authorization_payload = json_bytes(authorization)
+            context["authorization_sha256"] = sha256_bytes(
+                authorization_payload
+            )
+            external_claim = valid_external_single_writer_claim(context)
+            external_claim_payload = json_bytes(external_claim)
+            context["external_claim_sha256"] = sha256_bytes(
+                external_claim_payload
+            )
+            receipt = valid_armed_receipt(context)
+            receipt_payload = json_bytes(receipt)
+            context["receipt_armed_sha256"] = sha256_bytes(receipt_payload)
+            selection = valid_candidate_selection(context)
+            selection_payload = json_bytes(selection)
+            audit_payload = json_bytes(valid_training_provenance_audit())
+            context["training_provenance_audit_sha256"] = sha256_bytes(
+                audit_payload
+            )
+            # Audit hash is an upstream input, so rebuild the downstream DAG.
+            authorization = valid_campaign_authorization(context=context)
+            authorization_payload = json_bytes(authorization)
+            context["authorization_sha256"] = sha256_bytes(
+                authorization_payload
+            )
+            external_claim = valid_external_single_writer_claim(context)
+            external_claim_payload = json_bytes(external_claim)
+            context["external_claim_sha256"] = sha256_bytes(
+                external_claim_payload
+            )
+            receipt = valid_armed_receipt(context)
+            receipt_payload = json_bytes(receipt)
+            context["receipt_armed_sha256"] = sha256_bytes(receipt_payload)
+            selection = valid_candidate_selection(context)
+            selection_payload = json_bytes(selection)
+            context["selection_sha256"] = sha256_bytes(selection_payload)
+
+            artifacts = {
+                "campaign/authorization.json": authorization_payload,
+                "campaign/external-single-writer-claim.json": external_claim_payload,
+                "campaign/consumption-receipt.json": receipt_payload,
+                "campaign/selection.json": selection_payload,
+                "campaign/training-audit.json": audit_payload,
+            }
+            for relative, payload in artifacts.items():
+                path = repo / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(payload)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "commit", "-qm", "campaign"],
+                check=True,
+            )
+            campaign_commit = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+            ).strip()
+            args = Namespace(
+                profile=context["profile_key"],
+                run_name=context["run_name"],
+                run_dir=Path(context["run_dir"]),
+                checkpoint_training_provenance=context[
+                    "checkpoint_training_provenance"
+                ],
+                campaign_trusted_commit=campaign_commit,
+                campaign_selection_manifest=repo / context["selection_path"],
+                campaign_selection_expected_sha256=sha256_bytes(
+                    selection_payload
+                ),
+                campaign_authorization_manifest=repo
+                / context["authorization_path"],
+                campaign_authorization_expected_sha256=sha256_bytes(
+                    authorization_payload
+                ),
+                external_single_writer_claim=repo
+                / context["external_claim_path"],
+                external_single_writer_claim_expected_sha256=sha256_bytes(
+                    external_claim_payload
+                ),
+                campaign_consumption_receipt=repo / context["receipt_path"],
+                campaign_consumption_receipt_expected_sha256=sha256_bytes(
+                    receipt_payload
+                ),
+                training_provenance_audit=repo
+                / context["training_provenance_audit_path"],
+                training_provenance_audit_expected_sha256=sha256_bytes(
+                    audit_payload
+                ),
+            )
+            loaded = EVAL._load_campaign_preflight(
+                args,
+                profile=EVAL.get_enabled_profile(context["profile_key"]),
+                repo_root=repo,
+                evaluator_path=evaluator_path,
+            )
+            loaded_context = loaded[-1]
+            self.assertEqual(
+                loaded_context["authorization_sha256"],
+                sha256_bytes(authorization_payload),
+            )
+            self.assertEqual(
+                loaded_context["receipt_armed_sha256"],
+                sha256_bytes(receipt_payload),
+            )
+
+    def test_private_sealed_model_copy_matches_snapshot_and_detects_source_change(self):
+        with tempfile.TemporaryDirectory() as directory:
+            model_dir = Path(directory) / "model"
+            model_dir.mkdir()
+            (model_dir / "config.json").write_text("{}\n", encoding="utf-8")
+            (model_dir / "README.md").write_text("card\n", encoding="utf-8")
+            (model_dir / "model.safetensors").write_bytes(b"weights")
+            tokenizer = model_dir / "tokenizer.json"
+            tokenizer.write_bytes(b"tokenizer-v1")
+            snapshot = EVAL.snapshot_model_tree(model_dir)
+            with EVAL.materialize_sealed_model_tree(
+                model_dir, expected_snapshot=snapshot
+            ) as sealed:
+                self.assertNotEqual(sealed, model_dir)
+                sealed_snapshot = EVAL.snapshot_model_tree(sealed)
+                self.assertEqual(
+                    sealed_snapshot["tree_manifest_sha256"],
+                    snapshot["tree_manifest_sha256"],
+                )
+                self.assertFalse(
+                    bool((sealed / "model.safetensors").stat().st_mode & 0o222)
+                )
+            tokenizer.write_bytes(b"tampered")
+            with self.assertRaisesRegex(ValueError, "changed|match"):
+                with EVAL.materialize_sealed_model_tree(
+                    model_dir, expected_snapshot=snapshot
+                ):
+                    self.fail("tampered source must not yield a sealed model")
 
     def test_eligibility_requires_full_2775_metrics_and_two_campaign_documents(self):
         context = campaign_context()
@@ -666,6 +869,69 @@ class HFClassifierEvaluatorTests(unittest.TestCase):
                     campaign_context=context,
                 )
 
+    def test_linked_worktrees_share_one_common_campaign_claim(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = root / "main"
+            linked = root / "linked"
+            repo.mkdir()
+            init_git_repo(repo)
+            context = campaign_context()
+            receipt_path = repo / context["receipt_path"]
+            receipt_path.parent.mkdir()
+            receipt_document = valid_armed_receipt(context)
+            receipt_payload = json_bytes(receipt_document)
+            context["receipt_armed_sha256"] = sha256_bytes(receipt_payload)
+            receipt_path.write_bytes(receipt_payload)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "commit", "-qm", "arm receipt"],
+                check=True,
+            )
+            commit = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+            ).strip()
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(repo),
+                    "worktree",
+                    "add",
+                    "-qb",
+                    "linked-test",
+                    str(linked),
+                    commit,
+                ],
+                check=True,
+            )
+            main_artifact = EVAL.load_committed_json_artifact(
+                receipt_path,
+                description="main receipt",
+                repo_root=repo,
+                trusted_commit=commit,
+                expected_sha256=sha256_bytes(receipt_payload),
+            )
+            linked_artifact = EVAL.load_committed_json_artifact(
+                linked / context["receipt_path"],
+                description="linked receipt",
+                repo_root=linked,
+                trusted_commit=commit,
+                expected_sha256=sha256_bytes(receipt_payload),
+            )
+            first_claim = EVAL.consume_campaign_slot(
+                repo_root=repo,
+                receipt_artifact=main_artifact,
+                campaign_context=context,
+            )
+            self.assertEqual(first_claim, EVAL.campaign_claim_path(linked))
+            with self.assertRaisesRegex(ValueError, "already claimed"):
+                EVAL.consume_campaign_slot(
+                    repo_root=linked,
+                    receipt_artifact=linked_artifact,
+                    campaign_context=context,
+                )
+
     def test_run_rejects_static_errors_and_untrusted_artifacts_before_test_or_model(self):
         base = Namespace(
             profile="tinyllama-augesc-context",
@@ -686,6 +952,8 @@ class HFClassifierEvaluatorTests(unittest.TestCase):
             campaign_selection_expected_sha256="f" * 64,
             campaign_authorization_manifest=Path("/campaign/authorization.json"),
             campaign_authorization_expected_sha256="0" * 64,
+            external_single_writer_claim=Path("/campaign/external-claim.json"),
+            external_single_writer_claim_expected_sha256="3" * 64,
             campaign_consumption_receipt=Path("/campaign/receipt.json"),
             campaign_consumption_receipt_expected_sha256="2" * 64,
         )
