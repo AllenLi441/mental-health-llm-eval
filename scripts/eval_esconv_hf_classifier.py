@@ -2343,13 +2343,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         sealed_model_artifact, _ = audit_model_directory(
             sealed_model_dir,
             profile=profile,
-            declared_revision=args.model_revision,
+            declared_revision=model_artifact["revision"],
         )
         model, tokenizer, device, versions = load_hf_model_verified(
             sealed_model_dir,
             profile=profile,
             requested_device=args.device,
-            declared_revision=args.model_revision,
+            declared_revision=model_artifact["revision"],
             pre_load_artifact=sealed_model_artifact,
         )
         started = time.monotonic()
