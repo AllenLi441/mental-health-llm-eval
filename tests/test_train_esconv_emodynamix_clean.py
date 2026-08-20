@@ -325,11 +325,9 @@ class FeatureContractTests(unittest.TestCase):
 
         expected_commitment = TRAINER.feature_table_commitment([feature])
         changed = deepcopy(feature)
-        changed["upstream_erc_softmax_output"][0][0], changed[
-            "upstream_erc_softmax_output"
-        ][0][1] = (
-            changed["upstream_erc_softmax_output"][0][1],
-            changed["upstream_erc_softmax_output"][0][0],
+        original_vector = changed["upstream_erc_softmax_output"][0]
+        changed["upstream_erc_softmax_output"][0] = (
+            original_vector[-1:] + original_vector[:-1]
         )
         with self.assertRaisesRegex(ValueError, "commitment"):
             TRAINER.load_feature_jsonl_bytes(
