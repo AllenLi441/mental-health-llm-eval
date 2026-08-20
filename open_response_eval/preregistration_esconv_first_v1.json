@@ -1,6 +1,7 @@
 {
   "protocol_id": "jingshi-esconv-first-v1",
-  "frozen_at": "2026-08-20T00:00:00-07:00",
+  "frozen_at": "2026-08-20T05:23:56-07:00",
+  "freeze_effective_rule": "set to the actual commit timestamp of the first commit containing these exact preregistration bytes; never backdate",
   "status": "development_preregistered_not_trained",
   "scope": "ESConv only",
   "objective": "Develop an auditable eight-class next-support-strategy policy and a strategy-conditioned response generator without selecting on the frozen ESConv test.",
@@ -40,12 +41,51 @@
     "test_predictions_for_new_models_before_unique_candidate_freeze": "prohibited",
     "target_response_in_policy_input": false,
     "target_strategy_in_policy_input": false,
-    "exact_and_prefix_overlap_audit_required_for_external_training_data": true
+    "exact_and_prefix_overlap_audit_required_for_external_training_data": true,
+    "derived_train_overlap_policy": {
+      "reason": "The immutable author train/dev files contain a small number of exact row/input duplicates even though there is no exact or prefix dialogue overlap.",
+      "dialogue_overlap": {
+        "train_dialogues": 632,
+        "dev_dialogues": 211,
+        "exact_or_prefix_overlap": 0
+      },
+      "exact_source_line_overlap": {
+        "unique_hashes": 2,
+        "hash_set_commitment_sha256": "392609324d02c42536883082283f2ff79cd2b2b95d42b16cde8e1602ecbda297",
+        "hashes": [
+          "77be9b60fae1f61a2bb3c1c733aaaad24b95bd4b505c4c45b43123727c80531c",
+          "f1085cc07bcb4b13f49c732932b1f9a1a22cac9c6a77180872b021f92f626b0a"
+        ]
+      },
+      "exact_model_input_overlap": {
+        "unique_hashes": 12,
+        "hash_set_commitment_sha256": "b9e1d891f736f1588d6386214413862c43b812c69466589b7f259e2e6d30f6cd",
+        "hashes": [
+          "3358ea28648260fd2f0aed0819cdfac9b55d44e55c6a9eead8dd28478dd3751d",
+          "3dd472de131aea43923eafc47114def5bebeff71eed52de7ebd2c5a42cbcfb44",
+          "4ab4aedefae16b8912287b3440a0325ca219c0ec33c704e9465c9bb729f2289e",
+          "58a8f9e38ce5dcea33f500e22442e5c42ba134cbeebb7b1240d95a9c62e5bc4e",
+          "62a369522f0374e2c1e39c23ffc01b84cb85ec464210a9ea7e545623906a851a",
+          "75635a3047863753ee3993183f260d478bd5ce202d59548bcb83821d26c1384f",
+          "89812797e3f4500b0cb41157be48c90ad549a57e5a7e556322ab9c07c61ae3a6",
+          "9ad0444929093d274cc1bc0bac2886c5581fb5e5b4811e8cf9f69fb8e17cc65e",
+          "b1a29810b05b1a1274a96612b9865386567d46513d77961df98ab575bfa8ee2a",
+          "d2ac838857de6b685570a1e894f787be8f2637b956433b2e5d4228a5a86d2930",
+          "d47c492b14a0d576a2447e5e3630bd6b2cf0f9789718131d7b5c0c017418798a",
+          "f60d89294c3747ef88dcac250145dc0789423aec05b96d0ed784afad40a45341"
+        ],
+        "train_rows_removed": 129
+      },
+      "mandatory_action": "Before optimization, remove every train row whose input_sha256 occurs in dev; this filter cannot be disabled.",
+      "derived_train_rows": 8433,
+      "derived_train_records_commitment_sha256": "55c098b7a1cf1c9c9c9e8c9da49d95d4c8484552fbcc3d18319affda353b3480",
+      "fail_closed_on_any_drift": true
+    }
   },
   "evidence_tracks": [
     "synthetic_expanded_protocol",
-    "paper_reported_classic_protocol",
-    "public_runnable_native_protocol",
+    "paper_reported_esconv_related_protocols",
+    "public_runnable_native_protocols",
     "frozen_2775_reproduced"
   ],
   "architecture": {
@@ -107,7 +147,67 @@
       "retrieval from dev or test",
       "target response leakage",
       "future-turn leakage"
-    ]
+    ],
+    "first_policy_pilot": {
+      "scope": "single-seed development pilot; cannot select or freeze the formal candidate",
+      "base_model": "materialized local roberta-base",
+      "base_model_source_id": "FacebookAI/roberta-base",
+      "base_model_source_revision": "e2da8e2f811d1448a5b465c236feacd80ffbac7b",
+      "base_model_source_license": "MIT per upstream fairseq pretrained-model notice; ESConv data remains uncleared for product use",
+      "base_model_tree_sha256": "1d9faa93557a63a92292cd11dfbca3de8e336ffa60768745a71ecd1ed19aa91c",
+      "base_model_materialization_receipt": "reports/esconv_roberta_base_materialization_20260820.json",
+      "base_model_materialization_receipt_sha256": "4ed49f1c0558c3765e52095f6f0ea50030c9dba0387ff4ae6a82e94410784df2",
+      "seed": 42,
+      "arms": [
+        {
+          "id": "ce",
+          "loss": "cross_entropy"
+        },
+        {
+          "id": "class_balanced",
+          "loss": "effective_number_class_balanced_cross_entropy",
+          "beta": 0.999
+        }
+      ],
+      "shared_hyperparameters": {
+        "device": "mps",
+        "max_length": 256,
+        "truncation_side": "left",
+        "epochs": 3,
+        "learning_rate": 0.00002,
+        "weight_decay": 0.01,
+        "warmup_ratio": 0.1,
+        "train_batch_size": 8,
+        "gradient_accumulation_steps": 2,
+        "eval_batch_size": 16,
+        "max_grad_norm": 1.0,
+        "early_stopping_patience": 3,
+        "logit_adjustment_tau": 1.0
+      },
+      "optimizer": {
+        "name": "torch.optim.AdamW",
+        "bias_and_layer_norm_weight_decay": 0.0,
+        "other_weight_decay": 0.01,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "eps": 1e-8,
+        "amsgrad": false,
+        "foreach": false
+      },
+      "comparison_primary": "best dev Macro-F1",
+      "comparison_secondary": "dev Accuracy",
+      "comparison_tertiary": "lower dev loss",
+      "determinism": {
+        "mode": "best_effort_mps",
+        "torch_deterministic_algorithms": true,
+        "warn_only": true,
+        "bitwise_reproducibility_guaranteed": false,
+        "checkpoint_sha256_role": "binds the selected artifact from this run; it is not an assertion that reruns produce bit-identical bytes"
+      },
+      "frozen_test_access": "prohibited"
+    }
   },
   "external_checkpoint_rules": {
     "immutable_revision_required": true,

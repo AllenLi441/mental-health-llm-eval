@@ -6,19 +6,19 @@
 
 这次不再把不同数据版本、标签空间和评测任务的 Accuracy 混成一张榜。当前应同时保留四个互斥结论：
 
-| 轨道 | 当前 leader | 结果 | 可以如何表述 |
+| 轨道 | 当前代表结论 | 结果 | 可以如何表述 |
 |---|---|---:|---|
 | `synthetic_expanded_protocol` | AFlow | ACC **65.10%**；F1 **63.50%** | AFlow 自建的 MCTS-expanded validation 协议最高；不是原始 ESConv gold test |
-| `paper_reported_classic_protocol` / headline | DPPLM | Strategy ACC **58.03%** | 本次找到的经典 ESConv 论文 headline 最高；完整 split、代码和 checkpoint 未公开，尚不可复现 |
-| `paper_reported_classic_protocol` / full table | Causal-ESC | Strategy ACC **53.53%** | 完整正式论文表中最高；训练/评测划分仍不够清楚，也没有官方权重 |
-| `public_runnable_native_protocol` | TinyLlama AugESC classifier | ACC **41.58%**；Macro-F1 **24.53%** | 模型卡在 AugESC test 的作者自报；公开八分类权重可补测，但不是 frozen-2775 |
+| `paper_reported_esconv_related_protocols` / headline | DPPLM | Strategy ACC **58.03%** | 本次找到的 ESConv 相关论文 headline 最高；完整 split、代码和 checkpoint 未公开，尚不可复现 |
+| `paper_reported_esconv_related_protocols` / full table | Causal-ESC | Strategy ACC **53.53%** | 完整正式论文表中最高；训练/评测划分仍不够清楚，也没有官方权重 |
+| `public_runnable_native_protocols` | TinyLlama AugESC classifier | ACC **41.58%**；Macro-F1 **24.53%** | 本清单中模型卡自报 Accuracy 最高的可下载八分类模型；指标来自 AugESC 原生协议，各条目不可互排，也不是 frozen-2775 |
 | `frozen_2775_reproduced` | BlenderBot-small Joint | ACC **32.2162%**；Macro-F1 **21.8272%** | 本仓库在同一 frozen 2,775 条上已经重跑并可审计的当前基线 |
 
-公开、可下载且确实是八分类 next-strategy head 的最好现成候选是 `heegyu/TinyLlama-augesc-context`。作者模型卡在 **AugESC 自己的 test** 上自报 ACC **41.58%**、Macro-F1 **24.53%**；这不是 frozen-2775 成绩，不能提前写成统一榜 SOTA。
+在本次核查到的公开、可下载且确实是八分类 next-strategy head 中，`heegyu/TinyLlama-augesc-context` 的模型卡自报 Accuracy 最高。作者模型卡在 **AugESC 自己的 test** 上自报 ACC **41.58%**、Macro-F1 **24.53%**；各公开 checkpoint 的原生协议不同，这不是 frozen-2775 成绩，也不能提前写成统一榜 SOTA。
 
 结论因此不是“最高就是 65.10%”或“最高就是 58.03%”，而是：
 
-> AFlow 65.10% 是新合成协议；DPPLM 58.03% 是经典任务最高 headline；Causal-ESC 53.53% 是完整论文表最高；本仓库公平 frozen 榜目前仍只有 BlenderBot-small Joint 32.2162%。
+> AFlow 65.10% 是新合成协议；DPPLM 58.03% 是本次找到的 ESConv 相关 headline 最高；Causal-ESC 53.53% 是完整论文表最高；本仓库公平 frozen 榜目前仍只有 BlenderBot-small Joint 32.2162%。
 
 ## Papers with Code 核查
 
@@ -86,15 +86,15 @@
 |---|---|---:|---|
 | `lsy641/ESC_Blender_Strategy` | Joint generation，首 token 映射为八策略 | 约 90M | frozen-2775：894/2,775，ACC 32.2162%，Macro-F1 21.8272%，Weighted-F1 28.5626% |
 
-### 优先补测
+### 优先核查与原生协议补测
 
 | 模型 | 规模 | 已知指标 | 评测状态 / 风险 |
 |---|---:|---:|---|
-| [`heegyu/TinyLlama-augesc-context`](https://huggingface.co/heegyu/TinyLlama-augesc-context) | 1.034B，FP32 约 4.14 GB | AugESC ACC 41.58%；Macro-F1 24.53% | 正确 `LlamaForSequenceClassification` 八分类头；frozen runner 已准备；权重约下载到 26% 后暂停且可续传，完整哈希通过前禁止推理 |
-| [`cw-wan/EmoDynamiX-v2`](https://github.com/cw-wan/EmoDynamiX-v2) | RoBERTa-base + heterogeneous graph | 论文只报 Macro-F1 27.70%、Weighted-F1 32.71% | 官方 checkpoint 已实测：作者 test.pkl ACC **33.6097%**、Macro-F1 **27.7040%**、Weighted-F1 **32.7087%**；frozen 全量因训练重叠只能作污染诊断 |
-| `heegyu/esconv-xlm-roberta-base` | 278M，约 1.11 GB | 未报告 | 正确八分类头；缺 license 声明；应先在 dev 恢复输入模板和映射，再一次跑 test |
-| `heegyu/esconv-xlm-roberta-large` | 560M，约 2.24 GB | 未报告 | 同上；本地可推理，训练建议租 24–48 GB GPU |
-| 三个 `thanaphatt1/ModernBERT-base-esconv-*` | 约 150M，约 598 MB | 未报告 | 任务看似匹配，但数据版本、label map、单/多轮模板不清楚；未知映射时 runner 必须拒跑 |
+| [`heegyu/TinyLlama-augesc-context`](https://huggingface.co/heegyu/TinyLlama-augesc-context) | 1.034B，FP32 约 4.14 GB | AugESC ACC 41.58%；Macro-F1 24.53% | 正确 `LlamaForSequenceClassification` 八分类头；下载未完成，本地哈希尚未验证；只允许先复核 AugESC 原生协议，唯一候选冻结前禁止新建 frozen-test prediction；checkpoint 与 AugESC 权利链未核清 |
+| [`cw-wan/EmoDynamiX-v2`](https://github.com/cw-wan/EmoDynamiX-v2) | RoBERTa-base + heterogeneous graph | 论文只报 Macro-F1 27.70%、Weighted-F1 32.71% | 官方 checkpoint 已实测：作者 test.pkl ACC **33.6097%**、Macro-F1 **27.7040%**、Weighted-F1 **32.7087%**；frozen 全量因训练重叠只能作污染诊断；产品使用权利未核清 |
+| `heegyu/esconv-xlm-roberta-base` | 278M，约 1.11 GB | 未报告 | 虽是八分类头，但 checkpoint 训练来源、license 与不可变输入模板证据均缺失；profile 先禁用，只能在 dev 固定输入契约后作诊断，禁止直接预测 frozen test |
+| `heegyu/esconv-xlm-roberta-large` | 560M，约 2.24 GB | 未报告 | 同上；未知来源时不具 frozen 榜资格，也不应为其先租机 |
+| 三个 `thanaphatt1/ModernBERT-base-esconv-*` | 约 150M，约 598 MB | 未报告 | 数据版本、label map、单/多轮模板和 license 不清楚；输入契约与映射未固定前 runner 必须拒跑 |
 
 `heegyu/TinyLlama-augesc-context-strategy` 虽有模型卡数字，但实际上传配置是 32,000-vocab `LlamaForCausalLM`，不是八分类 head，不能把它当分类器上榜。
 
@@ -128,14 +128,18 @@ EmoDynamiX 作者把当前 1,300-dialogue ESConv 快照按 seed 13 重新切分�
 
 因此 released EmoDynamiX checkpoint 在 frozen-2775 上的任何全量结果都必须强制标为 `DIAGNOSTIC_ONLY_TRAIN_CONTAMINATED`，并设置 `frozen_leaderboard_eligible=false`。不能用这个结果宣称超越 32.2162% 的公平 frozen 基线。
 
+### 官方 train/dev 的小规模样本重复
+
+训练器的第二轮只读审计还发现：官方固定 train（632 个对话）与 dev（211 个对话）之间没有整段对话的 exact/prefix overlap，但有 **2** 种完整 TSV 行、**12** 种实际模型输入上下文跨 split 完全相同；后者在 train 中对应 **129** 行。为保证“dev 不进入梯度”的内容级含义，首次训练前已预注册一个不可关闭的过滤器：移除所有 `input_sha256` 出现在 dev 的 train 行，派生训练集固定为 **8,433** 行，records commitment 为 `55c098b7…b3480`。这属于小规模 exact-example contamination，不应误写成整段对话 split 泄漏。
+
 ## 租 GPU 决策
 
 现在不要为 DPPLM、Causal-ESC、SAGE、CADSS 或 AFlow 直接租机：前四者没有可核验权重或完整训练配方；AFlow 虽有代码，但没有权重、成本高且复现参数未闭合。租机不能补回缺失的 artifact。
 
 推荐顺序：
 
-1. 本机 M4 24 GB 先完成 EmoDynamiX 作者协议、TinyLlama 分类器、XLM-R base、ModernBERT 的推理补测。
-2. 若 XLM-R / ModernBERT 需要重训，租 1×24 GB 或 1×48 GB GPU 足够完成第一轮 encoder / 1B classifier 实验。
+1. 本机 M4 24 GB 已完成 EmoDynamiX 作者协议；下一步只复核 TinyLlama 的 AugESC 原生协议，并用 train/dev 固定自有 RoBERTa policy。XLM-R 只能在来源证据与输入契约固定后作 dev 诊断，ModernBERT 继续阻断。
+2. 只有 train/dev 实验明确显示 encoder / 1B classifier 值得扩大后，才考虑租 1×24 GB 或 1×48 GB GPU；租机不授权额外 frozen-test 运行。
 3. 策略条件生成器使用本地已有 Qwen3.8-27B；QLoRA 建议 1×80 GB，或 2×48/80 GB 以留出长上下文与评测余量。
 4. 只有当 AFlow 作者补齐配置、训练权重或可运行 manifest 后，再评估 8×A100 级复现。
 
@@ -169,7 +173,7 @@ conversation history
 
 训练与确认规则：
 
-- 只允许 frozen train/dev 参与训练、检索、模板选择和超参数选择。
+- frozen train 先执行已冻结的 dev-exact-input 去重，再只用于训练与检索；frozen dev 只用于模型选择、模板固定与校准，绝不进入训练或检索索引。
 - frozen test 在唯一候选冻结后只运行一次。
 - 主选择指标为 dev Macro-F1，tie-breaker 为 Accuracy。
 - test 同时报告 ACC、Macro/Weighted-F1、逐类结果、invalid、conversation-cluster bootstrap 和 paired McNemar。
@@ -177,16 +181,18 @@ conversation history
 
 ## 不能直接替换“静室”核心 API
 
-ESConv 官方仓库把数据/代码限定为学术研究用途，公开数据卡也标注 CC BY-NC 4.0。用 ESConv 训练出来的权重，不能仅凭模型代码 license 推断可用于商业产品。投入生产前需要取得数据权利人的明确商业许可，或改用权利链清晰的自有/授权数据重新训练。这不是法律意见。
+ESConv 官方仓库把数据/代码限定为学术研究用途，公开数据卡也标注 CC BY-NC 4.0。用 ESConv 训练出来的权重，不能仅凭模型代码 license 推断可用于商业产品。TinyLlama、XLM-R、ModernBERT 等候选的 checkpoint、本体模型与 AugESC/其他辅助数据也必须分别完成 license 和来源审查。投入生产前需要取得相关权利人的明确商业许可，或改用权利链清晰的自有/授权数据重新训练。这不是法律意见。
 
 此外，ESConv 只验证支持策略选择和回复质量，不验证诊断、治疗有效性、危机处置、自伤风险、药物建议或临床安全。即使策略 Accuracy 提升，也只能先作为 shadow-mode policy/router 候选；完成危机安全集、人工专家复核、拒答/升级机制、隐私与在线回滚测试后，才讨论替换 DeepSeek API。
 
 ## 仓库实现
 
 - `scripts/eval_esconv_emodynamix.py`：prepare / infer / score / contamination audit，强制 target exclusion 和污染资格判定；审计产物为 `reports/esconv_emodynamix_contamination_audit_20260820.json`。
-- `scripts/eval_esconv_hf_classifier.py`：通用 Hugging Face 八分类 checkpoint 评测器，拒绝 CausalLM 与未知 label mapping。
+- `scripts/eval_esconv_hf_classifier.py`：通用 Hugging Face 八分类 checkpoint 评测器，拒绝 CausalLM、未知 label mapping 与未提交授权；正式 frozen 运行强制唯一 committed campaign、完整 2,775 行、模型/Tokenizer 整树复验和永久单次消费凭据。
+- `scripts/train_esconv_policy.py`：train/dev-only RoBERTa policy trainer；固定数据、派生去重集、基模整树、loss、dev 选优和 checkpoint manifest，默认只读审计。
 - `open_response_eval/esconv_metrics.py`：统一 ACC、Macro/Weighted-F1、逐类指标和混淆矩阵。
 - `open_response_eval/preregistration_esconv_first_v1.json`：ESConv-first 模型开发冻结协议。
+- `reports/esconv_roberta_base_materialization_20260820.json`：RoBERTa-base 不可变 revision 到本地 regular-file tree 的逐字节来源凭据。
 - `reports/esconv_model_registry_20260820.json`：机器可读四轨 registry。
 
 ## 主要来源

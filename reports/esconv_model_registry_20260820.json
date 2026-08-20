@@ -41,9 +41,10 @@
         }
       ]
     },
-    "paper_reported_classic_protocol": {
-      "headline_leader_id": "dpplm",
-      "full_table_leader_id": "causal_esc",
+    "paper_reported_esconv_related_protocols": {
+      "highest_reported_headline_among_listed_id": "dpplm",
+      "highest_reported_full_table_among_listed_id": "causal_esc",
+      "cross_entry_comparability": false,
       "leaderboard_eligible_for_frozen_2775": false,
       "entries": [
         {
@@ -184,8 +185,9 @@
         }
       ]
     },
-    "public_runnable_native_protocol": {
-      "leader_id_by_reported_accuracy": "tinyllama_augesc_context",
+    "public_runnable_native_protocols": {
+      "highest_model_card_reported_accuracy_among_listed_id": "tinyllama_augesc_context",
+      "cross_entry_comparability": false,
       "leaderboard_eligible_for_frozen_2775": false,
       "entries": [
         {
@@ -198,9 +200,14 @@
           "reported_accuracy": 0.4158,
           "reported_macro_f1": 0.2453,
           "weight_size_bytes": 4138138032,
-          "weight_sha256": "be1b01ac696c8a4f8397286e5a9accd14bcff0aaa0b8f43ef3ae5a37b82fc483",
+          "expected_weight_sha256": "be1b01ac696c8a4f8397286e5a9accd14bcff0aaa0b8f43ef3ae5a37b82fc483",
+          "local_hash_verified": false,
+          "checkpoint_license_status": "unknown_unverified",
+          "base_model_license_status": "unknown_unverified_for_this_checkpoint_chain",
+          "auxiliary_dataset_license_status": "augesc_rights_chain_unknown_unverified",
           "model_url": "https://huggingface.co/heegyu/TinyLlama-augesc-context",
-          "frozen_2775_status": "weight_download_paused_resumable_at_approximately_26_percent",
+          "download_status": "download_incomplete",
+          "frozen_2775_status": "formal_test_prohibited_until_unique_candidate_freeze",
           "frozen_2775_result": null
         },
         {
@@ -212,6 +219,7 @@
           "paper_reported_macro_f1": 0.277,
           "paper_reported_weighted_f1": 0.3271,
           "checkpoint_sha256": "6cb5b27356b566a9db1d071fa6cb969aba6fda8a3073632003b3c6b797daa4e7",
+          "checkpoint_license_status": "unknown_unverified_for_product_use",
           "paper_url": "https://aclanthology.org/2025.naacl-long.81/",
           "code_url": "https://github.com/cw-wan/EmoDynamiX-v2",
           "author_native_test_status": "complete",
@@ -235,9 +243,12 @@
           "architecture": "XLMRobertaForSequenceClassification",
           "num_labels": 8,
           "weight_size_bytes": 1112223464,
-          "weight_sha256": "4fd0d826664b28158fd907321fea2bd3b79144c503bc6b869148ec1e438816b9",
+          "expected_weight_sha256": "4fd0d826664b28158fd907321fea2bd3b79144c503bc6b869148ec1e438816b9",
+          "local_hash_verified": false,
+          "checkpoint_license_status": "unknown_unverified",
+          "input_template_status": "unverified_profile_disabled",
           "reported_metrics": null,
-          "frozen_2775_status": "queued"
+          "frozen_2775_status": "formal_test_prohibited_until_unique_candidate_freeze"
         },
         {
           "id": "esconv_xlm_roberta_large",
@@ -246,9 +257,12 @@
           "architecture": "XLMRobertaForSequenceClassification",
           "num_labels": 8,
           "weight_size_bytes": 2239643272,
-          "weight_sha256": "561a372d63e1cacd4a85cd67642ad3e1df5aa18b8219dc7372f3953c81316869",
+          "expected_weight_sha256": "561a372d63e1cacd4a85cd67642ad3e1df5aa18b8219dc7372f3953c81316869",
+          "local_hash_verified": false,
+          "checkpoint_license_status": "unknown_unverified",
+          "input_template_status": "unverified_profile_disabled",
           "reported_metrics": null,
-          "frozen_2775_status": "queued"
+          "frozen_2775_status": "formal_test_prohibited_until_unique_candidate_freeze"
         }
       ]
     },
@@ -333,11 +347,45 @@
       }
     ]
   },
+  "policy_development": {
+    "protocol_id": "jingshi-esconv-first-v1",
+    "status": "preregistered_not_executed",
+    "preregistration_artifact": "open_response_eval/preregistration_esconv_first_v1.json",
+    "trainer": "scripts/train_esconv_policy.py",
+    "frozen_evaluator_gate_commit": "1442eda",
+    "frozen_test_accessed_by_new_policy": false,
+    "base_model": {
+      "model_id": "FacebookAI/roberta-base",
+      "revision": "e2da8e2f811d1448a5b465c236feacd80ffbac7b",
+      "license": "MIT",
+      "local_tree_sha256": "1d9faa93557a63a92292cd11dfbca3de8e336ffa60768745a71ecd1ed19aa91c",
+      "materialization_receipt": "reports/esconv_roberta_base_materialization_20260820.json",
+      "materialization_receipt_sha256": "4ed49f1c0558c3765e52095f6f0ea50030c9dba0387ff4ae6a82e94410784df2"
+    },
+    "training_data": {
+      "raw_train_rows": 8562,
+      "dev_rows": 2985,
+      "exact_or_prefix_dialogue_overlap": 0,
+      "unique_exact_input_overlaps": 12,
+      "train_rows_mandatorily_removed": 129,
+      "derived_train_rows": 8433,
+      "derived_train_records_sha256": "55c098b7a1cf1c9c9c9e8c9da49d95d4c8484552fbcc3d18319affda353b3480"
+    },
+    "single_seed_pilot_arms": [
+      "ce",
+      "class_balanced_effective_number_beta_0.999"
+    ],
+    "pilot_device": "mps",
+    "loss_normalization": "per_optimizer_window numerator/denominator; class-balanced denominator is the sum of target-class weights, and CE denominator is the number of rows",
+    "pilot_results": null,
+    "formal_candidate_selected": false
+  },
   "product_constraints": {
     "esconv_license_risk": "official materials state academic research use and the public dataset card is CC BY-NC 4.0",
     "commercial_replacement_allowed": false,
     "required_before_product_use": [
       "written commercial data permission or retraining on commercially cleared data",
+      "checkpoint, base-model, and every auxiliary-dataset license and provenance clearance",
       "crisis and self-harm safety evaluation",
       "human expert review",
       "privacy and abuse testing",
