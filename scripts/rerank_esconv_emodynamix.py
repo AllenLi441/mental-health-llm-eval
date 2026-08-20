@@ -242,16 +242,29 @@ def rerank_one(
     prior: dict[str, Any],
     *,
     transition_weight: float,
+    class_adjustment_tau: float,
 ) -> dict[str, Any]:
     """Rerank one row; the interface intentionally has no gold-label argument."""
 
     if not math.isfinite(transition_weight) or transition_weight < 0:
         raise ValueError("transition_weight must be finite and non-negative")
+    if not math.isfinite(class_adjustment_tau) or class_adjustment_tau < 0:
+        raise ValueError("class_adjustment_tau must be finite and non-negative")
     logits = _canonical_logits(logits_by_label)
     probabilities = prior_for_input(prior, model_input)
+    train_class_probabilities = prior.get("global_probabilities")
+    if not isinstance(train_class_probabilities, list) or len(
+        train_class_probabilities
+    ) != len(CANONICAL_LABELS):
+        raise ValueError("transition prior global probability shape mismatch")
     scores = [
-        logit + transition_weight * math.log(max(probability, 1e-300))
-        for logit, probability in zip(logits, probabilities)
+        logit
+        + transition_weight * math.log(max(probability, 1e-300))
+        - class_adjustment_tau
+        * math.log(max(float(train_probability), 1e-300))
+        for logit, probability, train_probability in zip(
+            logits, probabilities, train_class_probabilities
+        )
     ]
     predicted_index = max(range(len(scores)), key=scores.__getitem__)
     base_index = max(range(len(logits)), key=logits.__getitem__)
@@ -260,6 +273,10 @@ def rerank_one(
         "base_prediction": CANONICAL_LABELS[base_index],
         "transition_probabilities": {
             label: probabilities[index]
+            for index, label in enumerate(CANONICAL_LABELS)
+        },
+        "train_class_probabilities": {
+            label: float(train_class_probabilities[index])
             for index, label in enumerate(CANONICAL_LABELS)
         },
         "reranked_scores": {
@@ -286,6 +303,7 @@ def evaluate_configuration(
     prior: dict[str, Any],
     *,
     transition_weight: float,
+    class_adjustment_tau: float,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     valid_by_id = _by_item_id(valid_records, "valid records")
     raw_by_id = _by_item_id(raw_predictions, "valid predictions")
@@ -304,6 +322,7 @@ def evaluate_configuration(
                 raw.get("logits"),
                 prior,
                 transition_weight=transition_weight,
+                class_adjustment_tau=class_adjustment_tau,
             )
             record = {
                 "item_id": source["item_id"],
@@ -315,6 +334,9 @@ def evaluate_configuration(
                 "error": None,
                 "model_input_sha256": source.get("model_input_sha256"),
                 "transition_probabilities": planned["transition_probabilities"],
+                "train_class_probabilities": planned[
+                    "train_class_probabilities"
+                ],
                 "reranked_scores": planned["reranked_scores"],
             }
         except (TypeError, ValueError) as error:
@@ -338,13 +360,16 @@ def choose_best_candidate(
     if not candidates:
         raise ValueError("candidate list must not be empty")
 
-    def key(candidate: dict[str, Any]) -> tuple[float, float, float, float, float]:
+    def key(
+        candidate: dict[str, Any]
+    ) -> tuple[float, float, float, float, float, float]:
         metrics = candidate["metrics"]
         config = candidate["config"]
         return (
             float(metrics["macro_f1"]),
             float(metrics["accuracy"]),
             -float(config["transition_weight"]),
+            -float(config.get("class_adjustment_tau", 0.0)),
             -float(config["history_order"]),
             -float(config["smoothing"]),
         )
@@ -360,43 +385,59 @@ def select_configuration(
     history_orders: Sequence[int],
     smoothings: Sequence[float],
     transition_weights: Sequence[float],
+    class_adjustment_taus: Sequence[float] = (0.0,),
 ) -> dict[str, Any]:
     candidates = []
-    predictions_by_config: dict[tuple[int, float, float], list[dict[str, Any]]] = {}
+    predictions_by_config: dict[
+        tuple[int, float, float, float], list[dict[str, Any]]
+    ] = {}
     for history_order in sorted(set(history_orders)):
         for smoothing in sorted(set(smoothings)):
             prior = fit_transition_prior(
                 train_records, history_order=history_order, smoothing=smoothing
             )
             for transition_weight in sorted(set(transition_weights)):
-                predictions, metrics = evaluate_configuration(
-                    valid_records,
-                    raw_predictions,
-                    prior,
-                    transition_weight=transition_weight,
-                )
-                config = {
-                    "history_order": history_order,
-                    "smoothing": smoothing,
-                    "transition_weight": transition_weight,
-                }
-                candidates.append({"config": config, "metrics": metrics})
-                predictions_by_config[
-                    (history_order, smoothing, transition_weight)
-                ] = predictions
+                for class_adjustment_tau in sorted(set(class_adjustment_taus)):
+                    predictions, metrics = evaluate_configuration(
+                        valid_records,
+                        raw_predictions,
+                        prior,
+                        transition_weight=transition_weight,
+                        class_adjustment_tau=class_adjustment_tau,
+                    )
+                    config = {
+                        "history_order": history_order,
+                        "smoothing": smoothing,
+                        "transition_weight": transition_weight,
+                        "class_adjustment_tau": class_adjustment_tau,
+                    }
+                    candidates.append({"config": config, "metrics": metrics})
+                    predictions_by_config[
+                        (
+                            history_order,
+                            smoothing,
+                            transition_weight,
+                            class_adjustment_tau,
+                        )
+                    ] = predictions
     best = choose_best_candidate(candidates)
     baseline_candidates = [
         candidate
         for candidate in candidates
         if float(candidate["config"]["transition_weight"]) == 0.0
+        and float(candidate["config"]["class_adjustment_tau"]) == 0.0
     ]
     if not baseline_candidates:
-        raise ValueError("transition_weights must include the 0.0 base-model control")
+        raise ValueError(
+            "transition_weights and class_adjustment_taus must include the 0.0 "
+            "base-model control"
+        )
     baseline = choose_best_candidate(baseline_candidates)
     best_key = (
         int(best["config"]["history_order"]),
         float(best["config"]["smoothing"]),
         float(best["config"]["transition_weight"]),
+        float(best["config"]["class_adjustment_tau"]),
     )
     return {
         "protocol_id": PROTOCOL_ID,
@@ -404,7 +445,7 @@ def select_configuration(
         "leaderboard_eligible": False,
         "selection_rule": (
             "max valid Macro-F1; then Accuracy; then smaller transition weight, "
-            "history order, and smoothing"
+            "class-adjustment tau, history order, and smoothing"
         ),
         "split_contract": {
             "transition_fit": "author_train_only",
@@ -452,6 +493,10 @@ def build_parser() -> argparse.ArgumentParser:
     select.add_argument(
         "--transition-weights", default="0.0,0.05,0.1,0.2,0.4,0.8"
     )
+    select.add_argument(
+        "--class-adjustment-taus",
+        default="0.0,0.05,0.1,0.2,0.3,0.4,0.6,0.8,1.0",
+    )
     select.add_argument("--summary-output", type=Path, required=True)
     select.add_argument("--predictions-output", type=Path, required=True)
     return parser
@@ -496,6 +541,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         history_orders=_int_values(args.history_orders),
         smoothings=_float_values(args.smoothings),
         transition_weights=_float_values(args.transition_weights),
+        class_adjustment_taus=_float_values(args.class_adjustment_taus),
     )
     predictions = result.pop("best_predictions")
     _write_jsonl(args.predictions_output, predictions)
