@@ -592,6 +592,100 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
                     receipt_path, TRAINER.sha256_file(receipt_path), base_audit
                 )
 
+    def test_read_only_protocol_audit_binds_preregistration_and_receipt_assets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            base = repo / "base"
+            base.mkdir()
+            (base / "config.json").write_text(
+                json.dumps({"model_type": "roberta"}), encoding="utf-8"
+            )
+            (base / "tokenizer.json").write_text("{}", encoding="utf-8")
+            (base / "model.safetensors").write_bytes(b"weights")
+            base_hash, entries = TRAINER.hash_model_tree(base)
+            base_audit = TRAINER.validate_base_model_dir(base, base_hash)
+            prereg = repo / "prereg.json"
+            prereg.write_text(
+                json.dumps(frozen_pilot_document()) + "\n", encoding="utf-8"
+            )
+            receipt = repo / "receipt.json"
+            receipt.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "local-model-materialization-receipt-v1",
+                        "source": {
+                            "model_id": "FacebookAI/roberta-base",
+                            "immutable_revision": (
+                                "e2da8e2f811d1448a5b465c236feacd80ffbac7b"
+                            ),
+                            "license": "MIT",
+                        },
+                        "materialization": {
+                            "source_and_materialized_file_bytes_identical": True,
+                            "symlinks_in_materialized_tree": False,
+                            "local_tree_sha256": base_hash,
+                            "files": entries,
+                        },
+                    },
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            metrics = repo / "metrics.py"
+            metrics.write_text("METRIC = 1\n", encoding="utf-8")
+            trainer = repo / "trainer.py"
+            trainer.write_text("TRAINER = 1\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(repo),
+                    "-c",
+                    "user.name=ESConv Test",
+                    "-c",
+                    "user.email=esconv@example.invalid",
+                    "commit",
+                    "-q",
+                    "-m",
+                    "audit assets",
+                ],
+                check=True,
+            )
+            args = types.SimpleNamespace(
+                preregistration_sha256=TRAINER.sha256_file(prereg),
+                materialization_receipt=receipt,
+                materialization_receipt_sha256=TRAINER.sha256_file(receipt),
+            )
+            with mock.patch.multiple(
+                TRAINER,
+                ROOT=repo,
+                PREREGISTRATION_PATH=prereg,
+                METRICS_PATH=metrics,
+                __file__=str(trainer),
+            ):
+                provenance = TRAINER.prepare_protocol_provenance(
+                    args, base_audit, require_execution=False
+                )
+            self.assertFalse(provenance["validated_for_execution"])
+            self.assertEqual(
+                provenance["parent_preregistration"]["sha256"],
+                args.preregistration_sha256,
+            )
+            public = TRAINER._public_provenance(provenance)
+            self.assertNotIn("_repo", public)
+            self.assertEqual(
+                set(public["launch_asset_snapshot"]["assets"]),
+                {
+                    "trainer",
+                    "metrics",
+                    "preregistration",
+                    "materialization_receipt",
+                },
+            )
+
     def test_committed_asset_gate_records_freeze_and_rejects_related_dirty_file(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)
@@ -648,6 +742,17 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
             self.assertEqual(validated["freeze_commit_timestamp"], timestamp)
             self.assertEqual(validated["git_status_porcelain"], "")
 
+            (repo / "unrelated.tmp").write_text("not a protocol asset\n")
+            unrelated_dirty = TRAINER.capture_protocol_assets(repo, assets)
+            still_valid = TRAINER.validate_execution_asset_state(
+                unrelated_dirty,
+                frozen_pilot_document(timestamp),
+                expected_preregistration_sha256=TRAINER.sha256_file(prereg),
+            )
+            self.assertTrue(still_valid["validated_for_execution"])
+            self.assertTrue(still_valid["git_status_porcelain"])
+            self.assertEqual(still_valid["related_git_status_porcelain"], "")
+
             metrics.write_text("METRIC = 2\n", encoding="utf-8")
             dirty = TRAINER.capture_protocol_assets(repo, assets)
             with self.assertRaisesRegex(ValueError, "dirty or uncommitted"):
@@ -656,6 +761,28 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
                     frozen_pilot_document(timestamp),
                     expected_preregistration_sha256=TRAINER.sha256_file(prereg),
                 )
+
+    def test_training_cannot_start_without_validated_execution_provenance(self):
+        with self.assertRaisesRegex(ValueError, "execution provenance"):
+            TRAINER.train_policy(
+                None,
+                [],
+                [],
+                {},
+                {},
+                {},
+                execution_provenance={"validated_for_execution": False},
+            )
+        with self.assertRaisesRegex(ValueError, "incomplete execution provenance"):
+            TRAINER.train_policy(
+                None,
+                [],
+                [],
+                {},
+                {},
+                {},
+                execution_provenance={"validated_for_execution": True},
+            )
 
     def test_optimizer_groups_and_odd_accumulation_window_are_exact(self):
         import torch
@@ -872,19 +999,24 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
                     "finalize_execution_provenance",
                     return_value=finalized_provenance,
                 ):
-                    with mock.patch.dict(
-                        sys.modules, {"transformers": fake_transformers}
+                    with mock.patch.object(
+                        TRAINER,
+                        "revalidate_execution_provenance",
+                        return_value=None,
                     ):
-                        with redirect_stdout(StringIO()):
-                            result = TRAINER.train_policy(
-                                args,
-                                raw_train_records,
-                                dev_records,
-                                {"split": "train", "rows": 9},
-                                {"split": "dev", "rows": 8},
-                                base_audit,
-                                execution_provenance=execution_provenance,
-                            )
+                        with mock.patch.dict(
+                            sys.modules, {"transformers": fake_transformers}
+                        ):
+                            with redirect_stdout(StringIO()):
+                                result = TRAINER.train_policy(
+                                    args,
+                                    raw_train_records,
+                                    dev_records,
+                                    {"split": "train", "rows": 9},
+                                    {"split": "dev", "rows": 8},
+                                    base_audit,
+                                    execution_provenance=execution_provenance,
+                                )
             manifest_path = Path(result["manifest_path"])
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             self.assertEqual(manifest["selection"]["primary"], "dev_macro_f1")

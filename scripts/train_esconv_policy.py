@@ -28,6 +28,7 @@ import sys
 import tempfile
 import time
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
@@ -42,6 +43,17 @@ from open_response_eval.esconv_metrics import (  # noqa: E402
 
 
 PROTOCOL_ID = "esconv-policy-roberta-v1"
+PARENT_PROTOCOL_ID = "jingshi-esconv-first-v1"
+PREREGISTRATION_PATH = (
+    ROOT / "open_response_eval/preregistration_esconv_first_v1.json"
+)
+METRICS_PATH = ROOT / "open_response_eval/esconv_metrics.py"
+EXPECTED_PILOT_BASE_TREE_SHA256 = (
+    "1d9faa93557a63a92292cd11dfbca3de8e336ffa60768745a71ecd1ed19aa91c"
+)
+EXPECTED_SOURCE_MODEL_ID = "FacebookAI/roberta-base"
+EXPECTED_SOURCE_MODEL_REVISION = "e2da8e2f811d1448a5b465c236feacd80ffbac7b"
+EXPECTED_SOURCE_MODEL_LICENSE = "MIT"
 OFFICIAL_SPLITS: dict[str, dict[str, Any]] = {
     "train": {
         "filename": "trainWithStrategy_short.tsv",
@@ -124,6 +136,41 @@ FROZEN_PILOT_DEFAULTS = {
     "eval_batch_size": 16,
     "seed": 42,
     "class_balance_beta": 0.999,
+    "logit_adjustment_tau": 1.0,
+    "max_grad_norm": 1.0,
+    "early_stopping_patience": 3,
+    "adam_beta1": 0.9,
+    "adam_beta2": 0.999,
+    "adam_eps": 1e-8,
+    "adam_amsgrad": False,
+    "adam_foreach": False,
+}
+PILOT_ALLOWED_LOSSES = ("ce", "class_balanced")
+PILOT_SHARED_HYPERPARAMETERS = {
+    key: FROZEN_PILOT_DEFAULTS[key]
+    for key in (
+        "max_length",
+        "truncation_side",
+        "epochs",
+        "learning_rate",
+        "weight_decay",
+        "warmup_ratio",
+        "train_batch_size",
+        "gradient_accumulation_steps",
+        "eval_batch_size",
+        "logit_adjustment_tau",
+        "max_grad_norm",
+        "early_stopping_patience",
+    )
+}
+PILOT_OPTIMIZER = {
+    "name": "torch.optim.AdamW",
+    "bias_and_layer_norm_weight_decay": 0.0,
+    "other_weight_decay": 0.01,
+    "betas": [0.9, 0.999],
+    "eps": 1e-8,
+    "amsgrad": False,
+    "foreach": False,
 }
 
 
@@ -152,9 +199,151 @@ def git_commit(repo: Path = ROOT) -> str | None:
             ["git", "-C", str(repo), "rev-parse", "HEAD"],
             text=True,
             stderr=subprocess.DEVNULL,
-        ).strip()
+        ).rstrip("\n")
     except (OSError, subprocess.CalledProcessError):
         return None
+
+
+def _git_output(repo: Path, arguments: Sequence[str]) -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "-C", str(repo), *arguments],
+            text=True,
+            stderr=subprocess.STDOUT,
+        ).rstrip("\n")
+    except (OSError, subprocess.CalledProcessError) as error:
+        detail = getattr(error, "output", "") or str(error)
+        raise ValueError(f"git protocol audit failed: {detail.strip()}") from error
+
+
+def capture_protocol_assets(
+    repo: Path, assets: dict[str, Path]
+) -> dict[str, Any]:
+    """Capture bytes and Git state for every artifact that defines a run."""
+
+    repo = Path(repo).resolve()
+    if not (repo / ".git").exists():
+        raise ValueError(f"protocol repository is not a Git worktree: {repo}")
+    normalized: dict[str, Path] = {}
+    for name, raw_path in assets.items():
+        unresolved_path = Path(raw_path)
+        if unresolved_path.is_symlink():
+            raise ValueError(f"protocol asset {name!r} must not be a symlink")
+        path = unresolved_path.resolve()
+        if not path.is_relative_to(repo):
+            raise ValueError(f"protocol asset {name!r} is outside repository")
+        if path.is_symlink() or not path.is_file():
+            raise ValueError(f"protocol asset {name!r} must be a regular file")
+        normalized[name] = path
+
+    relative_paths = {
+        name: path.relative_to(repo).as_posix()
+        for name, path in normalized.items()
+    }
+    status = _git_output(
+        repo, ["status", "--porcelain=v1", "--untracked-files=all"]
+    )
+    related_status = _git_output(
+        repo,
+        [
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=all",
+            "--",
+            *relative_paths.values(),
+        ],
+    )
+    captured: dict[str, Any] = {}
+    for name, path in normalized.items():
+        relative = relative_paths[name]
+        tracked = True
+        try:
+            _git_output(repo, ["ls-files", "--error-unmatch", "--", relative])
+        except ValueError:
+            tracked = False
+        last_commit = None
+        last_commit_timestamp = None
+        if tracked:
+            log_value = _git_output(
+                repo, ["log", "-1", "--format=%H%x00%cI", "--", relative]
+            )
+            if log_value:
+                last_commit, separator, last_commit_timestamp = log_value.partition(
+                    "\x00"
+                )
+                if not separator:
+                    raise ValueError(f"cannot parse Git provenance for {relative}")
+        captured[name] = {
+            "path": str(path),
+            "repository_relative_path": relative,
+            "size": path.stat().st_size,
+            "sha256": sha256_file(path),
+            "tracked": tracked,
+            "last_commit": last_commit,
+            "last_commit_timestamp": last_commit_timestamp,
+        }
+    return {
+        "repository_root": str(repo),
+        "head_commit": _git_output(repo, ["rev-parse", "HEAD"]),
+        "git_status_porcelain": status,
+        "related_git_status_porcelain": related_status,
+        "assets": captured,
+    }
+
+
+def validate_execution_asset_state(
+    snapshot: dict[str, Any],
+    preregistration_document: dict[str, Any],
+    *,
+    expected_preregistration_sha256: str,
+) -> dict[str, Any]:
+    """Fail closed unless frozen protocol assets are committed and unchanged."""
+
+    if not HEX64.fullmatch(expected_preregistration_sha256 or ""):
+        raise ValueError("preregistration expected hash must be a lowercase SHA-256")
+    preregistration = snapshot.get("assets", {}).get("preregistration")
+    if preregistration is None:
+        raise ValueError("protocol snapshot lacks preregistration asset")
+    if preregistration["sha256"] != expected_preregistration_sha256:
+        raise ValueError("preregistration bytes do not match the expected SHA-256")
+    bad_assets = sorted(
+        name
+        for name, asset in snapshot.get("assets", {}).items()
+        if not asset.get("tracked") or not asset.get("last_commit")
+    )
+    if bad_assets or snapshot.get("related_git_status_porcelain"):
+        raise ValueError(
+            "protocol assets are dirty or uncommitted: "
+            + json.dumps(
+                {
+                    "uncommitted_assets": bad_assets,
+                    "related_status": snapshot.get(
+                        "related_git_status_porcelain", ""
+                    ),
+                },
+                sort_keys=True,
+            )
+        )
+    preregistration_audit = validate_preregistration_document(
+        preregistration_document
+    )
+    freeze_commit = preregistration["last_commit"]
+    freeze_commit_timestamp = preregistration["last_commit_timestamp"]
+    if freeze_commit_timestamp != preregistration_audit["frozen_at"]:
+        raise ValueError(
+            "preregistration frozen_at must equal the commit timestamp of its bytes"
+        )
+    return {
+        "validated_for_execution": True,
+        "parent_protocol_id": preregistration_audit["parent_protocol_id"],
+        "freeze_commit": freeze_commit,
+        "freeze_commit_timestamp": freeze_commit_timestamp,
+        "git_head_at_launch": snapshot["head_commit"],
+        "git_status_porcelain": snapshot["git_status_porcelain"],
+        "related_git_status_porcelain": snapshot[
+            "related_git_status_porcelain"
+        ],
+    }
 
 
 def _validate_split_name(split: str) -> None:
@@ -557,6 +746,367 @@ def validate_base_model_dir(
     }
 
 
+def validate_preregistration_document(
+    document: dict[str, Any], *, require_frozen: bool = True
+) -> dict[str, Any]:
+    """Validate the exact preregistered first-pilot scope used by this trainer."""
+
+    if document.get("protocol_id") != PARENT_PROTOCOL_ID:
+        raise ValueError("unexpected parent preregistration protocol_id")
+    frozen_at = document.get("frozen_at")
+    if require_frozen:
+        if not isinstance(frozen_at, str) or not frozen_at:
+            raise ValueError("preregistration frozen_at must be non-null")
+        try:
+            parsed_timestamp = datetime.fromisoformat(frozen_at)
+        except ValueError as error:
+            raise ValueError("preregistration frozen_at is not ISO-8601") from error
+        if parsed_timestamp.tzinfo is None:
+            raise ValueError("preregistration frozen_at must include a timezone")
+    elif frozen_at is not None:
+        try:
+            parsed_timestamp = datetime.fromisoformat(str(frozen_at))
+        except ValueError as error:
+            raise ValueError("preregistration frozen_at is not ISO-8601") from error
+        if parsed_timestamp.tzinfo is None:
+            raise ValueError("preregistration frozen_at must include a timezone")
+
+    try:
+        pilot = document["training"]["first_policy_pilot"]
+    except (KeyError, TypeError) as error:
+        raise ValueError("pilot preregistration section is missing") from error
+    expected = {
+        "scope": (
+            "single-seed development pilot; cannot select or freeze the formal "
+            "candidate"
+        ),
+        "base_model": "materialized local roberta-base",
+        "base_model_tree_sha256": EXPECTED_PILOT_BASE_TREE_SHA256,
+        "seed": 42,
+        "arms": [
+            {"id": "ce", "loss": "cross_entropy"},
+            {
+                "id": "class_balanced",
+                "loss": "effective_number_class_balanced_cross_entropy",
+                "beta": 0.999,
+            },
+        ],
+        "shared_hyperparameters": PILOT_SHARED_HYPERPARAMETERS,
+        "optimizer": PILOT_OPTIMIZER,
+        "comparison_primary": "best dev Macro-F1",
+        "comparison_secondary": "dev Accuracy",
+        "comparison_tertiary": "lower dev loss",
+        "frozen_test_access": "prohibited",
+    }
+    drift = {
+        key: {"expected": expected_value, "actual": pilot.get(key)}
+        for key, expected_value in expected.items()
+        if pilot.get(key) != expected_value
+    }
+    optional_provenance = {
+        "base_model_source_id": EXPECTED_SOURCE_MODEL_ID,
+        "base_model_source_revision": EXPECTED_SOURCE_MODEL_REVISION,
+    }
+    drift.update(
+        {
+            key: {"expected": expected_value, "actual": pilot.get(key)}
+            for key, expected_value in optional_provenance.items()
+            if key in pilot and pilot.get(key) != expected_value
+        }
+    )
+    if drift:
+        raise ValueError(
+            "pilot preregistration does not match the frozen trainer contract: "
+            + json.dumps(drift, sort_keys=True)
+        )
+    return {
+        "parent_protocol_id": PARENT_PROTOCOL_ID,
+        "frozen_at": frozen_at,
+        "comparison_primary": pilot["comparison_primary"],
+        "comparison_secondary": pilot["comparison_secondary"],
+        "comparison_tertiary": pilot["comparison_tertiary"],
+        "eligible_pilot_arms": [arm["id"] for arm in pilot["arms"]],
+        "base_model_tree_sha256": pilot["base_model_tree_sha256"],
+    }
+
+
+def validate_materialization_receipt(
+    path: Path, expected_sha256: str, base_audit: dict[str, Any]
+) -> dict[str, Any]:
+    """Bind the local model bytes to their immutable upstream provenance."""
+
+    unresolved_path = Path(path)
+    if unresolved_path.is_symlink():
+        raise ValueError("materialization receipt must not be a symlink")
+    path = unresolved_path.resolve()
+    if not path.is_file():
+        raise ValueError("materialization receipt must be a regular local file")
+    if not HEX64.fullmatch(expected_sha256 or ""):
+        raise ValueError("materialization receipt hash must be a lowercase SHA-256")
+    actual_sha256 = sha256_file(path)
+    if actual_sha256 != expected_sha256:
+        raise ValueError("materialization receipt SHA-256 mismatch")
+    try:
+        receipt = json.loads(path.read_text(encoding="utf-8"))
+        source = receipt["source"]
+        materialization = receipt["materialization"]
+    except (json.JSONDecodeError, KeyError, TypeError) as error:
+        raise ValueError("invalid materialization receipt document") from error
+    source_drift = {
+        "model_id": (EXPECTED_SOURCE_MODEL_ID, source.get("model_id")),
+        "immutable_revision": (
+            EXPECTED_SOURCE_MODEL_REVISION,
+            source.get("immutable_revision"),
+        ),
+        "license": (EXPECTED_SOURCE_MODEL_LICENSE, source.get("license")),
+    }
+    bad_source = {
+        key: {"expected": values[0], "actual": values[1]}
+        for key, values in source_drift.items()
+        if values[0] != values[1]
+    }
+    if bad_source:
+        raise ValueError(
+            "source model provenance mismatch: "
+            + json.dumps(bad_source, sort_keys=True)
+        )
+    if receipt.get("schema_version") != "local-model-materialization-receipt-v1":
+        raise ValueError("unsupported materialization receipt schema")
+    if materialization.get("source_and_materialized_file_bytes_identical") is not True:
+        raise ValueError("materialization receipt does not attest byte identity")
+    if materialization.get("symlinks_in_materialized_tree") is not False:
+        raise ValueError("materialization receipt permits symlinks")
+    if materialization.get("local_tree_sha256") != base_audit["tree_sha256"]:
+        raise ValueError("materialization receipt base tree does not match local base")
+    receipt_files = sorted(
+        materialization.get("files", []), key=lambda entry: entry.get("path", "")
+    )
+    base_files = sorted(base_audit["files"], key=lambda entry: entry["path"])
+    if receipt_files != base_files:
+        raise ValueError("materialization receipt file inventory does not match base")
+    return {
+        "path": str(path),
+        "receipt_sha256": actual_sha256,
+        "schema_version": receipt["schema_version"],
+        "source_model_id": source["model_id"],
+        "source_model_revision": source["immutable_revision"],
+        "source_model_license": source["license"],
+        "base_model_tree_sha256": materialization["local_tree_sha256"],
+        "source_and_materialized_file_bytes_identical": True,
+        "symlinks_in_materialized_tree": False,
+        "file_count": len(receipt_files),
+        "files": receipt_files,
+    }
+
+
+def _public_provenance(provenance: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: copy.deepcopy(value)
+        for key, value in provenance.items()
+        if not key.startswith("_")
+    }
+
+
+def prepare_protocol_provenance(
+    args: argparse.Namespace,
+    base_audit: dict[str, Any],
+    *,
+    require_execution: bool,
+) -> dict[str, Any]:
+    """Validate preregistration/receipt bytes and capture their launch state."""
+
+    preregistration_path = PREREGISTRATION_PATH.resolve()
+    preregistration_document = json.loads(
+        preregistration_path.read_text(encoding="utf-8")
+    )
+    if not HEX64.fullmatch(args.preregistration_sha256 or ""):
+        raise ValueError("preregistration expected hash must be a lowercase SHA-256")
+    if sha256_file(preregistration_path) != args.preregistration_sha256:
+        raise ValueError("preregistration bytes do not match the expected SHA-256")
+    preregistration_audit = validate_preregistration_document(
+        preregistration_document, require_frozen=require_execution
+    )
+    receipt_audit = validate_materialization_receipt(
+        args.materialization_receipt,
+        args.materialization_receipt_sha256,
+        base_audit,
+    )
+    pilot = preregistration_document["training"]["first_policy_pilot"]
+    if require_execution:
+        expected_receipt_path = pilot.get("base_model_materialization_receipt")
+        expected_receipt_hash = pilot.get(
+            "base_model_materialization_receipt_sha256"
+        )
+        actual_relative_path = Path(args.materialization_receipt).resolve().relative_to(
+            ROOT.resolve()
+        ).as_posix()
+        if (
+            expected_receipt_path != actual_relative_path
+            or expected_receipt_hash != receipt_audit["receipt_sha256"]
+        ):
+            raise ValueError(
+                "pilot preregistration does not bind the supplied materialization "
+                "receipt path and hash"
+            )
+    assets = {
+        "trainer": Path(__file__).resolve(),
+        "metrics": METRICS_PATH.resolve(),
+        "preregistration": preregistration_path,
+        "materialization_receipt": Path(args.materialization_receipt).resolve(),
+    }
+    launch_snapshot = capture_protocol_assets(ROOT, assets)
+    launch_hash_expectations = {
+        "preregistration": args.preregistration_sha256,
+        "materialization_receipt": receipt_audit["receipt_sha256"],
+    }
+    launch_hash_drift = {
+        name: {
+            "expected": expected,
+            "actual": launch_snapshot["assets"][name]["sha256"],
+        }
+        for name, expected in launch_hash_expectations.items()
+        if launch_snapshot["assets"][name]["sha256"] != expected
+    }
+    if launch_hash_drift:
+        raise ValueError(
+            "protocol asset bytes changed while preparing the launch audit: "
+            + json.dumps(launch_hash_drift, sort_keys=True)
+        )
+    provenance: dict[str, Any] = {
+        "validated_for_execution": False,
+        "parent_preregistration": {
+            **preregistration_audit,
+            "path": str(preregistration_path),
+            "sha256": sha256_file(preregistration_path),
+        },
+        "materialization_receipt": receipt_audit,
+        "launch_asset_snapshot": launch_snapshot,
+        "_repo": str(ROOT.resolve()),
+        "_asset_paths": {name: str(path) for name, path in assets.items()},
+        "_preregistration_document": preregistration_document,
+        "_expected_preregistration_sha256": args.preregistration_sha256,
+    }
+    if require_execution:
+        execution_audit = validate_execution_asset_state(
+            launch_snapshot,
+            preregistration_document,
+            expected_preregistration_sha256=args.preregistration_sha256,
+        )
+        provenance["validated_for_execution"] = True
+        provenance["parent_preregistration"].update(
+            {
+                "freeze_commit": execution_audit["freeze_commit"],
+                "freeze_commit_timestamp": execution_audit[
+                    "freeze_commit_timestamp"
+                ],
+            }
+        )
+        provenance["execution_asset_gate"] = execution_audit
+    return provenance
+
+
+def revalidate_execution_provenance(
+    launch_provenance: dict[str, Any], base_audit: dict[str, Any]
+) -> None:
+    """Revalidate the launch gate immediately before importing model code."""
+
+    if launch_provenance.get("validated_for_execution") is not True:
+        raise ValueError("training requires validated execution provenance")
+    required_private = {
+        "_repo",
+        "_asset_paths",
+        "_preregistration_document",
+        "_expected_preregistration_sha256",
+    }
+    missing = sorted(required_private - launch_provenance.keys())
+    launch_snapshot = launch_provenance.get("launch_asset_snapshot")
+    required_assets = {
+        "trainer",
+        "metrics",
+        "preregistration",
+        "materialization_receipt",
+    }
+    if not isinstance(launch_snapshot, dict):
+        missing.append("launch_asset_snapshot")
+    elif set(launch_snapshot.get("assets", {})) != required_assets:
+        missing.append("launch_asset_snapshot.assets")
+    if missing:
+        raise ValueError(
+            "incomplete execution provenance: " + ", ".join(sorted(missing))
+        )
+    receipt = launch_provenance.get("materialization_receipt", {})
+    if receipt.get("base_model_tree_sha256") != base_audit.get("tree_sha256"):
+        raise ValueError("execution provenance does not bind the supplied base model")
+    repo = Path(launch_provenance["_repo"])
+    assets = {
+        name: Path(path)
+        for name, path in launch_provenance["_asset_paths"].items()
+    }
+    current_snapshot = capture_protocol_assets(repo, assets)
+    validate_execution_asset_state(
+        current_snapshot,
+        launch_provenance["_preregistration_document"],
+        expected_preregistration_sha256=launch_provenance[
+            "_expected_preregistration_sha256"
+        ],
+    )
+    changed = {
+        name: {
+            "launch_sha256": launch_snapshot["assets"][name]["sha256"],
+            "current_sha256": current_snapshot["assets"][name]["sha256"],
+        }
+        for name in required_assets
+        if launch_snapshot["assets"][name]["sha256"]
+        != current_snapshot["assets"][name]["sha256"]
+    }
+    if changed:
+        raise ValueError(
+            "protocol assets changed before training started: "
+            + json.dumps(changed, sort_keys=True)
+        )
+
+
+def finalize_execution_provenance(
+    launch_provenance: dict[str, Any]
+) -> dict[str, Any]:
+    """Re-hash protocol assets after optimization and require no state drift."""
+
+    if launch_provenance.get("validated_for_execution") is not True:
+        raise ValueError("execution provenance was not validated at launch")
+    repo = Path(launch_provenance["_repo"])
+    assets = {
+        name: Path(path)
+        for name, path in launch_provenance["_asset_paths"].items()
+    }
+    ending_snapshot = capture_protocol_assets(repo, assets)
+    validate_execution_asset_state(
+        ending_snapshot,
+        launch_provenance["_preregistration_document"],
+        expected_preregistration_sha256=launch_provenance[
+            "_expected_preregistration_sha256"
+        ],
+    )
+    launch_assets = launch_provenance["launch_asset_snapshot"]["assets"]
+    changed = {
+        name: {
+            "launch_sha256": launch_assets[name]["sha256"],
+            "end_sha256": ending_snapshot["assets"][name]["sha256"],
+        }
+        for name in launch_assets
+        if launch_assets[name]["sha256"]
+        != ending_snapshot["assets"][name]["sha256"]
+    }
+    if changed:
+        raise RuntimeError(
+            "protocol assets changed during training: "
+            + json.dumps(changed, sort_keys=True)
+        )
+    finalized = _public_provenance(launch_provenance)
+    finalized["end_asset_snapshot"] = ending_snapshot
+    finalized["assets_unchanged"] = True
+    return finalized
+
+
 def class_balanced_weights(
     class_counts: Sequence[int], *, beta: float = 0.999
 ):
@@ -846,27 +1396,122 @@ def evaluate_model(
     )
 
 
-def _pilot_configuration_audit(args: argparse.Namespace) -> dict[str, Any]:
-    actual = {key: getattr(args, key) for key in FROZEN_PILOT_DEFAULTS}
+def optimizer_parameter_groups(
+    model, *, weight_decay: float
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Create the frozen AdamW decay/no-decay groups with an auditable roster."""
+
+    decay_parameters = []
+    no_decay_parameters = []
+    decay_names = []
+    no_decay_names = []
+    for name, parameter in model.named_parameters():
+        if not parameter.requires_grad:
+            continue
+        normalized_name = name.lower().replace("_", "")
+        no_decay = name.endswith(".bias") or (
+            normalized_name.endswith("layernorm.weight")
+        )
+        if no_decay:
+            no_decay_parameters.append(parameter)
+            no_decay_names.append(name)
+        else:
+            decay_parameters.append(parameter)
+            decay_names.append(name)
+    if not decay_parameters or not no_decay_parameters:
+        raise ValueError("optimizer decay and no-decay groups must both be non-empty")
+    groups = [
+        {"params": decay_parameters, "weight_decay": float(weight_decay)},
+        {"params": no_decay_parameters, "weight_decay": 0.0},
+    ]
+    return groups, {
+        "rule": "all trainable parameters except bias and LayerNorm weights decay",
+        "decay_parameter_names": sorted(decay_names),
+        "no_decay_parameter_names": sorted(no_decay_names),
+        "decay_parameter_count": len(decay_names),
+        "no_decay_parameter_count": len(no_decay_names),
+    }
+
+
+def accumulation_window_divisor(
+    batch_index: int, total_batches: int, accumulation_steps: int
+) -> int:
+    """Return the actual microbatch count in this batch's update window."""
+
+    if total_batches <= 0 or accumulation_steps <= 0:
+        raise ValueError("loader length and accumulation steps must be positive")
+    if batch_index < 0 or batch_index >= total_batches:
+        raise ValueError("batch index is outside the loader")
+    window_start = (batch_index // accumulation_steps) * accumulation_steps
+    return min(accumulation_steps, total_batches - window_start)
+
+
+def pilot_scope_audit(args: argparse.Namespace) -> dict[str, Any]:
+    actual = {
+        "base_model_sha256": args.base_model_sha256,
+        "seed": args.seed,
+        "loss": args.loss,
+        "class_balance_beta": args.class_balance_beta,
+        "logit_adjustment_tau": args.logit_adjustment_tau,
+        "max_length": args.max_length,
+        "truncation_side": args.truncation_side,
+        "epochs": args.epochs,
+        "learning_rate": args.learning_rate,
+        "weight_decay": args.weight_decay,
+        "warmup_ratio": args.warmup_ratio,
+        "train_batch_size": args.train_batch_size,
+        "gradient_accumulation_steps": args.gradient_accumulation_steps,
+        "eval_batch_size": args.eval_batch_size,
+        "max_grad_norm": args.max_grad_norm,
+        "early_stopping_patience": args.early_stopping_patience,
+        "adam_beta1": args.adam_beta1,
+        "adam_beta2": args.adam_beta2,
+        "adam_eps": args.adam_eps,
+        "adam_amsgrad": args.adam_amsgrad,
+        "adam_foreach": args.adam_foreach,
+    }
+    expected = {
+        "base_model_sha256": EXPECTED_PILOT_BASE_TREE_SHA256,
+        **FROZEN_PILOT_DEFAULTS,
+    }
     deviations = {
         key: {"frozen": expected, "actual": actual[key]}
-        for key, expected in FROZEN_PILOT_DEFAULTS.items()
-        if actual[key] != expected
+        for key, expected in expected.items()
+        if key != "loss" and actual[key] != expected
     }
+    if args.loss not in PILOT_ALLOWED_LOSSES:
+        deviations["loss"] = {
+            "frozen": list(PILOT_ALLOWED_LOSSES),
+            "actual": args.loss,
+        }
+    is_pilot = not deviations
     return {
-        "frozen_defaults": FROZEN_PILOT_DEFAULTS,
+        "frozen_defaults": {
+            "base_model_sha256": EXPECTED_PILOT_BASE_TREE_SHA256,
+            "allowed_losses": list(PILOT_ALLOWED_LOSSES),
+            **FROZEN_PILOT_DEFAULTS,
+        },
         "actual": actual,
-        "matches_frozen_hyperparameters": not deviations,
+        "matches_frozen_hyperparameters": is_pilot,
         "deviations": deviations,
         "run_scope": (
             "preregistered_pilot_arm"
-            if not deviations
+            if is_pilot
             else "developmental_smoke_or_nonfrozen_configuration"
         ),
+        "pilot_arm": args.loss if is_pilot else None,
     }
 
 
-def _training_configuration(args: argparse.Namespace) -> dict[str, Any]:
+def _pilot_configuration_audit(args: argparse.Namespace) -> dict[str, Any]:
+    """Backward-compatible internal alias for existing audit consumers."""
+
+    return pilot_scope_audit(args)
+
+
+def _training_configuration(
+    args: argparse.Namespace, optimizer_audit: dict[str, Any] | None = None
+) -> dict[str, Any]:
     return {
         "seed": args.seed,
         "loss": args.loss,
@@ -889,7 +1534,16 @@ def _training_configuration(args: argparse.Namespace) -> dict[str, Any]:
         "eval_batch_size": args.eval_batch_size,
         "max_grad_norm": args.max_grad_norm,
         "early_stopping_patience": args.early_stopping_patience,
-        "optimizer": "torch.optim.AdamW",
+        "optimizer": {
+            "name": "torch.optim.AdamW",
+            "betas": [args.adam_beta1, args.adam_beta2],
+            "eps": args.adam_eps,
+            "amsgrad": args.adam_amsgrad,
+            "foreach": args.adam_foreach,
+            "bias_and_layer_norm_weight_decay": 0.0,
+            "other_weight_decay": args.weight_decay,
+            "parameter_groups": optimizer_audit,
+        },
         "scheduler": "linear_warmup_then_linear_decay",
     }
 
@@ -901,7 +1555,11 @@ def train_policy(
     train_audit: dict[str, Any],
     dev_audit: dict[str, Any],
     base_audit: dict[str, Any],
+    *,
+    execution_provenance: dict[str, Any],
 ) -> dict[str, Any]:
+    revalidate_execution_provenance(execution_provenance, base_audit)
+
     import torch
     import transformers
     from torch.utils.data import DataLoader
@@ -985,10 +1643,16 @@ def train_policy(
         sum(record["label_id"] == label_id for record in train_records)
         for label_id in range(len(LABELS))
     ]
+    optimizer_groups, optimizer_group_audit = optimizer_parameter_groups(
+        model, weight_decay=args.weight_decay
+    )
     optimizer = torch.optim.AdamW(
-        model.parameters(),
+        optimizer_groups,
         lr=args.learning_rate,
-        weight_decay=args.weight_decay,
+        betas=(args.adam_beta1, args.adam_beta2),
+        eps=args.adam_eps,
+        amsgrad=args.adam_amsgrad,
+        foreach=args.adam_foreach,
     )
     updates_per_epoch = math.ceil(
         len(train_loader) / args.gradient_accumulation_steps
@@ -1005,6 +1669,9 @@ def train_policy(
     best_metrics: dict[str, Any] | None = None
     best_epoch: int | None = None
     epochs_without_improvement = 0
+    actual_optimizer_updates = 0
+    actual_scheduler_steps = 0
+    stop_reason = "completed_planned_epochs"
     started = time.time()
     optimizer.zero_grad(set_to_none=True)
     for epoch in range(1, args.epochs + 1):
@@ -1027,7 +1694,12 @@ def train_policy(
             batch_rows = int(labels.shape[0])
             train_loss_sum += float(loss.detach().cpu()) * batch_rows
             train_rows_seen += batch_rows
-            (loss / args.gradient_accumulation_steps).backward()
+            divisor = accumulation_window_divisor(
+                batch_index,
+                len(train_loader),
+                args.gradient_accumulation_steps,
+            )
+            (loss / divisor).backward()
             should_update = (
                 (batch_index + 1) % args.gradient_accumulation_steps == 0
                 or batch_index + 1 == len(train_loader)
@@ -1035,7 +1707,9 @@ def train_policy(
             if should_update:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
                 optimizer.step()
+                actual_optimizer_updates += 1
                 scheduler.step()
+                actual_scheduler_steps += 1
                 optimizer.zero_grad(set_to_none=True)
 
         dev_metrics = evaluate_model(
@@ -1094,6 +1768,7 @@ def train_policy(
         else:
             epochs_without_improvement += 1
         if epochs_without_improvement >= args.early_stopping_patience:
+            stop_reason = "early_stopping_patience_exhausted"
             break
 
     if best_metrics is None or best_epoch is None or not checkpoint_path.is_file():
@@ -1101,10 +1776,12 @@ def train_policy(
     ending_commitment, ending_entries = hash_model_tree(model_dir)
     if ending_commitment != base_audit["tree_sha256"]:
         raise RuntimeError("base model tree changed during training")
+    finalized_provenance = finalize_execution_provenance(execution_provenance)
 
     manifest = {
         "protocol_id": PROTOCOL_ID,
         "created_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "protocol": finalized_provenance,
         "run_scope": _pilot_configuration_audit(args),
         "data": {
             "accepted_splits": ["train", "dev"],
@@ -1124,12 +1801,15 @@ def train_policy(
             "post_training_files": ending_entries,
         },
         "training": {
-            **_training_configuration(args),
+            **_training_configuration(args, optimizer_group_audit),
             "device": str(device),
             "class_counts_in_label_order": class_counts,
             "planned_optimizer_updates": total_updates,
+            "actual_optimizer_updates": actual_optimizer_updates,
+            "actual_scheduler_steps": actual_scheduler_steps,
             "warmup_steps": warmup_steps,
             "epochs_completed": len(history),
+            "stop_reason": stop_reason,
             "elapsed_seconds": time.time() - started,
         },
         "selection": {
@@ -1175,6 +1855,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dev-file", type=Path)
     parser.add_argument("--base-model-dir", type=Path)
     parser.add_argument("--base-model-sha256")
+    parser.add_argument("--preregistration-sha256")
+    parser.add_argument("--materialization-receipt", type=Path)
+    parser.add_argument("--materialization-receipt-sha256")
     parser.add_argument(
         "--output-dir", type=Path, default=ROOT / "results/esconv-policy-roberta-v1"
     )
@@ -1198,6 +1881,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--eval-batch-size", type=int, default=16)
     parser.add_argument("--max-grad-norm", type=float, default=1.0)
     parser.add_argument("--early-stopping-patience", type=int, default=3)
+    parser.add_argument("--adam-beta1", type=float, default=0.9)
+    parser.add_argument("--adam-beta2", type=float, default=0.999)
+    parser.add_argument("--adam-eps", type=float, default=1e-8)
+    parser.add_argument("--adam-amsgrad", action="store_true")
+    parser.add_argument("--adam-foreach", action="store_true")
     return parser
 
 
@@ -1211,6 +1899,12 @@ def _require_training_arguments(
             ("--dev-file", args.dev_file),
             ("--base-model-dir", args.base_model_dir),
             ("--base-model-sha256", args.base_model_sha256),
+            ("--preregistration-sha256", args.preregistration_sha256),
+            ("--materialization-receipt", args.materialization_receipt),
+            (
+                "--materialization-receipt-sha256",
+                args.materialization_receipt_sha256,
+            ),
         )
         if value is None
     ]
@@ -1242,6 +1936,17 @@ def validate_arguments(args: argparse.Namespace) -> None:
         raise ValueError("class-balance beta must be in [0, 1)")
     if args.logit_adjustment_tau < 0:
         raise ValueError("logit-adjustment tau must be non-negative")
+    if not 0 <= args.adam_beta1 < 1 or not 0 <= args.adam_beta2 < 1:
+        raise ValueError("Adam betas must be in [0, 1)")
+    if args.adam_eps <= 0:
+        raise ValueError("Adam epsilon must be positive")
+    for name, value in (
+        ("base model", args.base_model_sha256),
+        ("preregistration", args.preregistration_sha256),
+        ("materialization receipt", args.materialization_receipt_sha256),
+    ):
+        if not HEX64.fullmatch(value or ""):
+            raise ValueError(f"{name} hash must be a lowercase SHA-256")
     if args.max_length < 384 and args.truncation_side != "left":
         raise ValueError(
             "max_length below 384 must use left truncation to preserve recent dialogue"
@@ -1296,6 +2001,9 @@ def main() -> None:
     base_audit = validate_base_model_dir(
         args.base_model_dir, args.base_model_sha256
     )
+    protocol_provenance = prepare_protocol_provenance(
+        args, base_audit, require_execution=args.execute
+    )
     audit = {
         "protocol_id": PROTOCOL_ID,
         "mode": "execute" if args.execute else "read_only_audit",
@@ -1306,6 +2014,7 @@ def main() -> None:
             "gradient_source": "mandatory_derived_train_after_dev_input_exclusion",
         },
         "base_model": base_audit,
+        "protocol": _public_provenance(protocol_provenance),
         "training": _training_configuration(args),
         "run_scope": _pilot_configuration_audit(args),
         "leakage_controls": {
@@ -1324,6 +2033,7 @@ def main() -> None:
         train_audit,
         dev_audit,
         base_audit,
+        execution_provenance=protocol_provenance,
     )
 
 
