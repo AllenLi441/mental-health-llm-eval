@@ -96,6 +96,7 @@ def frozen_pilot_document(frozen_at="2026-08-20T02:30:00-07:00"):
                     },
                 ],
                 "shared_hyperparameters": {
+                    "device": "mps",
                     "max_length": 256,
                     "truncation_side": "left",
                     "epochs": 3,
@@ -121,6 +122,16 @@ def frozen_pilot_document(frozen_at="2026-08-20T02:30:00-07:00"):
                 "comparison_primary": "best dev Macro-F1",
                 "comparison_secondary": "dev Accuracy",
                 "comparison_tertiary": "lower dev loss",
+                "determinism": {
+                    "mode": "best_effort_mps",
+                    "torch_deterministic_algorithms": True,
+                    "warn_only": True,
+                    "bitwise_reproducibility_guaranteed": False,
+                    "checkpoint_sha256_role": (
+                        "binds the selected artifact from this run; it is not an "
+                        "assertion that reruns produce bit-identical bytes"
+                    ),
+                },
                 "frozen_test_access": "prohibited",
             }
         },
@@ -374,8 +385,170 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
         priors = priors / priors.sum()
         expected_adjusted = functional.cross_entropy(logits + priors.log(), gold)
         self.assertTrue(torch.allclose(adjusted, expected_adjusted, atol=0, rtol=0))
+        for mode in ("ce", "logit_adjusted"):
+            numerator, denominator = TRAINER.policy_loss_components(
+                logits,
+                gold,
+                mode=mode,
+                class_counts=counts,
+                logit_adjustment_tau=1.0,
+            )
+            self.assertEqual(float(denominator), 2.0)
+            self.assertTrue(
+                torch.allclose(
+                    numerator / denominator,
+                    TRAINER.policy_loss(
+                        logits,
+                        gold,
+                        mode=mode,
+                        class_counts=counts,
+                        logit_adjustment_tau=1.0,
+                    ),
+                    atol=0,
+                    rtol=0,
+                )
+            )
+        self.assertEqual(
+            TRAINER.loss_normalization_disclosure("class_balanced"),
+            {
+                "mode": "class_balanced",
+                "numerator": "sum_target_class_weighted_cross_entropy",
+                "denominator": "sum_target_class_weights",
+                "gradient_accumulation_scope": (
+                    "complete_optimizer_update_window_including_final_partial_window"
+                ),
+                "evaluation_scope": "complete_development_split",
+            },
+        )
         with self.assertRaisesRegex(ValueError, "loss mode"):
             TRAINER.policy_loss(logits, gold, mode="unknown", class_counts=counts)
+
+    def test_class_balanced_accumulation_matches_one_full_weighted_window(self):
+        import torch
+        import torch.nn.functional as functional
+
+        counts = [100, 50, 25, 20, 10, 5, 2, 1]
+        labels = torch.tensor([0, 7, 1, 6, 7])
+        base_logits = torch.tensor(
+            [
+                [2.0, 0.0, -0.5, -1.0, 0.3, 0.1, -0.2, 0.4],
+                [0.0, -0.5, 0.1, 0.2, -0.2, 0.3, 0.4, 1.4],
+                [0.3, 1.3, 0.2, -0.4, 0.1, -0.3, 0.7, 0.0],
+                [-0.2, 0.4, 0.1, 0.0, -0.5, 0.3, 1.1, 0.2],
+                [0.5, -0.3, 0.2, 0.1, 0.0, -0.4, 0.3, 1.0],
+            ],
+            dtype=torch.float64,
+        )
+        weights = TRAINER.class_balanced_weights(counts, beta=0.999).to(
+            dtype=base_logits.dtype
+        )
+        analytic_numerator = functional.cross_entropy(
+            base_logits,
+            labels,
+            weight=weights,
+            reduction="sum",
+        )
+        analytic_denominator = weights[labels].sum()
+
+        full_logits = base_logits.clone().requires_grad_(True)
+        full_loss = TRAINER.policy_loss(
+            full_logits,
+            labels,
+            mode="class_balanced",
+            class_counts=counts,
+        )
+        full_loss.backward()
+
+        split_logits = base_logits.clone().requires_grad_(True)
+        accumulated_numerator = 0.0
+        accumulated_denominator = 0.0
+        # The last single-row microbatch exercises an odd/final partial window.
+        for start, end in ((0, 2), (2, 4), (4, 5)):
+            numerator, denominator = TRAINER.policy_loss_components(
+                split_logits[start:end],
+                labels[start:end],
+                mode="class_balanced",
+                class_counts=counts,
+            )
+            numerator.backward()
+            accumulated_numerator += float(numerator.detach())
+            accumulated_denominator += float(denominator.detach())
+        TRAINER.normalize_accumulated_gradients(
+            [split_logits], accumulated_denominator
+        )
+
+        self.assertTrue(
+            torch.allclose(
+                torch.tensor(accumulated_numerator, dtype=base_logits.dtype),
+                analytic_numerator,
+                atol=1e-12,
+                rtol=1e-12,
+            )
+        )
+        self.assertTrue(
+            torch.allclose(
+                torch.tensor(accumulated_denominator, dtype=base_logits.dtype),
+                analytic_denominator,
+                atol=1e-12,
+                rtol=1e-12,
+            )
+        )
+        self.assertTrue(
+            torch.allclose(
+                split_logits.grad,
+                full_logits.grad,
+                atol=1e-12,
+                rtol=1e-12,
+            )
+        )
+
+    def test_dev_loss_is_invariant_to_batch_partition(self):
+        import torch
+
+        counts = [100, 50, 25, 20, 10, 5, 2, 1]
+        logits = torch.tensor(
+            [
+                [2.0, 0.0, -0.5, -1.0, 0.3, 0.1, -0.2, 0.4],
+                [0.0, -0.5, 0.1, 0.2, -0.2, 0.3, 0.4, 1.4],
+                [0.3, 1.3, 0.2, -0.4, 0.1, -0.3, 0.7, 0.0],
+                [-0.2, 0.4, 0.1, 0.0, -0.5, 0.3, 1.1, 0.2],
+                [0.5, -0.3, 0.2, 0.1, 0.0, -0.4, 0.3, 1.0],
+            ]
+        )
+        labels = torch.tensor([0, 7, 1, 6, 7])
+
+        class FixedLogitModel(torch.nn.Module):
+            def forward(self, row_ids):
+                return types.SimpleNamespace(logits=logits[row_ids])
+
+        def loader(partitions):
+            batches = []
+            offset = 0
+            for size in partitions:
+                batches.append(
+                    {
+                        "row_ids": torch.arange(offset, offset + size),
+                        "labels": labels[offset : offset + size].clone(),
+                    }
+                )
+                offset += size
+            return batches
+
+        common = {
+            "device": torch.device("cpu"),
+            "loss_mode": "class_balanced",
+            "class_counts": counts,
+            "class_balance_beta": 0.999,
+            "logit_adjustment_tau": 1.0,
+        }
+        one_batch = TRAINER.evaluate_model(
+            FixedLogitModel(), loader([5]), **common
+        )
+        odd_split = TRAINER.evaluate_model(
+            FixedLogitModel(), loader([2, 2, 1]), **common
+        )
+        self.assertAlmostEqual(one_batch["loss"], odd_split["loss"], places=7)
+        self.assertEqual(one_batch["confusion_matrix"], odd_split["confusion_matrix"])
 
     def test_dev_selection_is_macro_f1_first(self):
         incumbent = {"macro_f1": 0.40, "accuracy": 0.90, "loss": 0.5}
@@ -441,7 +614,7 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
         self.assertEqual(args.truncation_side, "left")
         self.assertEqual(args.seed, 42)
         self.assertEqual(args.loss, "ce")
-        self.assertEqual(args.device, "auto")
+        self.assertEqual(args.device, "mps")
         self.assertEqual(args.epochs, 3)
         self.assertEqual(args.learning_rate, 2e-5)
         self.assertEqual(args.weight_decay, 0.01)
@@ -478,6 +651,7 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
             set(ce_scope["actual"]),
             {
                 "base_model_sha256",
+                "device",
                 "seed",
                 "loss",
                 "class_balance_beta",
@@ -512,6 +686,20 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
         self.assertIsNone(la_scope["pilot_arm"])
         self.assertIn("loss", la_scope["deviations"])
 
+        for nonpilot_device in ("cpu", "auto"):
+            device_args = parser.parse_args(
+                common + ["--loss", "ce", "--device", nonpilot_device]
+            )
+            device_scope = TRAINER.pilot_scope_audit(device_args)
+            self.assertNotEqual(
+                device_scope["run_scope"], "preregistered_pilot_arm"
+            )
+            self.assertIsNone(device_scope["pilot_arm"])
+            self.assertEqual(
+                device_scope["deviations"]["device"]["actual"],
+                nonpilot_device,
+            )
+
         wrong_base = parser.parse_args(
             [value if value != common[7] else "b" * 64 for value in common]
         )
@@ -537,6 +725,28 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
         ] = 2.0
         with self.assertRaisesRegex(ValueError, "pilot preregistration"):
             TRAINER.validate_preregistration_document(changed)
+
+        determinism_mutations = (
+            ("mode", "best_effort_cpu"),
+            ("torch_deterministic_algorithms", False),
+            ("warn_only", False),
+            ("bitwise_reproducibility_guaranteed", True),
+            ("checkpoint_sha256_role", "claims bit-identical reruns"),
+        )
+        for key, value in determinism_mutations:
+            with self.subTest(determinism_key=key):
+                tampered = frozen_pilot_document()
+                tampered["training"]["first_policy_pilot"]["determinism"][
+                    key
+                ] = value
+                with self.assertRaisesRegex(ValueError, "pilot preregistration"):
+                    TRAINER.validate_preregistration_document(tampered)
+        extra = frozen_pilot_document()
+        extra["training"]["first_policy_pilot"]["determinism"][
+            "unregistered"
+        ] = True
+        with self.assertRaisesRegex(ValueError, "pilot preregistration"):
+            TRAINER.validate_preregistration_document(extra)
 
     def test_materialization_receipt_binds_source_revision_license_and_tree(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -1042,10 +1252,26 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
             self.assertEqual(
                 manifest["implementation"]["determinism"],
                 {
-                    "determinism_mode": "best_effort_cpu",
-                    "torch_deterministic_algorithms_enabled": True,
-                    "torch_deterministic_algorithms_warn_only": True,
-                    "bitwise_reproducible_not_guaranteed": True,
+                    "mode": "best_effort_cpu",
+                    "torch_deterministic_algorithms": True,
+                    "warn_only": True,
+                    "bitwise_reproducibility_guaranteed": False,
+                    "checkpoint_sha256_role": (
+                        "binds the selected artifact from this run; it is not an "
+                        "assertion that reruns produce bit-identical bytes"
+                    ),
+                },
+            )
+            self.assertEqual(
+                manifest["training"]["loss_normalization"],
+                {
+                    "mode": "ce",
+                    "numerator": "sum_per_sample_cross_entropy",
+                    "denominator": "row_count",
+                    "gradient_accumulation_scope": (
+                        "complete_optimizer_update_window_including_final_partial_window"
+                    ),
+                    "evaluation_scope": "complete_development_split",
                 },
             )
             self.assertEqual(

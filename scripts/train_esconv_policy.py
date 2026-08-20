@@ -125,6 +125,7 @@ MANIFEST_NAME = "best_checkpoint_manifest.json"
 # These are the first pilot's frozen optimization defaults.  Changing any of
 # them is allowed explicitly and is recorded as a developmental/non-frozen run.
 FROZEN_PILOT_DEFAULTS = {
+    "device": "mps",
     "max_length": 256,
     "truncation_side": "left",
     "epochs": 3,
@@ -149,6 +150,7 @@ PILOT_ALLOWED_LOSSES = ("ce", "class_balanced")
 PILOT_SHARED_HYPERPARAMETERS = {
     key: FROZEN_PILOT_DEFAULTS[key]
     for key in (
+        "device",
         "max_length",
         "truncation_side",
         "epochs",
@@ -171,6 +173,16 @@ PILOT_OPTIMIZER = {
     "eps": 1e-8,
     "amsgrad": False,
     "foreach": False,
+}
+PILOT_DETERMINISM = {
+    "mode": "best_effort_mps",
+    "torch_deterministic_algorithms": True,
+    "warn_only": True,
+    "bitwise_reproducibility_guaranteed": False,
+    "checkpoint_sha256_role": (
+        "binds the selected artifact from this run; it is not an assertion that "
+        "reruns produce bit-identical bytes"
+    ),
 }
 
 
@@ -796,6 +808,7 @@ def validate_preregistration_document(
         "comparison_primary": "best dev Macro-F1",
         "comparison_secondary": "dev Accuracy",
         "comparison_tertiary": "lower dev loss",
+        "determinism": PILOT_DETERMINISM,
         "frozen_test_access": "prohibited",
     }
     drift = {
@@ -1129,7 +1142,7 @@ def class_balanced_weights(
     return torch.tensor([value / mean for value in values], dtype=torch.float32)
 
 
-def policy_loss(
+def policy_loss_components(
     logits,
     labels,
     *,
@@ -1138,6 +1151,15 @@ def policy_loss(
     class_balance_beta: float = 0.999,
     logit_adjustment_tau: float = 1.0,
 ):
+    """Return the additive numerator and denominator for a policy loss.
+
+    Keeping the two components separate makes loss computation invariant to
+    microbatch boundaries.  In particular, weighted cross entropy is
+    normalized by the sum of target-class weights over the complete optimizer
+    update window (or complete development split), not by a mean of per-batch
+    means.
+    """
+
     import torch
     import torch.nn.functional as functional
 
@@ -1150,18 +1172,82 @@ def policy_loss(
     if len(class_counts) != len(LABELS) or any(count <= 0 for count in class_counts):
         raise ValueError("class counts must contain eight positive integers")
     if mode == "ce":
-        return functional.cross_entropy(logits, labels)
+        numerator = functional.cross_entropy(
+            logits, labels, reduction="sum"
+        )
+        denominator = logits.new_tensor(labels.numel())
+        return numerator, denominator
     if mode == "class_balanced":
         weights = class_balanced_weights(
             class_counts, beta=class_balance_beta
         ).to(device=logits.device, dtype=logits.dtype)
-        return functional.cross_entropy(logits, labels, weight=weights)
+        numerator = functional.cross_entropy(
+            logits, labels, weight=weights, reduction="sum"
+        )
+        denominator = weights[labels].sum()
+        return numerator, denominator
     if logit_adjustment_tau < 0.0:
         raise ValueError("logit-adjustment tau must be non-negative")
     counts = torch.tensor(class_counts, device=logits.device, dtype=logits.dtype)
     priors = counts / counts.sum()
     adjusted_logits = logits + logit_adjustment_tau * torch.log(priors)
-    return functional.cross_entropy(adjusted_logits, labels)
+    numerator = functional.cross_entropy(
+        adjusted_logits, labels, reduction="sum"
+    )
+    denominator = logits.new_tensor(labels.numel())
+    return numerator, denominator
+
+
+def policy_loss(
+    logits,
+    labels,
+    *,
+    mode: str,
+    class_counts: Sequence[int],
+    class_balance_beta: float = 0.999,
+    logit_adjustment_tau: float = 1.0,
+):
+    numerator, denominator = policy_loss_components(
+        logits,
+        labels,
+        mode=mode,
+        class_counts=class_counts,
+        class_balance_beta=class_balance_beta,
+        logit_adjustment_tau=logit_adjustment_tau,
+    )
+    return numerator / denominator
+
+
+def normalize_accumulated_gradients(
+    parameters: Iterable[Any], denominator: float
+) -> None:
+    """Normalize summed-loss gradients once per complete update window."""
+
+    if not math.isfinite(denominator) or denominator <= 0.0:
+        raise ValueError("loss normalization denominator must be positive and finite")
+    for parameter in parameters:
+        if parameter.grad is not None:
+            parameter.grad.div_(denominator)
+
+
+def loss_normalization_disclosure(mode: str) -> dict[str, str]:
+    if mode not in LOSS_MODES:
+        raise ValueError(f"unknown loss mode {mode!r}; choose from {LOSS_MODES}")
+    if mode == "class_balanced":
+        numerator = "sum_target_class_weighted_cross_entropy"
+        denominator = "sum_target_class_weights"
+    else:
+        numerator = "sum_per_sample_cross_entropy"
+        denominator = "row_count"
+    return {
+        "mode": mode,
+        "numerator": numerator,
+        "denominator": denominator,
+        "gradient_accumulation_scope": (
+            "complete_optimizer_update_window_including_final_partial_window"
+        ),
+        "evaluation_scope": "complete_development_split",
+    }
 
 
 def metrics_from_ids(
@@ -1305,10 +1391,14 @@ def resolve_device(requested: str):
 
 def determinism_disclosure(device: Any) -> dict[str, Any]:
     return {
-        "determinism_mode": f"best_effort_{device}",
-        "torch_deterministic_algorithms_enabled": True,
-        "torch_deterministic_algorithms_warn_only": True,
-        "bitwise_reproducible_not_guaranteed": True,
+        "mode": f"best_effort_{device}",
+        "torch_deterministic_algorithms": True,
+        "warn_only": True,
+        "bitwise_reproducibility_guaranteed": False,
+        "checkpoint_sha256_role": (
+            "binds the selected artifact from this run; it is not an assertion "
+            "that reruns produce bit-identical bytes"
+        ),
     }
 
 
@@ -1367,14 +1457,14 @@ def evaluate_model(
     model.eval()
     gold_ids: list[int] = []
     predicted_ids: list[int] = []
-    total_loss = 0.0
-    total_rows = 0
+    total_loss_numerator = 0.0
+    total_loss_denominator = 0.0
     with torch.no_grad():
         for batch in data_loader:
             labels = batch.pop("labels").to(device)
             inputs = {key: value.to(device) for key, value in batch.items()}
             logits = model(**inputs).logits
-            loss = policy_loss(
+            loss_numerator, loss_denominator = policy_loss_components(
                 logits,
                 labels,
                 mode=loss_mode,
@@ -1382,17 +1472,18 @@ def evaluate_model(
                 class_balance_beta=class_balance_beta,
                 logit_adjustment_tau=logit_adjustment_tau,
             )
-            batch_rows = int(labels.shape[0])
-            total_loss += float(loss.detach().cpu()) * batch_rows
-            total_rows += batch_rows
+            total_loss_numerator += float(loss_numerator.detach().cpu())
+            total_loss_denominator += float(loss_denominator.detach().cpu())
             gold_ids.extend(int(value) for value in labels.detach().cpu().tolist())
             predicted_ids.extend(
                 int(value) for value in logits.argmax(dim=-1).detach().cpu().tolist()
             )
-    if total_rows == 0:
+    if total_loss_denominator <= 0.0:
         raise ValueError("development loader is empty")
     return metrics_from_ids(
-        gold_ids, predicted_ids, loss=total_loss / total_rows
+        gold_ids,
+        predicted_ids,
+        loss=total_loss_numerator / total_loss_denominator,
     )
 
 
@@ -1449,6 +1540,7 @@ def accumulation_window_divisor(
 def pilot_scope_audit(args: argparse.Namespace) -> dict[str, Any]:
     actual = {
         "base_model_sha256": args.base_model_sha256,
+        "device": args.device,
         "seed": args.seed,
         "loss": args.loss,
         "class_balance_beta": args.class_balance_beta,
@@ -1531,6 +1623,7 @@ def _training_configuration(
         "effective_batch_size": (
             args.train_batch_size * args.gradient_accumulation_steps
         ),
+        "loss_normalization": loss_normalization_disclosure(args.loss),
         "eval_batch_size": args.eval_batch_size,
         "max_grad_norm": args.max_grad_norm,
         "early_stopping_patience": args.early_stopping_patience,
@@ -1677,13 +1770,14 @@ def train_policy(
     for epoch in range(1, args.epochs + 1):
         epoch_started = time.time()
         model.train()
-        train_loss_sum = 0.0
-        train_rows_seen = 0
+        train_loss_numerator = 0.0
+        train_loss_denominator = 0.0
+        window_loss_denominator = 0.0
         for batch_index, batch in enumerate(train_loader):
             labels = batch.pop("labels").to(device)
             inputs = {key: value.to(device) for key, value in batch.items()}
             logits = model(**inputs).logits
-            loss = policy_loss(
+            loss_numerator, loss_denominator = policy_loss_components(
                 logits,
                 labels,
                 mode=args.loss,
@@ -1691,26 +1785,27 @@ def train_policy(
                 class_balance_beta=args.class_balance_beta,
                 logit_adjustment_tau=args.logit_adjustment_tau,
             )
-            batch_rows = int(labels.shape[0])
-            train_loss_sum += float(loss.detach().cpu()) * batch_rows
-            train_rows_seen += batch_rows
-            divisor = accumulation_window_divisor(
-                batch_index,
-                len(train_loader),
-                args.gradient_accumulation_steps,
-            )
-            (loss / divisor).backward()
+            numerator_value = float(loss_numerator.detach().cpu())
+            denominator_value = float(loss_denominator.detach().cpu())
+            train_loss_numerator += numerator_value
+            train_loss_denominator += denominator_value
+            window_loss_denominator += denominator_value
+            loss_numerator.backward()
             should_update = (
                 (batch_index + 1) % args.gradient_accumulation_steps == 0
                 or batch_index + 1 == len(train_loader)
             )
             if should_update:
+                normalize_accumulated_gradients(
+                    model.parameters(), window_loss_denominator
+                )
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
                 optimizer.step()
                 actual_optimizer_updates += 1
                 scheduler.step()
                 actual_scheduler_steps += 1
                 optimizer.zero_grad(set_to_none=True)
+                window_loss_denominator = 0.0
 
         dev_metrics = evaluate_model(
             model,
@@ -1723,7 +1818,7 @@ def train_policy(
         )
         epoch_record = {
             "epoch": epoch,
-            "train_loss": train_loss_sum / train_rows_seen,
+            "train_loss": train_loss_numerator / train_loss_denominator,
             "dev": dev_metrics,
             "elapsed_seconds": time.time() - epoch_started,
             "learning_rate_after_epoch": float(scheduler.get_last_lr()[0]),
@@ -1867,7 +1962,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--loss", choices=LOSS_MODES, default="ce")
     parser.add_argument("--class-balance-beta", type=float, default=0.999)
     parser.add_argument("--logit-adjustment-tau", type=float, default=1.0)
-    parser.add_argument("--device", choices=("auto", "cpu", "mps"), default="auto")
+    parser.add_argument("--device", choices=("auto", "cpu", "mps"), default="mps")
     parser.add_argument("--max-length", type=int, default=256)
     parser.add_argument(
         "--truncation-side", choices=("left", "right"), default="left"
