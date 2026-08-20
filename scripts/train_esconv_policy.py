@@ -54,6 +54,38 @@ OFFICIAL_SPLITS: dict[str, dict[str, Any]] = {
         "rows": 2_985,
     },
 }
+EXPECTED_DEV_INPUT_OVERLAP_SHA256 = (
+    "3358ea28648260fd2f0aed0819cdfac9b55d44e55c6a9eead8dd28478dd3751d",
+    "3dd472de131aea43923eafc47114def5bebeff71eed52de7ebd2c5a42cbcfb44",
+    "4ab4aedefae16b8912287b3440a0325ca219c0ec33c704e9465c9bb729f2289e",
+    "58a8f9e38ce5dcea33f500e22442e5c42ba134cbeebb7b1240d95a9c62e5bc4e",
+    "62a369522f0374e2c1e39c23ffc01b84cb85ec464210a9ea7e545623906a851a",
+    "75635a3047863753ee3993183f260d478bd5ce202d59548bcb83821d26c1384f",
+    "89812797e3f4500b0cb41157be48c90ad549a57e5a7e556322ab9c07c61ae3a6",
+    "9ad0444929093d274cc1bc0bac2886c5581fb5e5b4811e8cf9f69fb8e17cc65e",
+    "b1a29810b05b1a1274a96612b9865386567d46513d77961df98ab575bfa8ee2a",
+    "d2ac838857de6b685570a1e894f787be8f2637b956433b2e5d4228a5a86d2930",
+    "d47c492b14a0d576a2447e5e3630bd6b2cf0f9789718131d7b5c0c017418798a",
+    "f60d89294c3747ef88dcac250145dc0789423aec05b96d0ed784afad40a45341",
+)
+EXPECTED_DEV_INPUT_OVERLAP_SET_SHA256 = (
+    "b9e1d891f736f1588d6386214413862c43b812c69466589b7f259e2e6d30f6cd"
+)
+EXPECTED_REMOVED_TRAIN_ROWS = 129
+EXPECTED_DERIVED_TRAIN_ROWS = 8_433
+EXPECTED_DERIVED_TRAIN_RECORDS_SHA256 = (
+    "55c098b7a1cf1c9c9c9e8c9da49d95d4c8484552fbcc3d18319affda353b3480"
+)
+EXPECTED_EXACT_TSV_OVERLAP_SHA256 = (
+    "77be9b60fae1f61a2bb3c1c733aaaad24b95bd4b505c4c45b43123727c80531c",
+    "f1085cc07bcb4b13f49c732932b1f9a1a22cac9c6a77180872b021f92f626b0a",
+)
+EXPECTED_REMOVED_LINE_NUMBERS_SHA256 = (
+    "86655276f6f2456cdf49732ac00b3af2afd7c5e24b3cfaad74d3a008cfc8131b"
+)
+EXPECTED_REMOVED_RECORDS_SHA256 = (
+    "c09d39b627f6ff9a5848354bf1deed36ae35dafe8d8535fcc6ee5d8ed06e31f5"
+)
 LABELS = (
     "Questions",
     "Restatement or Paraphrasing",
@@ -270,6 +302,20 @@ def parse_split_lines(
     return records
 
 
+def records_commitment(records: Sequence[dict[str, Any]]) -> str:
+    return canonical_json_sha256(
+        [
+            {
+                "source_line_sha256": record["source_line_sha256"],
+                "input_sha256": record["input_sha256"],
+                "label": record["label"],
+                "conversation_id": record["conversation_id"],
+            }
+            for record in records
+        ]
+    )
+
+
 def load_official_split(
     path: Path, split: str
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -286,18 +332,141 @@ def load_official_split(
         {record["conversation_id"] for record in records}
     )
     audit["label_counts"] = {label: label_counts[label] for label in LABELS}
-    audit["records_commitment_sha256"] = canonical_json_sha256(
-        [
-            {
-                "source_line_sha256": record["source_line_sha256"],
-                "input_sha256": record["input_sha256"],
-                "label": record["label"],
-                "conversation_id": record["conversation_id"],
-            }
-            for record in records
-        ]
-    )
+    audit["records_commitment_sha256"] = records_commitment(records)
     return records, audit
+
+
+def derive_train_without_dev_overlap(
+    raw_train_records: Sequence[dict[str, Any]],
+    dev_records: Sequence[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Fail closed while deriving the only records permitted for gradients."""
+
+    dev_input_hashes = {record["input_sha256"] for record in dev_records}
+    overlap_hashes = tuple(
+        sorted(
+            {record["input_sha256"] for record in raw_train_records}
+            & dev_input_hashes
+        )
+    )
+    removed = [
+        record
+        for record in raw_train_records
+        if record["input_sha256"] in dev_input_hashes
+    ]
+    derived = [
+        record
+        for record in raw_train_records
+        if record["input_sha256"] not in dev_input_hashes
+    ]
+    exact_tsv_overlap = tuple(
+        sorted(
+            {record["source_line_sha256"] for record in raw_train_records}
+            & {record["source_line_sha256"] for record in dev_records}
+        )
+    )
+    overlap_set_hash = canonical_json_sha256(list(overlap_hashes))
+    derived_hash = records_commitment(derived)
+    removed_line_numbers = [int(record["line_number"]) for record in removed]
+    removed_record_fingerprints = [
+        {
+            "line_number": int(record["line_number"]),
+            "source_line_sha256": record["source_line_sha256"],
+            "input_sha256": record["input_sha256"],
+            "label": record["label"],
+        }
+        for record in removed
+    ]
+    expected = {
+        "unique_overlap_input_sha256": EXPECTED_DEV_INPUT_OVERLAP_SHA256,
+        "overlap_input_set_sha256": EXPECTED_DEV_INPUT_OVERLAP_SET_SHA256,
+        "removed_train_rows": EXPECTED_REMOVED_TRAIN_ROWS,
+        "derived_train_rows": EXPECTED_DERIVED_TRAIN_ROWS,
+        "derived_train_records_sha256": EXPECTED_DERIVED_TRAIN_RECORDS_SHA256,
+        "exact_tsv_overlap_sha256": EXPECTED_EXACT_TSV_OVERLAP_SHA256,
+    }
+    actual = {
+        "unique_overlap_input_sha256": overlap_hashes,
+        "overlap_input_set_sha256": overlap_set_hash,
+        "removed_train_rows": len(removed),
+        "derived_train_rows": len(derived),
+        "derived_train_records_sha256": derived_hash,
+        "exact_tsv_overlap_sha256": exact_tsv_overlap,
+    }
+    drift = {
+        key: {"expected": expected[key], "actual": actual[key]}
+        for key in expected
+        if actual[key] != expected[key]
+    }
+    if drift:
+        raise ValueError(
+            "official train/dev overlap contract drift; refusing gradient data: "
+            + json.dumps(drift, sort_keys=True)
+        )
+    if {record["input_sha256"] for record in derived} & dev_input_hashes:
+        raise AssertionError("derived train still intersects development inputs")
+
+    train_counts = Counter(record["input_sha256"] for record in raw_train_records)
+    dev_counts = Counter(record["input_sha256"] for record in dev_records)
+    derived_label_counts = Counter(record["label"] for record in derived)
+    audit = {
+        "rule": "remove every train row whose input_sha256 occurs in official dev",
+        "mandatory": True,
+        "disable_option_exists": False,
+        "raw_train_rows": len(raw_train_records),
+        "raw_dev_rows": len(dev_records),
+        "unique_train_inputs": len(train_counts),
+        "unique_dev_inputs": len(dev_counts),
+        "unique_overlap_count": len(overlap_hashes),
+        "unique_overlap_input_sha256": list(overlap_hashes),
+        "overlap_input_set_sha256": overlap_set_hash,
+        "overlap_details": {
+            digest: {
+                "train_rows_removed": train_counts[digest],
+                "dev_rows": dev_counts[digest],
+                "removed_train_line_numbers": [
+                    int(record["line_number"])
+                    for record in removed
+                    if record["input_sha256"] == digest
+                ],
+            }
+            for digest in overlap_hashes
+        },
+        "exact_tsv_overlap_count": len(exact_tsv_overlap),
+        "exact_tsv_overlap_sha256": list(exact_tsv_overlap),
+        "removed_train_rows": len(removed),
+        "removed_train_line_numbers": removed_line_numbers,
+        "removed_train_line_numbers_sha256": canonical_json_sha256(
+            removed_line_numbers
+        ),
+        "removed_train_records_sha256": canonical_json_sha256(
+            removed_record_fingerprints
+        ),
+        "derived_train_rows": len(derived),
+        "derived_train_records_sha256": derived_hash,
+        "derived_label_counts": {
+            label: derived_label_counts[label] for label in LABELS
+        },
+        "post_filter_overlap_count": 0,
+    }
+    if len(raw_train_records) == OFFICIAL_SPLITS["train"]["rows"]:
+        extra_expected = {
+            "removed_train_line_numbers_sha256": (
+                EXPECTED_REMOVED_LINE_NUMBERS_SHA256
+            ),
+            "removed_train_records_sha256": EXPECTED_REMOVED_RECORDS_SHA256,
+        }
+        extra_drift = {
+            key: {"expected": value, "actual": audit[key]}
+            for key, value in extra_expected.items()
+            if audit[key] != value
+        }
+        if extra_drift:
+            raise ValueError(
+                "official train/dev overlap detail drift; refusing gradient data: "
+                + json.dumps(extra_drift, sort_keys=True)
+            )
+    return derived, audit
 
 
 def _model_tree_paths(root: Path) -> list[Path]:
@@ -584,6 +753,15 @@ def resolve_device(requested: str):
     return torch.device(requested)
 
 
+def determinism_disclosure(device: Any) -> dict[str, Any]:
+    return {
+        "determinism_mode": f"best_effort_{device}",
+        "torch_deterministic_algorithms_enabled": True,
+        "torch_deterministic_algorithms_warn_only": True,
+        "bitwise_reproducible_not_guaranteed": True,
+    }
+
+
 class TokenizedPolicyDataset:
     """Small map-style dataset pretokenized from leakage-safe records."""
 
@@ -734,6 +912,9 @@ def train_policy(
         get_linear_schedule_with_warmup,
     )
 
+    train_records, overlap_audit = derive_train_without_dev_overlap(
+        train_records, dev_records
+    )
     seed_everything(args.seed)
     device = resolve_device(args.device)
     transformers.utils.logging.disable_progress_bar()
@@ -929,6 +1110,8 @@ def train_policy(
             "accepted_splits": ["train", "dev"],
             "train": train_audit,
             "dev": dev_audit,
+            "dev_overlap_filter": overlap_audit,
+            "gradient_source": "mandatory_derived_train_after_dev_input_exclusion",
             "label_order": list(LABELS),
             "target_construction": (
                 "final supporter strategy is label; final supporter response is "
@@ -966,6 +1149,7 @@ def train_policy(
             "torch": torch.__version__,
             "transformers": transformers.__version__,
             "manual_pytorch_loop": True,
+            "determinism": determinism_disclosure(device),
         },
         "leakage_controls": {
             "holdout_path_argument_exists": False,
@@ -1106,13 +1290,21 @@ def main() -> None:
     validate_arguments(args)
     train_records, train_audit = load_official_split(args.train_file, "train")
     dev_records, dev_audit = load_official_split(args.dev_file, "dev")
+    _derived_train_records, overlap_audit = derive_train_without_dev_overlap(
+        train_records, dev_records
+    )
     base_audit = validate_base_model_dir(
         args.base_model_dir, args.base_model_sha256
     )
     audit = {
         "protocol_id": PROTOCOL_ID,
         "mode": "execute" if args.execute else "read_only_audit",
-        "data": {"train": train_audit, "dev": dev_audit},
+        "data": {
+            "train": train_audit,
+            "dev": dev_audit,
+            "dev_overlap_filter": overlap_audit,
+            "gradient_source": "mandatory_derived_train_after_dev_input_exclusion",
+        },
         "base_model": base_audit,
         "training": _training_configuration(args),
         "run_scope": _pilot_configuration_audit(args),
