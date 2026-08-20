@@ -1,6 +1,8 @@
 import hashlib
 import importlib.util
 import json
+import os
+import subprocess
 import sys
 import tempfile
 import types
@@ -68,6 +70,61 @@ def records_commitment(records):
             for record in records
         ]
     )
+
+
+def frozen_pilot_document(frozen_at="2026-08-20T02:30:00-07:00"):
+    return {
+        "protocol_id": "jingshi-esconv-first-v1",
+        "frozen_at": frozen_at,
+        "training": {
+            "first_policy_pilot": {
+                "scope": (
+                    "single-seed development pilot; cannot select or freeze the "
+                    "formal candidate"
+                ),
+                "base_model": "materialized local roberta-base",
+                "base_model_tree_sha256": (
+                    "1d9faa93557a63a92292cd11dfbca3de8e336ffa60768745a71ecd1ed19aa91c"
+                ),
+                "seed": 42,
+                "arms": [
+                    {"id": "ce", "loss": "cross_entropy"},
+                    {
+                        "id": "class_balanced",
+                        "loss": "effective_number_class_balanced_cross_entropy",
+                        "beta": 0.999,
+                    },
+                ],
+                "shared_hyperparameters": {
+                    "max_length": 256,
+                    "truncation_side": "left",
+                    "epochs": 3,
+                    "learning_rate": 2e-5,
+                    "weight_decay": 0.01,
+                    "warmup_ratio": 0.1,
+                    "train_batch_size": 8,
+                    "gradient_accumulation_steps": 2,
+                    "eval_batch_size": 16,
+                    "logit_adjustment_tau": 1.0,
+                    "max_grad_norm": 1.0,
+                    "early_stopping_patience": 3,
+                },
+                "optimizer": {
+                    "name": "torch.optim.AdamW",
+                    "bias_and_layer_norm_weight_decay": 0.0,
+                    "other_weight_decay": 0.01,
+                    "betas": [0.9, 0.999],
+                    "eps": 1e-8,
+                    "amsgrad": False,
+                    "foreach": False,
+                },
+                "comparison_primary": "best dev Macro-F1",
+                "comparison_secondary": "dev Accuracy",
+                "comparison_tertiary": "lower dev loss",
+                "frozen_test_access": "prohibited",
+            }
+        },
+    }
 
 
 class ESConvPolicyTrainerTests(unittest.TestCase):
@@ -284,12 +341,18 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
 
     def test_loss_modes_are_explicit_and_reward_rare_classes(self):
         import torch
+        import torch.nn.functional as functional
 
         counts = [100, 50, 25, 20, 10, 5, 2, 1]
         weights = TRAINER.class_balanced_weights(counts, beta=0.999)
         self.assertEqual(tuple(weights.shape), (8,))
         self.assertGreater(float(weights[-1]), float(weights[0]))
         self.assertAlmostEqual(float(weights.mean()), 1.0, places=5)
+        raw_effective = torch.tensor(
+            [(1 - 0.999) / (1 - 0.999**count) for count in counts]
+        )
+        expected_weights = raw_effective / raw_effective.mean()
+        self.assertTrue(torch.allclose(weights, expected_weights, atol=1e-7, rtol=0))
 
         logits = torch.tensor([[2.0, 0.0] + [-1.0] * 6, [0.0, 2.0] + [-1.0] * 6])
         gold = torch.tensor([0, 1])
@@ -307,6 +370,10 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
         self.assertTrue(torch.isfinite(ce))
         self.assertTrue(torch.isfinite(balanced))
         self.assertTrue(torch.isfinite(adjusted))
+        priors = torch.tensor(counts, dtype=logits.dtype)
+        priors = priors / priors.sum()
+        expected_adjusted = functional.cross_entropy(logits + priors.log(), gold)
+        self.assertTrue(torch.allclose(adjusted, expected_adjusted, atol=0, rtol=0))
         with self.assertRaisesRegex(ValueError, "loss mode"):
             TRAINER.policy_loss(logits, gold, mode="unknown", class_counts=counts)
 
@@ -384,6 +451,235 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
         self.assertEqual(args.eval_batch_size, 16)
         self.assertEqual(args.class_balance_beta, 0.999)
 
+    def test_pilot_scope_gate_binds_every_frozen_parameter_and_excludes_la(self):
+        parser = TRAINER.build_parser()
+        common = [
+            "--train-file",
+            "/data/trainWithStrategy_short.tsv",
+            "--dev-file",
+            "/data/devWithStrategy_short.tsv",
+            "--base-model-dir",
+            "/models/roberta",
+            "--base-model-sha256",
+            "1d9faa93557a63a92292cd11dfbca3de8e336ffa60768745a71ecd1ed19aa91c",
+            "--preregistration-sha256",
+            "a" * 64,
+            "--materialization-receipt",
+            "/repo/reports/base-receipt.json",
+            "--materialization-receipt-sha256",
+            "4ed49f1c0558c3765e52095f6f0ea50030c9dba0387ff4ae6a82e94410784df2",
+        ]
+        ce_args = parser.parse_args(common + ["--loss", "ce"])
+        ce_scope = TRAINER.pilot_scope_audit(ce_args)
+        self.assertEqual(ce_scope["run_scope"], "preregistered_pilot_arm")
+        self.assertEqual(ce_scope["pilot_arm"], "ce")
+        self.assertEqual(ce_scope["deviations"], {})
+        self.assertEqual(
+            set(ce_scope["actual"]),
+            {
+                "base_model_sha256",
+                "seed",
+                "loss",
+                "class_balance_beta",
+                "logit_adjustment_tau",
+                "max_length",
+                "truncation_side",
+                "epochs",
+                "learning_rate",
+                "weight_decay",
+                "warmup_ratio",
+                "train_batch_size",
+                "gradient_accumulation_steps",
+                "eval_batch_size",
+                "max_grad_norm",
+                "early_stopping_patience",
+                "adam_beta1",
+                "adam_beta2",
+                "adam_eps",
+                "adam_amsgrad",
+                "adam_foreach",
+            },
+        )
+
+        cb_args = parser.parse_args(common + ["--loss", "class_balanced"])
+        self.assertEqual(
+            TRAINER.pilot_scope_audit(cb_args)["run_scope"],
+            "preregistered_pilot_arm",
+        )
+        la_args = parser.parse_args(common + ["--loss", "logit_adjusted"])
+        la_scope = TRAINER.pilot_scope_audit(la_args)
+        self.assertNotEqual(la_scope["run_scope"], "preregistered_pilot_arm")
+        self.assertIsNone(la_scope["pilot_arm"])
+        self.assertIn("loss", la_scope["deviations"])
+
+        wrong_base = parser.parse_args(
+            [value if value != common[7] else "b" * 64 for value in common]
+        )
+        self.assertNotEqual(
+            TRAINER.pilot_scope_audit(wrong_base)["run_scope"],
+            "preregistered_pilot_arm",
+        )
+
+    def test_preregistration_document_freezes_pilot_and_tertiary_selection(self):
+        document = frozen_pilot_document()
+        audit = TRAINER.validate_preregistration_document(document)
+        self.assertEqual(audit["parent_protocol_id"], "jingshi-esconv-first-v1")
+        self.assertEqual(audit["frozen_at"], "2026-08-20T02:30:00-07:00")
+        self.assertEqual(audit["comparison_tertiary"], "lower dev loss")
+        self.assertEqual(audit["eligible_pilot_arms"], ["ce", "class_balanced"])
+
+        missing_timestamp = frozen_pilot_document(frozen_at=None)
+        with self.assertRaisesRegex(ValueError, "frozen_at"):
+            TRAINER.validate_preregistration_document(missing_timestamp)
+        changed = frozen_pilot_document()
+        changed["training"]["first_policy_pilot"]["shared_hyperparameters"][
+            "max_grad_norm"
+        ] = 2.0
+        with self.assertRaisesRegex(ValueError, "pilot preregistration"):
+            TRAINER.validate_preregistration_document(changed)
+
+    def test_materialization_receipt_binds_source_revision_license_and_tree(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            base = root / "base"
+            base.mkdir()
+            (base / "config.json").write_text(
+                json.dumps({"model_type": "roberta"}), encoding="utf-8"
+            )
+            (base / "tokenizer.json").write_text("{}", encoding="utf-8")
+            (base / "model.safetensors").write_bytes(b"weights")
+            base_hash, entries = TRAINER.hash_model_tree(base)
+            base_audit = TRAINER.validate_base_model_dir(base, base_hash)
+            receipt = {
+                "schema_version": "local-model-materialization-receipt-v1",
+                "source": {
+                    "model_id": "FacebookAI/roberta-base",
+                    "immutable_revision": (
+                        "e2da8e2f811d1448a5b465c236feacd80ffbac7b"
+                    ),
+                    "license": "MIT",
+                },
+                "materialization": {
+                    "source_and_materialized_file_bytes_identical": True,
+                    "symlinks_in_materialized_tree": False,
+                    "local_tree_sha256": base_hash,
+                    "files": entries,
+                },
+            }
+            receipt_path = root / "receipt.json"
+            receipt_path.write_text(
+                json.dumps(receipt, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            receipt_hash = TRAINER.sha256_file(receipt_path)
+            audit = TRAINER.validate_materialization_receipt(
+                receipt_path, receipt_hash, base_audit
+            )
+            self.assertEqual(audit["source_model_id"], "FacebookAI/roberta-base")
+            self.assertEqual(
+                audit["source_model_revision"],
+                "e2da8e2f811d1448a5b465c236feacd80ffbac7b",
+            )
+            self.assertEqual(audit["source_model_license"], "MIT")
+            self.assertEqual(audit["base_model_tree_sha256"], base_hash)
+            self.assertEqual(audit["receipt_sha256"], receipt_hash)
+
+            receipt["source"]["model_id"] = "lookalike/roberta-base"
+            receipt_path.write_text(
+                json.dumps(receipt, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            with self.assertRaisesRegex(ValueError, "source model"):
+                TRAINER.validate_materialization_receipt(
+                    receipt_path, TRAINER.sha256_file(receipt_path), base_audit
+                )
+
+    def test_committed_asset_gate_records_freeze_and_rejects_related_dirty_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            prereg = repo / "prereg.json"
+            metrics = repo / "metrics.py"
+            trainer = repo / "trainer.py"
+            receipt = repo / "receipt.json"
+            timestamp = "2026-08-20T02:30:00-07:00"
+            prereg.write_text(
+                json.dumps(frozen_pilot_document(timestamp)) + "\n",
+                encoding="utf-8",
+            )
+            metrics.write_text("METRIC = 1\n", encoding="utf-8")
+            trainer.write_text("TRAINER = 1\n", encoding="utf-8")
+            receipt.write_text("{}\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            commit_environment = {
+                **os.environ,
+                "GIT_AUTHOR_DATE": timestamp,
+                "GIT_COMMITTER_DATE": timestamp,
+            }
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(repo),
+                    "-c",
+                    "user.name=ESConv Test",
+                    "-c",
+                    "user.email=esconv@example.invalid",
+                    "commit",
+                    "-q",
+                    "-m",
+                    "freeze",
+                ],
+                check=True,
+                env=commit_environment,
+            )
+            assets = {
+                "preregistration": prereg,
+                "trainer": trainer,
+                "metrics": metrics,
+                "materialization_receipt": receipt,
+            }
+            snapshot = TRAINER.capture_protocol_assets(repo, assets)
+            validated = TRAINER.validate_execution_asset_state(
+                snapshot,
+                frozen_pilot_document(timestamp),
+                expected_preregistration_sha256=TRAINER.sha256_file(prereg),
+            )
+            self.assertTrue(validated["validated_for_execution"])
+            self.assertRegex(validated["freeze_commit"], r"^[0-9a-f]{40}$")
+            self.assertEqual(validated["freeze_commit_timestamp"], timestamp)
+            self.assertEqual(validated["git_status_porcelain"], "")
+
+            metrics.write_text("METRIC = 2\n", encoding="utf-8")
+            dirty = TRAINER.capture_protocol_assets(repo, assets)
+            with self.assertRaisesRegex(ValueError, "dirty or uncommitted"):
+                TRAINER.validate_execution_asset_state(
+                    dirty,
+                    frozen_pilot_document(timestamp),
+                    expected_preregistration_sha256=TRAINER.sha256_file(prereg),
+                )
+
+    def test_optimizer_groups_and_odd_accumulation_window_are_exact(self):
+        import torch
+
+        class TinyModel(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.dense = torch.nn.Linear(2, 2)
+                self.LayerNorm = torch.nn.LayerNorm(2)
+
+        groups, audit = TRAINER.optimizer_parameter_groups(
+            TinyModel(), weight_decay=0.01
+        )
+        self.assertEqual(audit["decay_parameter_names"], ["dense.weight"])
+        self.assertEqual(
+            audit["no_decay_parameter_names"],
+            ["LayerNorm.bias", "LayerNorm.weight", "dense.bias"],
+        )
+        self.assertEqual([group["weight_decay"] for group in groups], [0.01, 0.0])
+        self.assertEqual(TRAINER.accumulation_window_divisor(0, 1055, 2), 2)
+        self.assertEqual(TRAINER.accumulation_window_divisor(1053, 1055, 2), 2)
+        self.assertEqual(TRAINER.accumulation_window_divisor(1054, 1055, 2), 1)
+        self.assertEqual(TRAINER.accumulation_window_divisor(0, 1, 2), 1)
+
     def test_selftest_covers_contract_without_loading_transformers(self):
         result = TRAINER.run_selftest()
         self.assertEqual(result["status"], "ok")
@@ -397,7 +693,10 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
             truncation_side = "right"
 
             def __call__(self, texts, **_kwargs):
-                ids = [[2 + (len(text) % 7), 3, 4] for text in texts]
+                ids = [
+                    [11 if "train-only" in text else 22, 3, 4]
+                    for text in texts
+                ]
                 return {
                     "input_ids": ids,
                     "attention_mask": [[1] * len(row) for row in ids],
@@ -419,16 +718,27 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
             def __init__(self):
                 super().__init__()
                 self.classifier = torch.nn.Linear(1, len(TRAINER.LABELS))
+                self.calls = []
 
             def forward(self, input_ids, attention_mask):
                 del attention_mask
+                self.calls.append(
+                    {
+                        "sentinels": set(input_ids[:, 0].detach().cpu().tolist()),
+                        "grad_enabled": torch.is_grad_enabled(),
+                        "training": self.training,
+                    }
+                )
                 feature = input_ids.float().mean(dim=1, keepdim=True)
                 return types.SimpleNamespace(logits=self.classifier(feature))
 
         class Factory:
+            last_model = None
+
             @staticmethod
             def from_pretrained(*_args, **_kwargs):
-                return FakeModel()
+                Factory.last_model = FakeModel()
+                return Factory.last_model
 
         class TokenizerFactory:
             @staticmethod
@@ -536,22 +846,58 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
                 ),
                 "EXPECTED_EXACT_TSV_OVERLAP_SHA256": (),
             }
+            execution_provenance = {
+                "validated_for_execution": True,
+                "parent_preregistration": {
+                    "parent_protocol_id": "jingshi-esconv-first-v1",
+                    "path": "/repo/open_response_eval/preregistration_esconv_first_v1.json",
+                    "sha256": "a" * 64,
+                    "freeze_commit": "b" * 40,
+                    "freeze_commit_timestamp": "2026-08-20T02:30:00-07:00",
+                },
+                "materialization_receipt": {
+                    "path": "/repo/reports/base-receipt.json",
+                    "receipt_sha256": "c" * 64,
+                },
+                "launch_asset_snapshot": {"assets": {}},
+            }
+            finalized_provenance = {
+                **execution_provenance,
+                "end_asset_snapshot": {"assets": {}},
+                "assets_unchanged": True,
+            }
             with mock.patch.multiple(TRAINER, **frozen_overlap):
-                with mock.patch.dict(sys.modules, {"transformers": fake_transformers}):
-                    with redirect_stdout(StringIO()):
-                        result = TRAINER.train_policy(
-                            args,
-                            raw_train_records,
-                            dev_records,
-                            {"split": "train", "rows": 9},
-                            {"split": "dev", "rows": 8},
-                            base_audit,
-                        )
+                with mock.patch.object(
+                    TRAINER,
+                    "finalize_execution_provenance",
+                    return_value=finalized_provenance,
+                ):
+                    with mock.patch.dict(
+                        sys.modules, {"transformers": fake_transformers}
+                    ):
+                        with redirect_stdout(StringIO()):
+                            result = TRAINER.train_policy(
+                                args,
+                                raw_train_records,
+                                dev_records,
+                                {"split": "train", "rows": 9},
+                                {"split": "dev", "rows": 8},
+                                base_audit,
+                                execution_provenance=execution_provenance,
+                            )
             manifest_path = Path(result["manifest_path"])
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             self.assertEqual(manifest["selection"]["primary"], "dev_macro_f1")
             self.assertEqual(manifest["selection"]["selected_epoch"], 1)
+            self.assertEqual(
+                manifest["selection"]["tie_breaker_2"], "lower_dev_loss"
+            )
             self.assertEqual(manifest["training"]["epochs_completed"], 1)
+            self.assertEqual(manifest["training"]["actual_optimizer_updates"], 1)
+            self.assertEqual(manifest["training"]["actual_scheduler_steps"], 1)
+            self.assertEqual(
+                manifest["training"]["stop_reason"], "completed_planned_epochs"
+            )
             self.assertEqual(
                 manifest["data"]["dev_overlap_filter"]["removed_train_rows"], 1
             )
@@ -569,6 +915,33 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
                     "torch_deterministic_algorithms_warn_only": True,
                     "bitwise_reproducible_not_guaranteed": True,
                 },
+            )
+            self.assertEqual(
+                manifest["protocol"]["parent_preregistration"][
+                    "parent_protocol_id"
+                ],
+                "jingshi-esconv-first-v1",
+            )
+            self.assertTrue(manifest["protocol"]["assets_unchanged"])
+            self.assertEqual(
+                manifest["training"]["optimizer"]["betas"], [0.9, 0.999]
+            )
+            self.assertFalse(manifest["training"]["optimizer"]["foreach"])
+            training_calls = [
+                call for call in Factory.last_model.calls if call["grad_enabled"]
+            ]
+            evaluation_calls = [
+                call for call in Factory.last_model.calls if not call["grad_enabled"]
+            ]
+            self.assertTrue(training_calls)
+            self.assertTrue(evaluation_calls)
+            self.assertTrue(all(call["training"] for call in training_calls))
+            self.assertTrue(all(not call["training"] for call in evaluation_calls))
+            self.assertTrue(
+                all(call["sentinels"] == {11} for call in training_calls)
+            )
+            self.assertTrue(
+                all(call["sentinels"] == {22} for call in evaluation_calls)
             )
             self.assertEqual(
                 manifest["run_scope"]["run_scope"],
