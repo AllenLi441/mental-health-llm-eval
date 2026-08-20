@@ -1,0 +1,183 @@
+{
+  "protocol_id": "jingshi-esconv-first-v1",
+  "frozen_at": "2026-08-20T00:00:00-07:00",
+  "status": "development_preregistered_not_trained",
+  "scope": "ESConv only",
+  "objective": "Develop an auditable eight-class next-support-strategy policy and a strategy-conditioned response generator without selecting on the frozen ESConv test.",
+  "non_objectives": [
+    "claiming clinical efficacy",
+    "diagnosis or treatment recommendation",
+    "reproducing AFlow's synthetic expanded-validation score as an original-test score",
+    "combining paper-specific results into one leaderboard",
+    "replacing the production DeepSeek API before licensing and safety gates pass"
+  ],
+  "labels": {
+    "A": "Questions",
+    "B": "Restatement or Paraphrasing",
+    "C": "Reflection of feelings",
+    "D": "Self-disclosure",
+    "E": "Affirmation and Reassurance",
+    "F": "Providing Suggestions",
+    "G": "Information",
+    "H": "Other"
+  },
+  "data": {
+    "source": "original author TSV freeze from the 1,053-dialogue ESConv release",
+    "train_sha256": "0ecf37462f8e3fa7f1dc5bfbecd70733abb3501c3bf83b27a957bec5a926ec21",
+    "dev_sha256": "625b511f40cf9a9285582e808e6bbb4c2f35d0b0cd063f3709db430b8d0c3bdc",
+    "test_sha256": "b85ae888bf747cefa54bba2a6c3e2f6ccb4c1005d4e0b6d1d3be3823cf040aef",
+    "test_rows": 2775,
+    "training_allowed": [
+      "train"
+    ],
+    "model_selection_allowed": [
+      "dev"
+    ],
+    "retrieval_index_allowed": [
+      "train"
+    ],
+    "test_labels_known_to_project": true,
+    "test_predictions_for_new_models_before_unique_candidate_freeze": "prohibited",
+    "target_response_in_policy_input": false,
+    "target_strategy_in_policy_input": false,
+    "exact_and_prefix_overlap_audit_required_for_external_training_data": true
+  },
+  "evidence_tracks": [
+    "synthetic_expanded_protocol",
+    "paper_reported_classic_protocol",
+    "public_runnable_native_protocol",
+    "frozen_2775_reproduced"
+  ],
+  "architecture": {
+    "name": "Jingshi-ESConv-Policy-v1",
+    "components": [
+      "conversation encoder",
+      "mixed emotion and discourse-state features",
+      "train-only strategy prototype retrieval",
+      "calibrated eight-class policy head",
+      "lightweight value head",
+      "safety and human-escalation gate",
+      "strategy-conditioned response generator"
+    ],
+    "policy_initial_candidates": [
+      "heegyu/esconv-xlm-roberta-base",
+      "heegyu/esconv-xlm-roberta-large",
+      "heegyu/TinyLlama-augesc-context",
+      "a clean train/dev-only RoBERTa or ModernBERT classifier after its input contract is fixed"
+    ],
+    "generator": {
+      "base_model": "Qwen/Qwen3.8-27B",
+      "method": "strategy-conditioned LoRA or QLoRA",
+      "training_source": "ESConv train only plus commercially cleared auxiliary data",
+      "activation_gate": "policy frozen-test and safety gates must pass first"
+    }
+  },
+  "development_arms": [
+    {
+      "id": "A",
+      "description": "approved pretrained eight-class classifier or clean encoder baseline"
+    },
+    {
+      "id": "B",
+      "description": "A plus class-balanced or logit-adjusted loss"
+    },
+    {
+      "id": "C",
+      "description": "B plus mixed-emotion and discourse-state features"
+    },
+    {
+      "id": "D",
+      "description": "C plus train-only strategy prototypes and lightweight value/prefix-consistency objectives"
+    }
+  ],
+  "training": {
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "selection_primary": "mean dev Macro-F1 across three seeds",
+    "selection_tie_breaker_1": "mean dev Accuracy",
+    "selection_tie_breaker_2": "lower invalid rate",
+    "calibration": "temperature scaling fit on dev only after selecting an architecture",
+    "forbidden": [
+      "test-set prompt selection",
+      "test-set label-map recovery",
+      "test-set checkpoint selection",
+      "retrieval from dev or test",
+      "target response leakage",
+      "future-turn leakage"
+    ]
+  },
+  "external_checkpoint_rules": {
+    "immutable_revision_required": true,
+    "weight_and_config_sha256_required": true,
+    "explicit_eight_label_mapping_required": true,
+    "input_template_source_required": true,
+    "causal_lm_or_generation_head_rejected_for_classifier_track": true,
+    "unknown_training_provenance": "diagnostic_only",
+    "known_frozen_train_overlap": "diagnostic_only_train_contaminated",
+    "known_frozen_test_overlap": "ineligible"
+  },
+  "formal_test": {
+    "runs_allowed": 1,
+    "eligibility": "one unique policy candidate and all artifacts committed and hashed",
+    "primary_metric": "Macro-F1",
+    "secondary_metrics": [
+      "Accuracy",
+      "Weighted-F1",
+      "per-class precision recall F1",
+      "invalid rate",
+      "calibration error",
+      "confusion matrix"
+    ],
+    "paired_inference": [
+      "conversation-cluster bootstrap confidence intervals",
+      "exact McNemar against the frozen BlenderBot-small Joint predictions"
+    ],
+    "minimum_research_gate": {
+      "accuracy_strictly_above": 0.32216216216216215,
+      "macro_f1_strictly_above": 0.21827168949288342,
+      "invalid_rate_at_most": 0.0,
+      "no_unreviewed_severe_per_class_regression": true
+    },
+    "interpretation": "Passing this gate establishes only a stronger result on this frozen research benchmark."
+  },
+  "response_generation_evaluation": {
+    "starts_after_policy_gate": true,
+    "automatic_metrics": [
+      "BERTScore",
+      "ROUGE-L",
+      "Distinct-1",
+      "Distinct-2",
+      "strategy adherence"
+    ],
+    "human_review_dimensions": [
+      "empathy",
+      "helpfulness",
+      "coherence",
+      "non-repetition",
+      "boundary respect",
+      "unsafe advice",
+      "crisis escalation"
+    ],
+    "paper_generation_metrics_must_not_be_ranked_as_strategy_accuracy": true
+  },
+  "compute_plan": {
+    "local_first": "Apple M4 24 GB for checkpoint inference and small-model smoke tests",
+    "encoder_training": "one 24 GB or 48 GB GPU",
+    "qwen_27b_qlora": "one 80 GB GPU, or two 48/80 GB GPUs for longer-context margin",
+    "aflow_full_reproduction": "not approved until checkpoint or complete runnable manifest is released",
+    "no_cloud_rental_has_been_authorized_or_started": true
+  },
+  "product_gate": {
+    "commercial_data_permission_required": true,
+    "current_esconv_materials_are_not_cleared_for_product_replacement": true,
+    "shadow_mode_required": true,
+    "crisis_self_harm_suite_required": true,
+    "human_expert_review_required": true,
+    "privacy_security_review_required": true,
+    "rollback_required": true,
+    "deepseek_api_replacement_status": "not_approved"
+  }
+}

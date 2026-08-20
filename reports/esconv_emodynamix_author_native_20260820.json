@@ -1,0 +1,264 @@
+{
+  "audit_status": "COMPLETE",
+  "checkpoint": {
+    "kind": "file",
+    "path": "/Users/allenli/Desktop/mental-health-llm-eval/tmp/official_benchmarks/emodynamix-v2/roberta-hg-esconv-preprocessed-checkpoints/checkpoint-2600.pth",
+    "sha256": "6cb5b27356b566a9db1d071fa6cb969aba6fda8a3073632003b3c6b797daa4e7"
+  },
+  "created_at_utc": "2026-08-20T08:46:43.334482+00:00",
+  "dataset": {
+    "path": "/Users/allenli/Desktop/mental-health-llm-eval/tmp/official_benchmarks/emodynamix-v2/data/esconv_preprocessed/test.pkl",
+    "rows": 2895,
+    "sha256": "d31529e44737b6dfb38eb92fb2bcf37ddbaf22965e6905ff2257a36da820a6e6"
+  },
+  "eligibility": {
+    "frozen_leaderboard_eligible": false,
+    "reason": "The released author test.pkl is not the frozen 2,775-row protocol.",
+    "status": "AUTHOR_TEST_REPRODUCTION_ONLY"
+  },
+  "label_contract": {
+    "canonical_labels": [
+      "Questions",
+      "Restatement or Paraphrasing",
+      "Reflection of feelings",
+      "Self-disclosure",
+      "Affirmation and Reassurance",
+      "Providing Suggestions",
+      "Information",
+      "Other"
+    ],
+    "canonical_to_emodynamix": {
+      "Affirmation and Reassurance": "Affirmation and Reassurance",
+      "Information": "Information",
+      "Other": "Others",
+      "Providing Suggestions": "Providing Suggestions",
+      "Questions": "Question",
+      "Reflection of feelings": "Reflection of feelings",
+      "Restatement or Paraphrasing": "Restatement or Paraphrasing",
+      "Self-disclosure": "Self-disclosure"
+    },
+    "emodynamix_label_to_id": {
+      "Affirmation and Reassurance": 3,
+      "Information": 6,
+      "Others": 7,
+      "Providing Suggestions": 4,
+      "Question": 2,
+      "Reflection of feelings": 0,
+      "Restatement or Paraphrasing": 5,
+      "Self-disclosure": 1
+    }
+  },
+  "metrics": {
+    "ACC": 0.33609671848013817,
+    "Macro-F1": 0.2770401756470437,
+    "Weighted-F1": 0.3270871435451419,
+    "accuracy": 0.33609671848013817,
+    "confusion_matrix": {
+      "invalid_by_gold": {
+        "Affirmation and Reassurance": 0,
+        "Information": 0,
+        "Other": 0,
+        "Providing Suggestions": 0,
+        "Questions": 0,
+        "Reflection of feelings": 0,
+        "Restatement or Paraphrasing": 0,
+        "Self-disclosure": 0
+      },
+      "labels": [
+        "Questions",
+        "Restatement or Paraphrasing",
+        "Reflection of feelings",
+        "Self-disclosure",
+        "Affirmation and Reassurance",
+        "Providing Suggestions",
+        "Information",
+        "Other"
+      ],
+      "rows_gold_columns_predicted": [
+        [
+          316,
+          37,
+          6,
+          30,
+          101,
+          88,
+          13,
+          39
+        ],
+        [
+          34,
+          54,
+          3,
+          7,
+          33,
+          18,
+          2,
+          2
+        ],
+        [
+          43,
+          24,
+          8,
+          15,
+          63,
+          49,
+          10,
+          23
+        ],
+        [
+          25,
+          21,
+          5,
+          28,
+          70,
+          68,
+          22,
+          25
+        ],
+        [
+          59,
+          35,
+          11,
+          28,
+          129,
+          97,
+          19,
+          59
+        ],
+        [
+          25,
+          8,
+          8,
+          20,
+          123,
+          210,
+          48,
+          66
+        ],
+        [
+          14,
+          4,
+          1,
+          3,
+          42,
+          69,
+          29,
+          24
+        ],
+        [
+          80,
+          11,
+          1,
+          9,
+          95,
+          69,
+          18,
+          199
+        ]
+      ]
+    },
+    "correct": 973,
+    "invalid": 0,
+    "invalid_rate": 0.0,
+    "macro_f1": 0.2770401756470437,
+    "per_class": {
+      "Affirmation and Reassurance": {
+        "correct": 129,
+        "f1": 0.2360475754803294,
+        "precision": 0.19664634146341464,
+        "predicted": 656,
+        "recall": 0.2951945080091533,
+        "support": 437
+      },
+      "Information": {
+        "correct": 29,
+        "f1": 0.1671469740634006,
+        "precision": 0.18012422360248448,
+        "predicted": 161,
+        "recall": 0.15591397849462366,
+        "support": 186
+      },
+      "Other": {
+        "correct": 199,
+        "f1": 0.4330794341675734,
+        "precision": 0.45537757437070936,
+        "predicted": 437,
+        "recall": 0.41286307053941906,
+        "support": 482
+      },
+      "Providing Suggestions": {
+        "correct": 210,
+        "f1": 0.35714285714285715,
+        "precision": 0.3143712574850299,
+        "predicted": 668,
+        "recall": 0.41338582677165353,
+        "support": 508
+      },
+      "Questions": {
+        "correct": 316,
+        "f1": 0.5154975530179445,
+        "precision": 0.5302013422818792,
+        "predicted": 596,
+        "recall": 0.5015873015873016,
+        "support": 630
+      },
+      "Reflection of feelings": {
+        "correct": 8,
+        "f1": 0.05755395683453238,
+        "precision": 0.18604651162790697,
+        "predicted": 43,
+        "recall": 0.03404255319148936,
+        "support": 235
+      },
+      "Restatement or Paraphrasing": {
+        "correct": 54,
+        "f1": 0.31123919308357356,
+        "precision": 0.27835051546391754,
+        "predicted": 194,
+        "recall": 0.35294117647058826,
+        "support": 153
+      },
+      "Self-disclosure": {
+        "correct": 28,
+        "f1": 0.1386138613861386,
+        "precision": 0.2,
+        "predicted": 140,
+        "recall": 0.10606060606060606,
+        "support": 264
+      }
+    },
+    "total": 2895,
+    "weighted_f1": 0.3270871435451419
+  },
+  "paper": "EmoDynamiX: Emotional Support Dialogue Strategy Prediction by Modelling MiXed Emotions and Discourse Dynamics",
+  "predictions": {
+    "path": "/Users/allenli/Desktop/mental-health-llm-eval/tmp/runs/emodynamix-author-native/predictions.jsonl",
+    "sha256": "39ec1abb28a753b51bbb69bc73bc9f922eb2c83c227be9c788d687f9ed5ebf62"
+  },
+  "prepared_input": {
+    "path": "/Users/allenli/Desktop/mental-health-llm-eval/tmp/runs/emodynamix-author-native/prepared.jsonl",
+    "sha256": "3c72bc0c3d968ce3f22b1429fc1ab9a567d0d5609b82a34b0a6b9d6950b1b0bd"
+  },
+  "protocol": {
+    "checkpoint_training_provenance": "author_seed13_1300",
+    "frozen_2775": false,
+    "history_window": "EmoDynamiX-compatible last five utterances; <START> inserted for early turns",
+    "invalid_policy": "missing, errored, or out-of-label predictions count wrong",
+    "target_response_excluded_from_model_input": true,
+    "target_strategy_excluded_from_model_input": true
+  },
+  "run_name": "emodynamix-author-native-checkpoint-2600",
+  "runtime": {
+    "adapter_repo_commit": "a03b8c5a588449c6778f694ab6c543f5de8fd389",
+    "platform": "macOS-26.0.1-arm64-arm-64bit",
+    "python": "3.10.4"
+  },
+  "source_kind": "author_test_pickle",
+  "task": "8-way next-support-strategy prediction",
+  "third_party_repo": {
+    "commit": "c9213d718a9684a5e05ce5daa947f9cbbfb7b927",
+    "declared_upstream": "https://github.com/cw-wan/EmoDynamiX-v2",
+    "path": "/Users/allenli/Desktop/mental-health-llm-eval/tmp/official_benchmarks/emodynamix-v2",
+    "tree_sha": "c5eab8ff3d051c49470ce19c7d24e65d757c4624"
+  }
+}

@@ -1,5 +1,7 @@
 # eval-suite — 8 数据集 · 19 任务 · 零样本准确率评测
 
+> **当前开发主线（2026-08-20）：ESConv-first。** 新模型优化暂时只推进 ESConv 八类 next-strategy policy；论文数字、公开权重原生结果和 frozen-2775 复现严格分轨。最新审计见 [`reports/esconv_pwc_model_audit_20260820.md`](reports/esconv_pwc_model_audit_20260820.md)，机器 registry 见 [`reports/esconv_model_registry_20260820.json`](reports/esconv_model_registry_20260820.json)，开发冻结协议见 [`open_response_eval/preregistration_esconv_first_v1.json`](open_response_eval/preregistration_esconv_first_v1.json)。通过 ESConv 研究门槛不等于获准替换生产 DeepSeek API。
+
 零依赖 Node.js（≥18）。被测模型 = 任意 OpenAI 兼容 chat API（示例默认显式使用 DeepSeek `deepseek-v4-flash`；runner 会拒绝已经退役/含义不明确的 `deepseek-chat` 和 `deepseek-reasoner` 别名）。公开仓库包含代码与聚合结果；规划中的 CPsyExam V4 Release 仅允许发布去敏的逐行承诺与成对正确性结果。受许可/敏感性约束的原始数据、题目、选项、标签、模型预测和原始输出不随仓库或 Release 发布。
 
 > 2026-08-01 跨 benchmark 总复盘：[`reports/model_architecture_status_and_roadmap_20260801.md`](reports/model_architecture_status_and_roadmap_20260801.md)。给 ChatGPT 5.6 Pro Deep Research 的独立复核 prompt：[`reports/chatgpt_pro_5_6_independent_review_prompt_20260801.md`](reports/chatgpt_pro_5_6_independent_review_prompt_20260801.md)。总目标是分别提高各论文任务的同协议指标；不得把 PsySUICIDE 专用分类头或不同 split 的分数外推到其他 benchmark。
