@@ -15,16 +15,20 @@ the frozen test must not be used to choose a template.
 
 Before this process opens the frozen test or loads a model, it requires a
 pre-committed, clean, externally hash-anchored candidate selection,
-authorization, provenance audit, and armed consumption receipt.  The formal
-runner has no prefix/smoke mode: its single campaign slot is atomically claimed
-before the test is read, and it must publish exactly 2,775 predictions into one
-pre-authorized run directory.  A persistent git-private claim plus the tracked
-receipt fail closed on concurrent use and ordinary local replay.
+authorization, provenance audit, remote atomic single-writer receipt, and armed
+local consumption receipt.  The formal runner has no prefix/smoke mode: its
+single campaign slot is atomically claimed before the test is read, and it must
+publish exactly 2,775 predictions into one pre-authorized run directory.  A
+common-git-dir claim plus the tracked receipt fail closed across linked
+worktrees, while the remote receipt coordinates independent clones/hosts.  The
+audited model is copied into a private read-only tree before Transformers loads
+it, closing the source-tree swap/restore window.
 """
 
 from __future__ import annotations
 
 import argparse
+import contextlib
 import copy
 import datetime as dt
 import hashlib
@@ -33,13 +37,14 @@ import os
 import platform
 import re
 import secrets
+import shutil
 import stat
 import subprocess
 import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterable, Iterator, Sequence
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,6 +62,7 @@ TRAINING_PROVENANCE_AUDIT_SCHEMA = (
 CANDIDATE_SELECTION_SCHEMA = "esconv-frozen-candidate-selection-v1"
 CAMPAIGN_AUTHORIZATION_SCHEMA = "esconv-frozen-campaign-authorization-v2"
 CONSUMPTION_RECEIPT_SCHEMA = "esconv-frozen-campaign-consumption-v1"
+EXTERNAL_SINGLE_WRITER_CLAIM_SCHEMA = "esconv-external-single-writer-claim-v1"
 CHECKPOINT_TRAINING_PROVENANCE_CHOICES = (
     "frozen_train_dev_only",
     "external_unknown",
@@ -587,10 +593,35 @@ def _campaign_formal_run(context: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _campaign_receipt_binding(context: dict[str, Any]) -> dict[str, Any]:
+def _authorization_receipt_binding(context: dict[str, Any]) -> dict[str, Any]:
     return {
         "path": context["receipt_path"],
+        "schema_version": CONSUMPTION_RECEIPT_SCHEMA,
+    }
+
+
+def _selection_receipt_binding(context: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **_authorization_receipt_binding(context),
         "armed_sha256": context["receipt_armed_sha256"],
+    }
+
+
+def _authorization_external_claim_binding(
+    context: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "path": context["external_claim_path"],
+        "schema_version": EXTERNAL_SINGLE_WRITER_CLAIM_SCHEMA,
+    }
+
+
+def _selection_external_claim_binding(
+    context: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "path": context["external_claim_path"],
+        "sha256": context["external_claim_sha256"],
     }
 
 
@@ -615,7 +646,8 @@ def _expected_candidate_selection(context: dict[str, Any]) -> dict[str, Any]:
             "path": context["authorization_path"],
             "sha256": context["authorization_sha256"],
         },
-        "consumption_receipt": _campaign_receipt_binding(context),
+        "external_single_writer_claim": _selection_external_claim_binding(context),
+        "consumption_receipt": _selection_receipt_binding(context),
     }
 
 
@@ -640,7 +672,10 @@ def _expected_campaign_authorization(context: dict[str, Any]) -> dict[str, Any]:
         "training_provenance_audit": _campaign_training_audit_binding(context),
         "evaluator": _campaign_evaluator(context),
         "formal_run": _campaign_formal_run(context),
-        "consumption_receipt": _campaign_receipt_binding(context),
+        "external_single_writer_claim": _authorization_external_claim_binding(
+            context
+        ),
+        "consumption_receipt": _authorization_receipt_binding(context),
     }
 
 
@@ -685,12 +720,52 @@ def _expected_armed_receipt(context: dict[str, Any]) -> dict[str, Any]:
         "schema_version": CONSUMPTION_RECEIPT_SCHEMA,
         "campaign_id": context["campaign_id"],
         "authorization_sha256": context["authorization_sha256"],
+        "external_single_writer_claim_sha256": context[
+            "external_claim_sha256"
+        ],
         "run_name": context["run_name"],
         "run_dir": context["run_dir"],
         "status": "ARMED",
         "claimed_at_utc": None,
         "claim_nonce": None,
     }
+
+
+def _expected_external_single_writer_claim(
+    context: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "schema_version": EXTERNAL_SINGLE_WRITER_CLAIM_SCHEMA,
+        "claim_status": "ACQUIRED",
+        "coordinator_kind": "remote_atomic_compare_and_set",
+        "claim_key": f"esconv-frozen:{EXPECTED_FROZEN_TEST_SHA256}",
+        "frozen_test_sha256": EXPECTED_FROZEN_TEST_SHA256,
+        "campaign_id": context["campaign_id"],
+        "authorization_sha256": context["authorization_sha256"],
+        "receipt_id": context["external_claim_receipt_id"],
+        "issued_at_utc": context["external_claim_issued_at_utc"],
+    }
+
+
+def validate_external_single_writer_claim(
+    claim: dict[str, Any], *, campaign_context: dict[str, Any]
+) -> None:
+    receipt_id = claim.get("receipt_id")
+    issued_at = claim.get("issued_at_utc")
+    if not isinstance(receipt_id, str) or not receipt_id.strip():
+        raise ValueError("external single-writer claim needs a non-empty receipt_id")
+    if not isinstance(issued_at, str) or not issued_at.strip():
+        raise ValueError("external single-writer claim needs issued_at_utc")
+    expected_context = {
+        **campaign_context,
+        "external_claim_receipt_id": receipt_id,
+        "external_claim_issued_at_utc": issued_at,
+    }
+    if claim != _expected_external_single_writer_claim(expected_context):
+        raise ValueError(
+            "external single-writer claim binding mismatch; a remote atomic "
+            "compare-and-set receipt is required"
+        )
 
 
 def validate_armed_receipt(
@@ -758,6 +833,11 @@ def assess_frozen_leaderboard_eligibility(
         return diagnostic(
             "DIAGNOSTIC_ONLY_INCOMPLETE_FORMAL_RESULT",
             "Frozen eligibility requires the full 2,775-row test and metrics.total=2775.",
+        )
+    if campaign_context.get("external_claim_verified") is not True:
+        return diagnostic(
+            "DIAGNOSTIC_ONLY_MISSING_REMOTE_SINGLE_WRITER_CLAIM",
+            "A verified remote atomic single-writer claim is required across clones and hosts.",
         )
     if int(metrics.get("invalid", 0)) != 0:
         return diagnostic(
@@ -1170,6 +1250,97 @@ def snapshot_model_tree(model_dir: Path) -> dict[str, Any]:
         "tokenizer_files": tokenizer_entries,
         "tokenizer_manifest_sha256": canonical_json_sha256(tokenizer_entries),
     }
+
+
+def _copy_regular_file_verified(
+    source: Path, destination: Path, *, expected_size: int, expected_sha256: str
+) -> None:
+    source_descriptor = _open_regular_file(source)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    destination_descriptor = os.open(destination, flags, 0o600)
+    digest = hashlib.sha256()
+    total = 0
+    try:
+        before = os.fstat(source_descriptor)
+        while True:
+            chunk = os.read(source_descriptor, 1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+            total += len(chunk)
+            offset = 0
+            while offset < len(chunk):
+                offset += os.write(destination_descriptor, chunk[offset:])
+        after = os.fstat(source_descriptor)
+        os.fsync(destination_descriptor)
+    finally:
+        os.close(source_descriptor)
+        os.close(destination_descriptor)
+    actual_sha256 = digest.hexdigest()
+    if (
+        total != expected_size
+        or actual_sha256 != expected_sha256
+        or before.st_size != after.st_size
+        or before.st_mtime_ns != after.st_mtime_ns
+        or before.st_ctime_ns != after.st_ctime_ns
+    ):
+        raise ValueError(
+            f"source model artifact changed or did not match audit while sealing: {source}"
+        )
+
+
+@contextlib.contextmanager
+def materialize_sealed_model_tree(
+    model_dir: Path, *, expected_snapshot: dict[str, Any]
+) -> Iterator[Path]:
+    """Copy audited bytes to a private read-only tree before Transformers sees them."""
+
+    model_dir = Path(model_dir)
+    entries = expected_snapshot.get("files")
+    if entries is None:
+        entries = expected_snapshot.get("tree", {}).get("files")
+    if not isinstance(entries, list) or not entries:
+        raise ValueError("expected model snapshot has no complete file manifest")
+    sealed = Path(tempfile.mkdtemp(prefix="esconv-sealed-model-"))
+    os.chmod(sealed, 0o700)
+    try:
+        for entry in entries:
+            if not isinstance(entry, dict):
+                raise ValueError("expected model snapshot contains a malformed entry")
+            relative = Path(str(entry.get("path", "")))
+            if relative.is_absolute() or ".." in relative.parts or not relative.parts:
+                raise ValueError(f"unsafe model snapshot path: {relative}")
+            destination = sealed / relative
+            destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            _copy_regular_file_verified(
+                model_dir / relative,
+                destination,
+                expected_size=int(entry["size"]),
+                expected_sha256=str(entry["sha256"]),
+            )
+        sealed_snapshot = snapshot_model_tree(sealed)
+        for key in ("tree_manifest_sha256", "tokenizer_manifest_sha256"):
+            if sealed_snapshot[key] != expected_snapshot.get(key):
+                raise ValueError(f"sealed model tree does not match audited {key}")
+        for path in sealed.rglob("*"):
+            if path.is_file():
+                os.chmod(path, 0o400)
+        directories = [path for path in sealed.rglob("*") if path.is_dir()]
+        for path in sorted(directories, key=lambda item: len(item.parts), reverse=True):
+            os.chmod(path, 0o500)
+        os.chmod(sealed, 0o500)
+        yield sealed
+    finally:
+        if sealed.exists():
+            for path in sealed.rglob("*"):
+                if path.is_dir():
+                    os.chmod(path, 0o700)
+                elif path.exists():
+                    os.chmod(path, 0o600)
+            os.chmod(sealed, 0o700)
+            shutil.rmtree(sealed)
 
 
 def audit_model_directory(
@@ -1631,8 +1802,10 @@ def _atomic_write_bytes(path: Path, payload: bytes, *, mode: int = 0o600) -> Non
     _fsync_directory(path.parent)
 
 
-def _git_directory(repo_root: Path) -> Path:
-    raw = _run_git(Path(repo_root), ["rev-parse", "--git-dir"], text=True).strip()
+def _git_common_directory(repo_root: Path) -> Path:
+    raw = _run_git(
+        Path(repo_root), ["rev-parse", "--git-common-dir"], text=True
+    ).strip()
     path = Path(raw)
     if not path.is_absolute():
         path = Path(repo_root) / path
@@ -1642,7 +1815,7 @@ def _git_directory(repo_root: Path) -> Path:
 def campaign_claim_path(repo_root: Path) -> Path:
     """One repository-local claim for the frozen test, independent of campaign id."""
 
-    claim_directory = _git_directory(Path(repo_root)) / "esconv-frozen-claims"
+    claim_directory = _git_common_directory(Path(repo_root)) / "esconv-frozen-claims"
     if claim_directory.exists() or claim_directory.is_symlink():
         if claim_directory.is_symlink() or not claim_directory.is_dir():
             raise ValueError(f"campaign claim directory is not a real directory: {claim_directory}")
@@ -1681,6 +1854,9 @@ def consume_campaign_slot(
         "frozen_test_sha256": EXPECTED_FROZEN_TEST_SHA256,
         "campaign_id": campaign_context["campaign_id"],
         "authorization_sha256": campaign_context["authorization_sha256"],
+        "external_single_writer_claim_sha256": campaign_context[
+            "external_claim_sha256"
+        ],
         "receipt_path": receipt_artifact["repo_relative_path"],
         "run_name": campaign_context["run_name"],
         "run_dir": campaign_context["run_dir"],
@@ -1768,6 +1944,7 @@ def build_summary(
     training_provenance_audit_artifact: dict[str, Any] | None,
     campaign_selection_artifact: dict[str, Any],
     campaign_authorization_artifact: dict[str, Any] | None,
+    external_single_writer_claim_artifact: dict[str, Any],
     campaign_consumption_receipt_artifact: dict[str, Any],
     campaign_claim: Path,
     evaluator_artifact: dict[str, Any],
@@ -1828,6 +2005,7 @@ def build_summary(
         "training_provenance_audit": training_provenance_audit_artifact,
         "campaign_selection": campaign_selection_artifact,
         "campaign_authorization": campaign_authorization_artifact,
+        "external_single_writer_claim": external_single_writer_claim_artifact,
         "campaign_consumption": {
             "armed_receipt": campaign_consumption_receipt_artifact,
             "claim_path": str(campaign_claim),
@@ -1851,7 +2029,9 @@ def build_summary(
             "campaign_authorization_required_before_any_frozen_test_prediction": True,
             "campaign_committed_clean_hash_anchors_required": True,
             "single_repository_claim_and_tracked_receipt": True,
-            "receipt_reset_or_new_clone_cannot_be_prevented_by_local_filesystem_only": True,
+            "cross_clone_single_writer_requires_remote_atomic_claim": True,
+            "remote_atomic_claim_artifact_verified": True,
+            "local_receipt_reset_cannot_revoke_remote_coordinator_state": True,
             "formal_outputs_may_not_be_overwritten": True,
         },
         "runtime": runtime,
@@ -1881,6 +2061,8 @@ def validate_static_run_arguments(args: argparse.Namespace) -> None:
         "campaign_selection_expected_sha256",
         "campaign_authorization_manifest",
         "campaign_authorization_expected_sha256",
+        "external_single_writer_claim",
+        "external_single_writer_claim_expected_sha256",
         "campaign_consumption_receipt",
         "campaign_consumption_receipt_expected_sha256",
         "run_dir",
@@ -1893,6 +2075,7 @@ def validate_static_run_arguments(args: argparse.Namespace) -> None:
     for name in (
         "campaign_selection_expected_sha256",
         "campaign_authorization_expected_sha256",
+        "external_single_writer_claim_expected_sha256",
         "campaign_consumption_receipt_expected_sha256",
     ):
         _validate_expected_sha256(
@@ -1949,13 +2132,19 @@ def _build_runtime_campaign_context(
     profile: dict[str, Any],
     selection_artifact: dict[str, Any],
     authorization_artifact: dict[str, Any],
+    external_claim_artifact: dict[str, Any],
     receipt_artifact: dict[str, Any],
     training_audit_artifact: dict[str, Any] | None,
 ) -> dict[str, Any]:
     selection = selection_artifact["document"]
     candidate = selection.get("candidate")
     evaluator = selection.get("evaluator")
-    if not isinstance(candidate, dict) or not isinstance(evaluator, dict):
+    external_claim = external_claim_artifact["document"]
+    if (
+        not isinstance(candidate, dict)
+        or not isinstance(evaluator, dict)
+        or not isinstance(external_claim, dict)
+    ):
         raise ValueError("candidate selection lacks candidate/evaluator bindings")
     audit_path = (
         training_audit_artifact["repo_relative_path"]
@@ -1987,6 +2176,10 @@ def _build_runtime_campaign_context(
         "selection_sha256": selection_artifact["sha256"],
         "authorization_path": authorization_artifact["repo_relative_path"],
         "authorization_sha256": authorization_artifact["sha256"],
+        "external_claim_path": external_claim_artifact["repo_relative_path"],
+        "external_claim_sha256": external_claim_artifact["sha256"],
+        "external_claim_receipt_id": external_claim.get("receipt_id"),
+        "external_claim_issued_at_utc": external_claim.get("issued_at_utc"),
         "receipt_path": receipt_artifact["repo_relative_path"],
         "receipt_armed_sha256": receipt_artifact["sha256"],
         "limit": None,
@@ -1995,8 +2188,13 @@ def _build_runtime_campaign_context(
 
 
 def _load_campaign_preflight(
-    args: argparse.Namespace, *, profile: dict[str, Any]
+    args: argparse.Namespace,
+    *,
+    profile: dict[str, Any],
+    repo_root: Path = ROOT,
+    evaluator_path: Path = Path(__file__),
 ) -> tuple[
+    dict[str, Any],
     dict[str, Any],
     dict[str, Any],
     dict[str, Any],
@@ -2004,25 +2202,34 @@ def _load_campaign_preflight(
     dict[str, Any],
     dict[str, Any],
 ]:
+    repo_root = Path(repo_root).resolve()
+    evaluator_path = Path(evaluator_path).resolve()
     trusted_commit = args.campaign_trusted_commit
     selection = load_committed_json_artifact(
         args.campaign_selection_manifest,
         description="candidate selection manifest",
-        repo_root=ROOT,
+        repo_root=repo_root,
         trusted_commit=trusted_commit,
         expected_sha256=args.campaign_selection_expected_sha256,
     )
     authorization = load_committed_json_artifact(
         args.campaign_authorization_manifest,
         description="campaign authorization manifest",
-        repo_root=ROOT,
+        repo_root=repo_root,
         trusted_commit=trusted_commit,
         expected_sha256=args.campaign_authorization_expected_sha256,
+    )
+    external_claim = load_committed_json_artifact(
+        args.external_single_writer_claim,
+        description="external single-writer claim",
+        repo_root=repo_root,
+        trusted_commit=trusted_commit,
+        expected_sha256=args.external_single_writer_claim_expected_sha256,
     )
     receipt = load_committed_json_artifact(
         args.campaign_consumption_receipt,
         description="campaign consumption receipt",
-        repo_root=ROOT,
+        repo_root=repo_root,
         trusted_commit=trusted_commit,
         expected_sha256=args.campaign_consumption_receipt_expected_sha256,
     )
@@ -2031,7 +2238,7 @@ def _load_campaign_preflight(
         audit = load_committed_json_artifact(
             args.training_provenance_audit,
             description="checkpoint training provenance audit",
-            repo_root=ROOT,
+            repo_root=repo_root,
             trusted_commit=trusted_commit,
             expected_sha256=args.training_provenance_audit_expected_sha256,
         )
@@ -2040,6 +2247,7 @@ def _load_campaign_preflight(
         profile=profile,
         selection_artifact=selection,
         authorization_artifact=authorization,
+        external_claim_artifact=external_claim,
         receipt_artifact=receipt,
         training_audit_artifact=audit,
     )
@@ -2048,18 +2256,22 @@ def _load_campaign_preflight(
         authorization["document"],
         campaign_context=context,
     )
+    validate_external_single_writer_claim(
+        external_claim["document"], campaign_context=context
+    )
+    context["external_claim_verified"] = True
     validate_armed_receipt(receipt["document"], campaign_context=context)
     _assert_single_selection_artifact(
-        ROOT,
+        repo_root,
         trusted_commit=trusted_commit,
         selected_path=selection["repo_relative_path"],
     )
-    if context["evaluator_path"] != Path(__file__).resolve().relative_to(ROOT).as_posix():
+    if context["evaluator_path"] != evaluator_path.relative_to(repo_root).as_posix():
         raise ValueError("campaign evaluator path does not identify this evaluator")
     if not _HEX_REVISION.fullmatch(str(context["evaluator_commit"])):
         raise ValueError("campaign evaluator commit is not an immutable git commit")
     _run_git(
-        ROOT,
+        repo_root,
         [
             "merge-base",
             "--is-ancestor",
@@ -2069,9 +2281,9 @@ def _load_campaign_preflight(
         text=False,
     )
     evaluator = load_committed_file_artifact(
-        Path(__file__),
+        evaluator_path,
         description="frozen evaluator",
-        repo_root=ROOT,
+        repo_root=repo_root,
         trusted_commit=context["evaluator_commit"],
         expected_sha256=context["evaluator_sha256"],
     )
@@ -2082,7 +2294,7 @@ def _load_campaign_preflight(
         validate_training_provenance_audit(
             audit["document"], dataset_hash=EXPECTED_FROZEN_TEST_SHA256
         )
-    return selection, authorization, receipt, audit, evaluator, context
+    return selection, authorization, external_claim, receipt, audit, evaluator, context
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
@@ -2091,6 +2303,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     (
         campaign_selection_artifact,
         campaign_authorization_artifact,
+        external_single_writer_claim_artifact,
         campaign_consumption_receipt_artifact,
         training_provenance_audit_artifact,
         evaluator_artifact,
@@ -2124,23 +2337,31 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     records, dataset_artifact = prepare_frozen_file(
         args.test_file, profile=profile, limit=None
     )
-    model, tokenizer, device, versions = load_hf_model_verified(
-        args.model_dir,
-        profile=profile,
-        requested_device=args.device,
-        declared_revision=args.model_revision,
-        pre_load_artifact=model_artifact,
-    )
-    started = time.monotonic()
-    run_inference(
-        records,
-        model=model,
-        tokenizer=tokenizer,
-        device=device,
-        profile=profile,
-        batch_size=args.batch_size,
-    )
-    elapsed = time.monotonic() - started
+    with materialize_sealed_model_tree(
+        args.model_dir, expected_snapshot=model_artifact
+    ) as sealed_model_dir:
+        sealed_model_artifact, _ = audit_model_directory(
+            sealed_model_dir,
+            profile=profile,
+            declared_revision=args.model_revision,
+        )
+        model, tokenizer, device, versions = load_hf_model_verified(
+            sealed_model_dir,
+            profile=profile,
+            requested_device=args.device,
+            declared_revision=args.model_revision,
+            pre_load_artifact=sealed_model_artifact,
+        )
+        started = time.monotonic()
+        run_inference(
+            records,
+            model=model,
+            tokenizer=tokenizer,
+            device=device,
+            profile=profile,
+            batch_size=args.batch_size,
+        )
+        elapsed = time.monotonic() - started
     metrics = compute_metrics(records)
     staging = Path(
         tempfile.mkdtemp(prefix=f".{run_dir.name}.staging-", dir=run_dir.parent)
@@ -2170,6 +2391,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         training_provenance_audit_artifact=training_provenance_audit_artifact,
         campaign_selection_artifact=campaign_selection_artifact,
         campaign_authorization_artifact=campaign_authorization_artifact,
+        external_single_writer_claim_artifact=(
+            external_single_writer_claim_artifact
+        ),
         campaign_consumption_receipt_artifact=campaign_consumption_receipt_artifact,
         campaign_claim=claim_path,
         evaluator_artifact=evaluator_artifact,
@@ -2226,6 +2450,10 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("--campaign-authorization-expected-sha256", required=True)
+    parser.add_argument("--external-single-writer-claim", type=Path, required=True)
+    parser.add_argument(
+        "--external-single-writer-claim-expected-sha256", required=True
+    )
     parser.add_argument("--campaign-consumption-receipt", type=Path, required=True)
     parser.add_argument(
         "--campaign-consumption-receipt-expected-sha256", required=True
