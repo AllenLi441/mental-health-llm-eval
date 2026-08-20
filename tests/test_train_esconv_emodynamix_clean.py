@@ -4,6 +4,7 @@ import json
 import sys
 import tempfile
 import unittest
+from copy import deepcopy
 from pathlib import Path
 
 
@@ -193,6 +194,150 @@ class CliBoundaryTests(unittest.TestCase):
         self.assertNotIn("--test", option_strings)
         self.assertNotIn("--test-file", option_strings)
         self.assertNotIn("--dataset-dir", option_strings)
+
+
+class FeatureContractTests(unittest.TestCase):
+    def setUp(self):
+        self.record = TRAINER.build_emodynamix_records(
+            synthetic_rows()[:1], split="train", expected_rows=1
+        )[0]
+
+    def test_fixture_feature_is_deterministic_label_free_and_never_selectable(self):
+        first = TRAINER.make_structural_fixture_feature(
+            self.record["model_input_sha256"], self.record["model_input"]
+        )
+        second = TRAINER.make_structural_fixture_feature(
+            self.record["model_input_sha256"], self.record["model_input"]
+        )
+
+        self.assertEqual(first, second)
+        self.assertEqual(set(first), TRAINER.FEATURE_ROW_FIELDS)
+        serialized = json.dumps(first, sort_keys=True).casefold()
+        for forbidden in ("gold", "label", "target", "response", "split", "line_number"):
+            self.assertNotIn(forbidden, serialized)
+        self.assertEqual(first["node_count"], 2)
+        self.assertEqual(len(first["upstream_erc_softmax_output"]), 2)
+        for vector in first["upstream_erc_softmax_output"]:
+            self.assertEqual(len(vector), 7)
+            self.assertAlmostEqual(sum(vector), 1.0, places=7)
+        TRAINER.validate_feature_row(
+            first,
+            expected_input_sha256=self.record["model_input_sha256"],
+            expected_generator_manifest_sha256=TRAINER.FIXTURE_GENERATOR_SHA256,
+        )
+        self.assertEqual(
+            TRAINER.feature_table_status([first]),
+            "DEVELOPMENTAL_SMOKE_NOT_SELECTABLE",
+        )
+
+    def test_feature_validator_rejects_leakage_shapes_edges_and_mutation(self):
+        valid = TRAINER.make_structural_fixture_feature(
+            self.record["model_input_sha256"], self.record["model_input"]
+        )
+        cases = []
+
+        leaked = deepcopy(valid)
+        leaked["gold"] = "Other"
+        cases.append((leaked, "fields"))
+
+        wrong_key = deepcopy(valid)
+        wrong_key["model_input_sha256"] = "0" * 64
+        cases.append((wrong_key, "input SHA"))
+
+        wrong_shape = deepcopy(valid)
+        wrong_shape["upstream_erc_softmax_output"][0] = [1.0] * 6
+        cases.append((wrong_shape, "seven"))
+
+        wrong_probability = deepcopy(valid)
+        wrong_probability["upstream_erc_softmax_output"][0] = [0.2] * 7
+        cases.append((wrong_probability, "sum"))
+
+        wrong_edge = deepcopy(valid)
+        wrong_edge["parsed_dialogue"] = [[1, 2, 17]]
+        cases.append((wrong_edge, "relation"))
+
+        unsorted_edges = deepcopy(valid)
+        unsorted_edges["parsed_dialogue"] = [[1, 2, 0], [0, 1, 16]]
+        cases.append((unsorted_edges, "sorted"))
+
+        for row, message in cases:
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(ValueError, message):
+                    TRAINER.validate_feature_row(
+                        row,
+                        expected_input_sha256=self.record["model_input_sha256"],
+                        expected_generator_manifest_sha256=(
+                            TRAINER.FIXTURE_GENERATOR_SHA256
+                        ),
+                    )
+
+    def test_feature_table_is_unique_but_duplicate_records_join_many_to_one(self):
+        feature = TRAINER.make_structural_fixture_feature(
+            self.record["model_input_sha256"], self.record["model_input"]
+        )
+        payload = (json.dumps(feature, sort_keys=True) + "\n").encode()
+        expected_commitment = TRAINER.feature_table_commitment([feature])
+        features, audit = TRAINER.load_feature_jsonl_bytes(
+            payload,
+            required_input_sha256={self.record["model_input_sha256"]},
+            expected_generator_manifest_sha256=TRAINER.FIXTURE_GENERATOR_SHA256,
+            expected_table_sha256=expected_commitment,
+            allow_fixture=True,
+        )
+        duplicate_records = [self.record, dict(self.record, item_id="duplicate")]
+        aligned = TRAINER.resolve_record_features(duplicate_records, features)
+
+        self.assertEqual(len(features), 1)
+        self.assertEqual(len(aligned), 2)
+        self.assertIs(aligned[0], aligned[1])
+        self.assertEqual(audit["feature_rows"], 1)
+        self.assertEqual(
+            audit["status"], "DEVELOPMENTAL_SMOKE_NOT_SELECTABLE"
+        )
+
+    def test_feature_table_rejects_duplicate_missing_extra_and_changed_rows(self):
+        feature = TRAINER.make_structural_fixture_feature(
+            self.record["model_input_sha256"], self.record["model_input"]
+        )
+        line = json.dumps(feature, sort_keys=True) + "\n"
+        common = {
+            "expected_generator_manifest_sha256": TRAINER.FIXTURE_GENERATOR_SHA256,
+            "allow_fixture": True,
+        }
+        with self.assertRaisesRegex(ValueError, "duplicate feature key"):
+            TRAINER.load_feature_jsonl_bytes(
+                (line + line).encode(),
+                required_input_sha256={self.record["model_input_sha256"]},
+                **common,
+            )
+        with self.assertRaisesRegex(ValueError, "missing feature"):
+            TRAINER.load_feature_jsonl_bytes(
+                b"",
+                required_input_sha256={self.record["model_input_sha256"]},
+                **common,
+            )
+        with self.assertRaisesRegex(ValueError, "extra feature"):
+            TRAINER.load_feature_jsonl_bytes(
+                line.encode(),
+                required_input_sha256=set(),
+                **common,
+            )
+
+        expected_commitment = TRAINER.feature_table_commitment([feature])
+        changed = deepcopy(feature)
+        changed["upstream_erc_softmax_output"][0][0], changed[
+            "upstream_erc_softmax_output"
+        ][0][1] = (
+            changed["upstream_erc_softmax_output"][0][1],
+            changed["upstream_erc_softmax_output"][0][0],
+        )
+        with self.assertRaisesRegex(ValueError, "commitment"):
+            TRAINER.load_feature_jsonl_bytes(
+                (json.dumps(changed, sort_keys=True) + "\n").encode(),
+                required_input_sha256={self.record["model_input_sha256"]},
+                expected_table_sha256=expected_commitment,
+                **common,
+            )
 
 
 if __name__ == "__main__":
