@@ -39,7 +39,144 @@ def sample_rows():
     ]
 
 
+def policy_record(index, label, input_text, *, source_line_sha256=None, split="train"):
+    input_sha256 = hashlib.sha256(input_text.encode("utf-8")).hexdigest()
+    return {
+        "item_id": index,
+        "line_number": index + 1,
+        "conversation_id": f"esconv-{split}-{index + 1:04d}",
+        "target_turn": 1,
+        "label": label,
+        "label_id": TRAINER.LABELS.index(label),
+        "input_text": input_text,
+        "input_sha256": input_sha256,
+        "source_line_sha256": source_line_sha256 or hashlib.sha256(
+            f"{split}-source-{index}".encode("utf-8")
+        ).hexdigest(),
+    }
+
+
+def records_commitment(records):
+    return TRAINER.canonical_json_sha256(
+        [
+            {
+                "source_line_sha256": record["source_line_sha256"],
+                "input_sha256": record["input_sha256"],
+                "label": record["label"],
+                "conversation_id": record["conversation_id"],
+            }
+            for record in records
+        ]
+    )
+
+
 class ESConvPolicyTrainerTests(unittest.TestCase):
+    def test_official_dev_overlap_contract_is_frozen(self):
+        self.assertEqual(
+            TRAINER.EXPECTED_DEV_INPUT_OVERLAP_SHA256,
+            (
+                "3358ea28648260fd2f0aed0819cdfac9b55d44e55c6a9eead8dd28478dd3751d",
+                "3dd472de131aea43923eafc47114def5bebeff71eed52de7ebd2c5a42cbcfb44",
+                "4ab4aedefae16b8912287b3440a0325ca219c0ec33c704e9465c9bb729f2289e",
+                "58a8f9e38ce5dcea33f500e22442e5c42ba134cbeebb7b1240d95a9c62e5bc4e",
+                "62a369522f0374e2c1e39c23ffc01b84cb85ec464210a9ea7e545623906a851a",
+                "75635a3047863753ee3993183f260d478bd5ce202d59548bcb83821d26c1384f",
+                "89812797e3f4500b0cb41157be48c90ad549a57e5a7e556322ab9c07c61ae3a6",
+                "9ad0444929093d274cc1bc0bac2886c5581fb5e5b4811e8cf9f69fb8e17cc65e",
+                "b1a29810b05b1a1274a96612b9865386567d46513d77961df98ab575bfa8ee2a",
+                "d2ac838857de6b685570a1e894f787be8f2637b956433b2e5d4228a5a86d2930",
+                "d47c492b14a0d576a2447e5e3630bd6b2cf0f9789718131d7b5c0c017418798a",
+                "f60d89294c3747ef88dcac250145dc0789423aec05b96d0ed784afad40a45341",
+            ),
+        )
+        self.assertEqual(
+            TRAINER.EXPECTED_DEV_INPUT_OVERLAP_SET_SHA256,
+            "b9e1d891f736f1588d6386214413862c43b812c69466589b7f259e2e6d30f6cd",
+        )
+        self.assertEqual(TRAINER.EXPECTED_REMOVED_TRAIN_ROWS, 129)
+        self.assertEqual(TRAINER.EXPECTED_DERIVED_TRAIN_ROWS, 8433)
+        self.assertEqual(
+            TRAINER.EXPECTED_DERIVED_TRAIN_RECORDS_SHA256,
+            "55c098b7a1cf1c9c9c9e8c9da49d95d4c8484552fbcc3d18319affda353b3480",
+        )
+        self.assertEqual(
+            TRAINER.EXPECTED_EXACT_TSV_OVERLAP_SHA256,
+            (
+                "77be9b60fae1f61a2bb3c1c733aaaad24b95bd4b505c4c45b43123727c80531c",
+                "f1085cc07bcb4b13f49c732932b1f9a1a22cac9c6a77180872b021f92f626b0a",
+            ),
+        )
+
+    def test_dev_overlap_filter_removes_every_matching_train_row_and_fails_closed(self):
+        shared_text = "Seeker: shared development context"
+        shared_source = "1" * 64
+        train = [
+            policy_record(0, TRAINER.LABELS[0], shared_text),
+            policy_record(
+                1,
+                TRAINER.LABELS[1],
+                shared_text,
+                source_line_sha256=shared_source,
+            ),
+            policy_record(2, TRAINER.LABELS[2], "Seeker: train only"),
+        ]
+        dev = [
+            policy_record(
+                0,
+                TRAINER.LABELS[3],
+                shared_text,
+                source_line_sha256=shared_source,
+                split="dev",
+            )
+        ]
+        shared_hash = train[0]["input_sha256"]
+        derived = [train[2]]
+        frozen = {
+            "EXPECTED_DEV_INPUT_OVERLAP_SHA256": (shared_hash,),
+            "EXPECTED_DEV_INPUT_OVERLAP_SET_SHA256": TRAINER.canonical_json_sha256(
+                [shared_hash]
+            ),
+            "EXPECTED_REMOVED_TRAIN_ROWS": 2,
+            "EXPECTED_DERIVED_TRAIN_ROWS": 1,
+            "EXPECTED_DERIVED_TRAIN_RECORDS_SHA256": records_commitment(derived),
+            "EXPECTED_EXACT_TSV_OVERLAP_SHA256": (shared_source,),
+        }
+        with mock.patch.multiple(TRAINER, **frozen):
+            actual, audit = TRAINER.derive_train_without_dev_overlap(train, dev)
+            self.assertEqual(actual, derived)
+            self.assertEqual(audit["removed_train_rows"], 2)
+            self.assertEqual(audit["derived_train_rows"], 1)
+            self.assertEqual(audit["unique_overlap_input_sha256"], [shared_hash])
+            self.assertTrue(audit["mandatory"])
+            self.assertFalse(audit["disable_option_exists"])
+            self.assertFalse(
+                {record["input_sha256"] for record in actual}
+                & {record["input_sha256"] for record in dev}
+            )
+
+            drifted_dev = dev + [
+                policy_record(
+                    1,
+                    TRAINER.LABELS[4],
+                    "Seeker: train only",
+                    split="dev",
+                )
+            ]
+            with self.assertRaisesRegex(ValueError, "overlap contract drift"):
+                TRAINER.derive_train_without_dev_overlap(train, drifted_dev)
+
+        parser = TRAINER.build_parser()
+        with redirect_stderr(StringIO()):
+            with self.assertRaises(SystemExit):
+                parser.parse_args(["--disable-dev-overlap-filter"])
+        self.assertFalse(
+            any(
+                "overlap" in option or "leakage" in option or "disable" in option
+                for action in parser._actions
+                for option in action.option_strings
+            )
+        )
+
     def test_official_contract_pins_only_train_and_dev(self):
         self.assertEqual(
             TRAINER.OFFICIAL_SPLITS,
@@ -362,29 +499,77 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
                     "1",
                 ]
             )
-            records = [
-                {
-                    "input_text": f"Seeker: record {index}",
-                    "label": label,
-                    "label_id": index,
-                }
+            train_records = [
+                policy_record(
+                    index,
+                    label,
+                    f"Seeker: train-only record {index}",
+                )
                 for index, label in enumerate(TRAINER.LABELS)
             ]
-            with mock.patch.dict(sys.modules, {"transformers": fake_transformers}):
-                with redirect_stdout(StringIO()):
-                    result = TRAINER.train_policy(
-                        args,
-                        records,
-                        records,
-                        {"split": "train", "rows": 8},
-                        {"split": "dev", "rows": 8},
-                        base_audit,
-                    )
+            dev_records = [
+                policy_record(
+                    index,
+                    label,
+                    f"Seeker: dev-only record {index}",
+                    split="dev",
+                )
+                for index, label in enumerate(TRAINER.LABELS)
+            ]
+            raw_train_records = train_records + [
+                policy_record(
+                    8,
+                    TRAINER.LABELS[0],
+                    dev_records[0]["input_text"],
+                )
+            ]
+            shared_hash = dev_records[0]["input_sha256"]
+            frozen_overlap = {
+                "EXPECTED_DEV_INPUT_OVERLAP_SHA256": (shared_hash,),
+                "EXPECTED_DEV_INPUT_OVERLAP_SET_SHA256": (
+                    TRAINER.canonical_json_sha256([shared_hash])
+                ),
+                "EXPECTED_REMOVED_TRAIN_ROWS": 1,
+                "EXPECTED_DERIVED_TRAIN_ROWS": 8,
+                "EXPECTED_DERIVED_TRAIN_RECORDS_SHA256": records_commitment(
+                    train_records
+                ),
+                "EXPECTED_EXACT_TSV_OVERLAP_SHA256": (),
+            }
+            with mock.patch.multiple(TRAINER, **frozen_overlap):
+                with mock.patch.dict(sys.modules, {"transformers": fake_transformers}):
+                    with redirect_stdout(StringIO()):
+                        result = TRAINER.train_policy(
+                            args,
+                            raw_train_records,
+                            dev_records,
+                            {"split": "train", "rows": 9},
+                            {"split": "dev", "rows": 8},
+                            base_audit,
+                        )
             manifest_path = Path(result["manifest_path"])
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             self.assertEqual(manifest["selection"]["primary"], "dev_macro_f1")
             self.assertEqual(manifest["selection"]["selected_epoch"], 1)
             self.assertEqual(manifest["training"]["epochs_completed"], 1)
+            self.assertEqual(
+                manifest["data"]["dev_overlap_filter"]["removed_train_rows"], 1
+            )
+            self.assertEqual(
+                manifest["data"]["dev_overlap_filter"]["derived_train_rows"], 8
+            )
+            self.assertEqual(
+                manifest["training"]["class_counts_in_label_order"], [1] * 8
+            )
+            self.assertEqual(
+                manifest["implementation"]["determinism"],
+                {
+                    "determinism_mode": "best_effort_cpu",
+                    "torch_deterministic_algorithms_enabled": True,
+                    "torch_deterministic_algorithms_warn_only": True,
+                    "bitwise_reproducible_not_guaranteed": True,
+                },
+            )
             self.assertEqual(
                 manifest["run_scope"]["run_scope"],
                 "developmental_smoke_or_nonfrozen_configuration",
