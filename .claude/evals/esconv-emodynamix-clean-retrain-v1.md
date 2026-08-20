@@ -26,17 +26,17 @@ test without inheriting the released checkpoint's split contamination.
 
 ### C1. Canonical causal record builder
 
-- [ ] Only the exact canonical train/dev filenames, row counts, and SHA-256
+- [x] Only the exact canonical train/dev filenames, row counts, and SHA-256
       commitments are accepted; no test or generic split argument exists.
-- [ ] Conversation reconstruction is deterministic and uses the upstream
+- [x] Conversation reconstruction is deterministic and uses the upstream
       EmoDynamiX five-prior-turn window, adding `<START>` only where causally
       appropriate.
-- [ ] Each model input contains prior text, prior speaker roles, and prior
+- [x] Each model input contains prior text, prior speaker roles, and prior
       supporter strategies, but never the current target response or current
       gold strategy.
-- [ ] The mandatory dev-input overlap filter removes exactly 129 train rows and
+- [x] The mandatory dev-input overlap filter removes exactly 129 train rows and
       yields the frozen 8,433-row derived-train commitment.
-- [ ] Every record binds its source-line hash, causal model-input hash,
+- [x] Every record binds its source-line hash, causal model-input hash,
       conversation id, target turn, and label outside the model-input object.
 
 ### C2. Precomputed emotion/discourse feature contract
