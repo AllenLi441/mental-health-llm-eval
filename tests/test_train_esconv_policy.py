@@ -145,7 +145,7 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
         import torch
 
         counts = [100, 50, 25, 20, 10, 5, 2, 1]
-        weights = TRAINER.class_balanced_weights(counts)
+        weights = TRAINER.class_balanced_weights(counts, beta=0.999)
         self.assertEqual(tuple(weights.shape), (8,))
         self.assertGreater(float(weights[-1]), float(weights[0]))
         self.assertAlmostEqual(float(weights.mean()), 1.0, places=5)
@@ -229,11 +229,19 @@ class ESConvPolicyTrainerTests(unittest.TestCase):
             ]
         )
         self.assertFalse(args.execute)
-        self.assertEqual(args.max_length, 384)
+        self.assertEqual(args.max_length, 256)
         self.assertEqual(args.truncation_side, "left")
         self.assertEqual(args.seed, 42)
         self.assertEqual(args.loss, "ce")
         self.assertEqual(args.device, "auto")
+        self.assertEqual(args.epochs, 3)
+        self.assertEqual(args.learning_rate, 2e-5)
+        self.assertEqual(args.weight_decay, 0.01)
+        self.assertEqual(args.warmup_ratio, 0.1)
+        self.assertEqual(args.train_batch_size, 8)
+        self.assertEqual(args.gradient_accumulation_steps, 2)
+        self.assertEqual(args.eval_batch_size, 16)
+        self.assertEqual(args.class_balance_beta, 0.999)
 
     def test_selftest_covers_contract_without_loading_transformers(self):
         result = TRAINER.run_selftest()
