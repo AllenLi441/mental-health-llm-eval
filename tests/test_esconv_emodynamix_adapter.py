@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import pickle
+import random
 import tempfile
 import unittest
 from pathlib import Path
@@ -179,6 +180,12 @@ class InferenceAndScoringTests(unittest.TestCase):
         self.assertEqual(metrics["total"], 2)
         self.assertEqual(metrics["invalid"], 1)
         self.assertEqual(metrics["accuracy"], 0.5)
+        self.assertEqual(metrics["ACC"], 0.5)
+        self.assertEqual(metrics["per_class"]["Other"]["support"], 1)
+        self.assertEqual(metrics["per_class"]["Other"]["recall"], 0.0)
+        self.assertEqual(
+            metrics["confusion_matrix"]["invalid_by_gold"]["Other"], 1
+        )
         self.assertEqual(
             metrics["confusion_matrix"]["labels"], list(ADAPTER.CANONICAL_LABELS)
         )
@@ -229,17 +236,127 @@ class AuditIdentityTests(unittest.TestCase):
                 third_party_repo=ROOT,
                 checkpoint=checkpoint,
                 metrics=metrics,
+                checkpoint_training_provenance="unknown",
             )
 
+            expected_dataset_hash = ADAPTER.sha256_file(test_source)
+            expected_checkpoint_hash = ADAPTER.sha256_file(checkpoint)
+            expected_predictions_hash = ADAPTER.sha256_file(predictions)
+
         self.assertEqual(summary["metrics"]["accuracy"], 1.0)
-        self.assertEqual(summary["dataset"]["sha256"], ADAPTER.sha256_file(test_source))
-        self.assertEqual(summary["checkpoint"]["sha256"], ADAPTER.sha256_file(checkpoint))
+        self.assertEqual(summary["dataset"]["sha256"], expected_dataset_hash)
+        self.assertEqual(summary["checkpoint"]["sha256"], expected_checkpoint_hash)
         self.assertEqual(
-            summary["predictions"]["sha256"], ADAPTER.sha256_file(predictions)
+            summary["predictions"]["sha256"], expected_predictions_hash
         )
         self.assertEqual(summary["third_party_repo"]["commit"], ADAPTER.git_commit(ROOT))
         self.assertTrue(summary["protocol"]["target_response_excluded_from_model_input"])
         self.assertTrue(summary["protocol"]["target_strategy_excluded_from_model_input"])
+        self.assertFalse(summary["eligibility"]["frozen_leaderboard_eligible"])
+        self.assertEqual(summary["eligibility"]["status"], "DIAGNOSTIC_ONLY_UNKNOWN_PROVENANCE")
+
+
+class SplitContaminationAuditTests(unittest.TestCase):
+    @staticmethod
+    def _raw_dialogue(index):
+        return {
+            "dialog": [
+                {"content": f"Seeker {index}"},
+                {"content": f"Supporter {index}"},
+            ]
+        }
+
+    def test_seed_13_split_audit_matches_dialogue_prefixes_and_rows(self):
+        author_dialogues = [self._raw_dialogue(index) for index in range(20)]
+        shuffled = list(range(20))
+        random.Random(13).shuffle(shuffled)
+        chosen = [shuffled[0], shuffled[3], shuffled[6]]
+        lines = [
+            (
+                f"1.0 0 0 Seeker {index} EOS "
+                f"1.0 1 1 [Questions] Supporter {index}\n"
+            )
+            for index in chosen
+        ]
+
+        audit = ADAPTER.audit_split_contamination(
+            lines,
+            author_dialogues,
+            expected_frozen_rows=None,
+            expected_author_dialogues=20,
+        )
+
+        self.assertEqual(
+            audit["matched_dialogues_by_split"],
+            {"train": 1, "valid": 1, "test": 1},
+        )
+        self.assertEqual(
+            audit["matched_rows_by_split"],
+            {"train": 1, "valid": 1, "test": 1},
+        )
+        self.assertEqual(audit["unmatched_dialogues"], 0)
+        self.assertTrue(audit["released_checkpoint_train_overlap"])
+        self.assertEqual(
+            audit["eligibility_status"],
+            "DIAGNOSTIC_ONLY_TRAIN_CONTAMINATED",
+        )
+
+    def test_released_checkpoint_frozen_summary_requires_and_records_audit(self):
+        metrics = ADAPTER.compute_metrics([])
+        contamination = {
+            "audit_status": "COMPLETE",
+            "method": "casefold_whitespace_normalized_dialogue_prefix",
+            "split_seed": 13,
+            "frozen_source": {"sha256": None},
+            "matched_rows_by_split": {"train": 2, "valid": 0, "test": 0},
+            "released_checkpoint_train_overlap": True,
+            "eligibility_status": "DIAGNOSTIC_ONLY_TRAIN_CONTAMINATED",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            files = {}
+            for name in ("checkpoint.pth", "test.tsv", "prepared.jsonl", "predictions.jsonl"):
+                files[name] = directory / name
+                files[name].write_bytes(name.encode("utf-8"))
+            contamination["frozen_source"]["sha256"] = ADAPTER.sha256_file(
+                files["test.tsv"]
+            )
+
+            with self.assertRaisesRegex(ValueError, "contamination audit is required"):
+                ADAPTER.build_summary(
+                    run_name="missing-audit",
+                    source_kind="frozen_tsv",
+                    test_source=files["test.tsv"],
+                    prepared_input=files["prepared.jsonl"],
+                    predictions_output=files["predictions.jsonl"],
+                    third_party_repo=ROOT,
+                    checkpoint=files["checkpoint.pth"],
+                    metrics=metrics,
+                    checkpoint_training_provenance="author_seed13_1300",
+                )
+
+            summary = ADAPTER.build_summary(
+                run_name="contaminated",
+                source_kind="frozen_tsv",
+                test_source=files["test.tsv"],
+                prepared_input=files["prepared.jsonl"],
+                predictions_output=files["predictions.jsonl"],
+                third_party_repo=ROOT,
+                checkpoint=files["checkpoint.pth"],
+                metrics=metrics,
+                checkpoint_training_provenance="author_seed13_1300",
+                contamination_audit=contamination,
+            )
+
+        self.assertFalse(summary["eligibility"]["frozen_leaderboard_eligible"])
+        self.assertEqual(
+            summary["eligibility"]["status"],
+            "DIAGNOSTIC_ONLY_TRAIN_CONTAMINATED",
+        )
+        self.assertEqual(
+            summary["contamination_audit"]["matched_rows_by_split"]["train"],
+            2,
+        )
 
 
 if __name__ == "__main__":

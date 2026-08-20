@@ -21,6 +21,10 @@ import sys
 import time
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 import torch
 import transformers
 from transformers import (
@@ -28,6 +32,8 @@ from transformers import (
     BlenderbotSmallForConditionalGeneration,
     BlenderbotSmallTokenizer,
 )
+
+from open_response_eval.esconv_metrics import compute_classification_metrics
 
 
 OFFICIAL_REPO_COMMIT = "f262d062ad74cb39b17ea476facc81568ddcba24"
@@ -335,56 +341,7 @@ def predict_examples(model, tokenizer, examples, batch_size, device):
 
 
 def compute_metrics(records):
-    label_to_index = {label: index for index, label in enumerate(REPORT_LABELS)}
-    matrix = [[0 for _ in REPORT_LABELS] for _ in REPORT_LABELS]
-    invalid = 0
-    correct = 0
-    for record in records:
-        if record.get("invalid") or record.get("gold") not in label_to_index:
-            invalid += 1
-            continue
-        gold_index = label_to_index[record["gold"]]
-        prediction_index = label_to_index[record["prediction"]]
-        matrix[gold_index][prediction_index] += 1
-        correct += int(record["correct"])
-
-    total = len(records)
-    per_class = {}
-    f1_values = []
-    weighted_sum = 0.0
-    valid_support = 0
-    for index, label in enumerate(REPORT_LABELS):
-        tp = matrix[index][index]
-        support = sum(matrix[index])
-        predicted = sum(row[index] for row in matrix)
-        precision = tp / predicted if predicted else 0.0
-        recall = tp / support if support else 0.0
-        f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
-        per_class[label] = {
-            "precision": precision,
-            "recall": recall,
-            "f1": f1,
-            "support": support,
-            "predicted": predicted,
-            "correct": tp,
-        }
-        f1_values.append(f1)
-        weighted_sum += f1 * support
-        valid_support += support
-    return {
-        "accuracy": correct / total if total else 0.0,
-        "macro_f1": sum(f1_values) / len(f1_values),
-        "weighted_f1": weighted_sum / valid_support if valid_support else 0.0,
-        "invalid_rate": invalid / total if total else 0.0,
-        "correct": correct,
-        "total": total,
-        "invalid": invalid,
-        "per_class": per_class,
-        "confusion_matrix": {
-            "labels": REPORT_LABELS,
-            "rows_gold_columns_predicted": matrix,
-        },
-    }
+    return compute_classification_metrics(records, REPORT_LABELS)
 
 
 def write_jsonl(path, records):
