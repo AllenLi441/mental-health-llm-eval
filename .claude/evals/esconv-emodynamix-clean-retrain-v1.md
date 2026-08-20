@@ -41,9 +41,9 @@ test without inheriting the released checkpoint's split contamination.
 
 ### C2. Precomputed emotion/discourse feature contract
 
-- [ ] Feature rows are joined only by the exact causal model-input SHA-256; row
+- [x] Feature rows are joined only by the exact causal model-input SHA-256; row
       order or labels cannot select a feature row.
-- [ ] Each feature row contains one seven-way upstream ERC softmax-output vector
+- [x] Each feature row contains one seven-way upstream ERC softmax-output vector
       per input node and discourse edges whose endpoints and relation ids are
       in range. The author-compatible control preserves the upstream model's
       second softmax; true-logit handling is a separate ablation.
@@ -51,7 +51,7 @@ test without inheriting the released checkpoint's split contamination.
       strategy, bind the SDDP/ERC implementation and weight hashes, and reject
       missing, duplicate-key, extra, or mutated feature rows. Record-level
       duplicate inputs remain valid and join many-to-one to a feature key.
-- [ ] A synthetic/structural fixture backend is permitted only for tests and
+- [x] A synthetic/structural fixture backend is permitted only for tests and
       explicitly labelled smoke runs; it can never produce a selectable model.
 
 ### C3. EmoDynamiX-derived policy model

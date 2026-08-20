@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import re
 from collections import Counter
 from collections.abc import Iterable, Sequence
@@ -105,6 +106,20 @@ _SEGMENT = re.compile(
     r"(?P<turn>\d+)\s+(?P<body>.*)\s*$"
 )
 _STRATEGY_PREFIX = re.compile(r"^\[(?P<strategy>[^\]]+)\]\s*(?P<text>.*)$")
+_HEX64 = re.compile(r"^[0-9a-f]{64}$")
+
+FEATURE_SCHEMA_VERSION = "esconv-emodynamix-causal-feature-v1"
+FIXTURE_FEATURE_BACKEND = "deterministic_structural_fixture_v1"
+VERIFIED_FEATURE_BACKEND = "verified_upstream_sddp_erc_v1"
+FEATURE_ROW_FIELDS = {
+    "schema_version",
+    "model_input_sha256",
+    "node_count",
+    "parsed_dialogue",
+    "upstream_erc_softmax_output",
+    "feature_backend",
+    "generator_manifest_sha256",
+}
 
 
 def sha256_bytes(value: bytes) -> str:
@@ -120,6 +135,18 @@ def canonical_json_sha256(value: Any) -> str:
         value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     ).encode("utf-8")
     return sha256_bytes(payload)
+
+
+FIXTURE_GENERATOR_SHA256 = canonical_json_sha256(
+    {
+        "backend": FIXTURE_FEATURE_BACKEND,
+        "purpose": "shape_and_gradient_smoke_only",
+        "selectable": False,
+        "erc_vector": "deterministic_seven_way_probability_fixture",
+        "discourse_edges": "root_plus_observed_order_continuation_fixture",
+        "schema_version": FEATURE_SCHEMA_VERSION,
+    }
+)
 
 
 def _normalize_space(value: str) -> str:
@@ -461,6 +488,283 @@ def prepare_canonical_data(train_path: Path, dev_path: Path) -> dict[str, Any]:
         "audit": overlap_audit,
         "source_audit": {"train": train_audit, "dev": dev_audit},
     }
+
+
+def _require_hex_sha256(value: Any, field: str) -> str:
+    if not isinstance(value, str) or _HEX64.fullmatch(value) is None:
+        raise ValueError(f"{field} must be a lowercase 64-character SHA-256")
+    return value
+
+
+def validate_feature_row(
+    row: Any,
+    *,
+    expected_input_sha256: str | None = None,
+    expected_generator_manifest_sha256: str | None = None,
+) -> dict[str, Any]:
+    """Validate one label-free, history-only precomputed feature row."""
+
+    if not isinstance(row, dict):
+        raise ValueError("feature row must be a JSON object")
+    actual_fields = set(row)
+    if actual_fields != FEATURE_ROW_FIELDS:
+        missing = sorted(FEATURE_ROW_FIELDS - actual_fields)
+        extra = sorted(actual_fields - FEATURE_ROW_FIELDS)
+        raise ValueError(
+            f"feature fields mismatch: missing={missing} extra={extra}"
+        )
+    if row["schema_version"] != FEATURE_SCHEMA_VERSION:
+        raise ValueError("feature schema version mismatch")
+
+    input_sha = _require_hex_sha256(
+        row["model_input_sha256"], "feature model input SHA"
+    )
+    if expected_input_sha256 is not None and input_sha != expected_input_sha256:
+        raise ValueError(
+            "feature model input SHA does not match the required causal input"
+        )
+    generator_sha = _require_hex_sha256(
+        row["generator_manifest_sha256"], "generator manifest SHA"
+    )
+    if (
+        expected_generator_manifest_sha256 is not None
+        and generator_sha != expected_generator_manifest_sha256
+    ):
+        raise ValueError("feature generator manifest SHA mismatch")
+    if row["feature_backend"] not in {
+        FIXTURE_FEATURE_BACKEND,
+        VERIFIED_FEATURE_BACKEND,
+    }:
+        raise ValueError("unknown feature backend")
+
+    node_count = row["node_count"]
+    if (
+        isinstance(node_count, bool)
+        or not isinstance(node_count, int)
+        or not 1 <= node_count <= 5
+    ):
+        raise ValueError("feature node_count must be an integer from one to five")
+
+    erc_rows = row["upstream_erc_softmax_output"]
+    if not isinstance(erc_rows, list) or len(erc_rows) != node_count:
+        raise ValueError("feature must have one ERC row per input node")
+    for node_index, vector in enumerate(erc_rows):
+        if not isinstance(vector, list) or len(vector) != 7:
+            raise ValueError(
+                f"ERC node {node_index} must contain exactly seven values"
+            )
+        values: list[float] = []
+        for value in vector:
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise ValueError("ERC values must be finite numeric probabilities")
+            numeric = float(value)
+            if not math.isfinite(numeric) or not 0.0 <= numeric <= 1.0:
+                raise ValueError("ERC values must be finite probabilities in [0, 1]")
+            values.append(numeric)
+        if not math.isclose(sum(values), 1.0, rel_tol=0.0, abs_tol=1e-6):
+            raise ValueError(f"ERC node {node_index} probabilities must sum to one")
+
+    parsed_dialogue = row["parsed_dialogue"]
+    if not isinstance(parsed_dialogue, list):
+        raise ValueError("parsed_dialogue must be a list")
+    normalized_edges: list[tuple[int, int, int]] = []
+    for edge in parsed_dialogue:
+        if (
+            not isinstance(edge, list)
+            or len(edge) != 3
+            or any(isinstance(value, bool) or not isinstance(value, int) for value in edge)
+        ):
+            raise ValueError("every discourse edge must contain three integers")
+        head, tail, relation = edge
+        if not 0 <= head <= node_count or not 1 <= tail <= node_count:
+            raise ValueError("discourse edge endpoint is outside the input nodes")
+        # SDDP emits 0..16. EmoDynamiX itself adds Self=17 and Inter=18 later.
+        if not 0 <= relation <= 16:
+            raise ValueError("SDDP discourse relation must be between 0 and 16")
+        normalized_edges.append((head, tail, relation))
+    if normalized_edges != sorted(normalized_edges):
+        raise ValueError("discourse edges must be sorted canonically")
+    if len(normalized_edges) != len(set(normalized_edges)):
+        raise ValueError("discourse edges must be unique")
+    return row
+
+
+def make_structural_fixture_feature(
+    model_input_sha256: str, model_input: dict[str, str]
+) -> dict[str, Any]:
+    """Create deterministic fake features for structural smoke tests only."""
+
+    _require_hex_sha256(model_input_sha256, "model input SHA")
+    if canonical_json_sha256(model_input) != model_input_sha256:
+        raise ValueError("model input SHA does not match model_input bytes")
+    if set(model_input) != {
+        "dialogue_history",
+        "strategy_history",
+        "speaker_turn",
+    }:
+        raise ValueError("fixture model_input fields mismatch")
+    speakers = model_input["speaker_turn"].split()
+    utterances = [
+        value.strip() for value in model_input["dialogue_history"].split("</s>")
+    ]
+    try:
+        strategies = json.loads(model_input["strategy_history"])
+    except json.JSONDecodeError as error:
+        raise ValueError("fixture strategy_history is not a JSON list") from error
+    if not (len(speakers) == len(utterances) == len(strategies)):
+        raise ValueError("fixture input node fields have different lengths")
+    node_count = len(speakers)
+    if not 1 <= node_count <= 5:
+        raise ValueError("fixture input must have one to five nodes")
+
+    erc_rows: list[list[float]] = []
+    for node_index in range(node_count):
+        chosen = (int(model_input_sha256[node_index * 2 : node_index * 2 + 2], 16)
+                  + node_index) % 7
+        vector = [0.05] * 7
+        vector[chosen] = 0.7
+        erc_rows.append(vector)
+    edges = [[0, 1, 16]]
+    edges.extend([[node, node + 1, 0] for node in range(1, node_count)])
+    row = {
+        "schema_version": FEATURE_SCHEMA_VERSION,
+        "model_input_sha256": model_input_sha256,
+        "node_count": node_count,
+        "parsed_dialogue": edges,
+        "upstream_erc_softmax_output": erc_rows,
+        "feature_backend": FIXTURE_FEATURE_BACKEND,
+        "generator_manifest_sha256": FIXTURE_GENERATOR_SHA256,
+    }
+    return validate_feature_row(
+        row,
+        expected_input_sha256=model_input_sha256,
+        expected_generator_manifest_sha256=FIXTURE_GENERATOR_SHA256,
+    )
+
+
+def feature_table_status(rows: Sequence[dict[str, Any]]) -> str:
+    if not rows:
+        raise ValueError("feature table is empty")
+    if any(row.get("feature_backend") == FIXTURE_FEATURE_BACKEND for row in rows):
+        return "DEVELOPMENTAL_SMOKE_NOT_SELECTABLE"
+    return "REQUIRES_VERIFIED_GENERATOR_RECEIPT"
+
+
+def feature_table_commitment(rows: Sequence[dict[str, Any]]) -> str:
+    if not rows:
+        raise ValueError("feature table is empty")
+    ordered = sorted(rows, key=lambda row: str(row.get("model_input_sha256", "")))
+    keys: list[str] = []
+    for row in ordered:
+        validate_feature_row(row)
+        keys.append(str(row["model_input_sha256"]))
+    if len(keys) != len(set(keys)):
+        raise ValueError("duplicate feature key in feature table")
+    return canonical_json_sha256(ordered)
+
+
+def load_feature_jsonl_bytes(
+    payload: bytes,
+    *,
+    required_input_sha256: set[str],
+    expected_generator_manifest_sha256: str,
+    expected_table_sha256: str | None = None,
+    allow_fixture: bool = False,
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    """Validate one immutable JSONL byte snapshot and close its key set."""
+
+    _require_hex_sha256(
+        expected_generator_manifest_sha256, "expected generator manifest SHA"
+    )
+    for digest in required_input_sha256:
+        _require_hex_sha256(digest, "required model input SHA")
+    if expected_table_sha256 is not None:
+        _require_hex_sha256(expected_table_sha256, "expected feature commitment")
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError("feature JSONL is not UTF-8") from error
+
+    by_key: dict[str, dict[str, Any]] = {}
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError as error:
+            raise ValueError(f"feature JSONL line {line_number} is invalid JSON") from error
+        validate_feature_row(
+            row,
+            expected_generator_manifest_sha256=(
+                expected_generator_manifest_sha256
+            ),
+        )
+        key = str(row["model_input_sha256"])
+        if key in by_key:
+            raise ValueError(f"duplicate feature key at JSONL line {line_number}: {key}")
+        by_key[key] = row
+
+    actual_keys = set(by_key)
+    missing = sorted(required_input_sha256 - actual_keys)
+    extra = sorted(actual_keys - required_input_sha256)
+    if missing:
+        raise ValueError(f"missing feature keys: {missing[:5]}")
+    if extra:
+        raise ValueError(f"extra feature keys: {extra[:5]}")
+    rows = list(by_key.values())
+    status = feature_table_status(rows)
+    if status == "DEVELOPMENTAL_SMOKE_NOT_SELECTABLE" and not allow_fixture:
+        raise ValueError("fixture features require explicit smoke-only opt-in")
+    commitment = feature_table_commitment(rows)
+    if expected_table_sha256 is not None and commitment != expected_table_sha256:
+        raise ValueError(
+            "feature table commitment mismatch: "
+            f"expected={expected_table_sha256} actual={commitment}"
+        )
+    return by_key, {
+        "feature_rows": len(rows),
+        "feature_table_sha256": commitment,
+        "generator_manifest_sha256": expected_generator_manifest_sha256,
+        "status": status,
+        "payload_sha256": sha256_bytes(payload),
+    }
+
+
+def load_feature_jsonl(
+    path: Path,
+    *,
+    required_input_sha256: set[str],
+    expected_generator_manifest_sha256: str,
+    expected_table_sha256: str,
+    allow_fixture: bool = False,
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    path = Path(path)
+    if path.is_symlink():
+        raise ValueError("feature JSONL must not be a symlink")
+    if not path.is_file():
+        raise ValueError(f"feature JSONL does not exist: {path}")
+    features, audit = load_feature_jsonl_bytes(
+        path.read_bytes(),
+        required_input_sha256=required_input_sha256,
+        expected_generator_manifest_sha256=expected_generator_manifest_sha256,
+        expected_table_sha256=expected_table_sha256,
+        allow_fixture=allow_fixture,
+    )
+    audit["filename"] = path.name
+    return features, audit
+
+
+def resolve_record_features(
+    records: Sequence[dict[str, Any]],
+    features_by_input_sha256: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    aligned: list[dict[str, Any]] = []
+    for record in records:
+        key = str(record["model_input_sha256"])
+        if key not in features_by_input_sha256:
+            raise ValueError(f"missing feature for record input: {key}")
+        aligned.append(features_by_input_sha256[key])
+    return aligned
 
 
 def build_parser() -> argparse.ArgumentParser:
