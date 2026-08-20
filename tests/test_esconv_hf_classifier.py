@@ -77,6 +77,7 @@ def campaign_context(limit=None):
         "external_claim_sha256": "3" * 64,
         "external_claim_receipt_id": "remote-cas-receipt-001",
         "external_claim_issued_at_utc": "2026-08-20T00:00:00+00:00",
+        "external_claim_verified": True,
         "receipt_path": "campaign/consumption-receipt.json",
         "receipt_armed_sha256": "2" * 64,
         "limit": limit,
