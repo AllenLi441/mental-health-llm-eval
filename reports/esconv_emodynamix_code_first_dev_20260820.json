@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "receipt_id": "esconv-emodynamix-code-first-dev-20260820",
+  "created_at_utc": "2026-08-20T13:41:24.057135+00:00",
+  "status": "DEVELOPMENTAL_AUTHOR_VALID_ONLY",
+  "leaderboard_eligible": false,
+  "claim": "A train-only transition prior plus train-class-prior adjustment improves author-valid Macro-F1 under the frozen selection rule; this is not an author-test or frozen-test result.",
+  "split_contract": {
+    "transition_and_class_priors_fit_on": "author_train_only",
+    "configuration_selection_on": "author_valid_only",
+    "author_test_read": false,
+    "frozen_test_read": false,
+    "target_strategy_available_to_reranker": false
+  },
+  "base": {
+    "paper": "https://aclanthology.org/2025.naacl-long.81/",
+    "official_repository": "https://github.com/cw-wan/EmoDynamiX-v2",
+    "official_commit": "c9213d718a9684a5e05ce5daa947f9cbbfb7b927",
+    "checkpoint_sha256": "6cb5b27356b566a9db1d071fa6cb969aba6fda8a3073632003b3c6b797daa4e7",
+    "released_checkpoint_frozen_status": "DIAGNOSTIC_ONLY_TRAIN_CONTAMINATED"
+  },
+  "inputs": {
+    "author_train_pickle": {
+      "rows": 12759,
+      "sha256": "aac2d9c1a63681b9b122d9f7c0b63f0f0ba6894eb53672b0f897d1d29f278588"
+    },
+    "author_valid_pickle": {
+      "rows": 2722,
+      "sha256": "b12fb4878c5596ef47fa797943bc510e213189b0e7d9ad583e2ad50afeb0b71a"
+    },
+    "prepared_train_jsonl_sha256": "1ea9cf28a57573d81a5d049cdad61267e55931c860c621b47cf4878e70e0b007",
+    "prepared_valid_jsonl_sha256": "d9598f7722ab079a65b69832637da86bd3ffe12774dfb2201a39ea024b2a088b",
+    "raw_valid_predictions_jsonl_sha256": "28de91d324e2e01d8cc26e20284807ba4a6ed714df48b21a994672ad139e2bec"
+  },
+  "method": {
+    "protocol_id": "emodynamix-multiesc-inspired-transition-v1",
+    "formula": "adjusted_logit_y = base_logit_y + transition_weight * log(P_train(y | strategy_history)) - class_adjustment_tau * log(P_train(y))",
+    "selection_rule": "maximum author-valid Macro-F1, then Accuracy, then smaller transition weight, class-adjustment tau, history order, and smoothing",
+    "history_orders": [1],
+    "smoothings": [1.0],
+    "transition_weights": [0.0, 0.05, 0.1, 0.2, 0.4, 0.8],
+    "class_adjustment_taus": [0.0, 0.05, 0.1, 0.2, 0.3, 0.4, 0.6, 0.8, 1.0],
+    "grid_size": 54
+  },
+  "transition_only_ablation": {
+    "adopted": false,
+    "reason": "The Macro-F1 optimum across the transition-only grid was the zero-weight base control. Strategy history alone did not improve author-valid performance."
+  },
+  "baseline": {
+    "config": {
+      "transition_weight": 0.0,
+      "class_adjustment_tau": 0.0,
+      "history_order": 1,
+      "smoothing": 1.0
+    },
+    "metrics": {
+      "correct": 916,
+      "total": 2722,
+      "accuracy": 0.33651726671565024,
+      "macro_f1": 0.26524312750500023,
+      "weighted_f1": 0.3210319053526224,
+      "invalid": 0
+    },
+    "per_class": {
+      "Questions": {"precision": 0.4883303411131059, "recall": 0.49544626593806923, "f1": 0.4918625678119349, "support": 549, "predicted": 557, "correct": 272},
+      "Restatement or Paraphrasing": {"precision": 0.23863636363636365, "recall": 0.30434782608695654, "f1": 0.26751592356687903, "support": 138, "predicted": 176, "correct": 42},
+      "Reflection of feelings": {"precision": 0.0967741935483871, "recall": 0.014218009478672985, "f1": 0.024793388429752067, "support": 211, "predicted": 31, "correct": 3},
+      "Self-disclosure": {"precision": 0.18699186991869918, "recall": 0.08712121212121213, "f1": 0.11886304909560724, "support": 264, "predicted": 123, "correct": 23},
+      "Affirmation and Reassurance": {"precision": 0.2169657422512235, "recall": 0.3308457711442786, "f1": 0.26206896551724135, "support": 402, "predicted": 613, "correct": 133},
+      "Providing Suggestions": {"precision": 0.3180428134556575, "recall": 0.4531590413943355, "f1": 0.3737646001796945, "support": 459, "predicted": 654, "correct": 208},
+      "Information": {"precision": 0.1693548387096774, "recall": 0.10824742268041238, "f1": 0.13207547169811318, "support": 194, "predicted": 124, "correct": 21},
+      "Other": {"precision": 0.481981981981982, "recall": 0.42376237623762375, "f1": 0.45100105374077976, "support": 505, "predicted": 444, "correct": 214}
+    }
+  },
+  "primary_selected_candidate": {
+    "selection_status": "SELECTED_BY_PREREGISTERED_VALID_MACRO_F1_RULE",
+    "config": {
+      "transition_weight": 0.1,
+      "class_adjustment_tau": 0.4,
+      "history_order": 1,
+      "smoothing": 1.0
+    },
+    "metrics": {
+      "correct": 870,
+      "total": 2722,
+      "accuracy": 0.319617927994122,
+      "macro_f1": 0.2765003246982123,
+      "weighted_f1": 0.3243090310641094,
+      "invalid": 0
+    },
+    "delta_percentage_points_vs_baseline": {
+      "accuracy": -1.689933872152824,
+      "macro_f1": 1.125719719321207,
+      "weighted_f1": 0.327712571148702
+    },
+    "per_class": {
+      "Questions": {"precision": 0.5412026726057907, "recall": 0.4426229508196721, "f1": 0.48697394789579157, "support": 549, "predicted": 449, "correct": 243},
+      "Restatement or Paraphrasing": {"precision": 0.20866141732283464, "recall": 0.38405797101449274, "f1": 0.2704081632653061, "support": 138, "predicted": 254, "correct": 53},
+      "Reflection of feelings": {"precision": 0.14, "recall": 0.06635071090047394, "f1": 0.09003215434083602, "support": 211, "predicted": 100, "correct": 14},
+      "Self-disclosure": {"precision": 0.1902439024390244, "recall": 0.14772727272727273, "f1": 0.16631130063965885, "support": 264, "predicted": 205, "correct": 39},
+      "Affirmation and Reassurance": {"precision": 0.2345924453280318, "recall": 0.2935323383084577, "f1": 0.26077348066298345, "support": 402, "predicted": 503, "correct": 118},
+      "Providing Suggestions": {"precision": 0.3243801652892562, "recall": 0.3420479302832244, "f1": 0.33297985153764575, "support": 459, "predicted": 484, "correct": 157},
+      "Information": {"precision": 0.12420382165605096, "recall": 0.20103092783505155, "f1": 0.15354330708661418, "support": 194, "predicted": 314, "correct": 39},
+      "Other": {"precision": 0.5012106537530266, "recall": 0.4099009900990099, "f1": 0.4509803921568627, "support": 505, "predicted": 413, "correct": 207}
+    }
+  },
+  "exploratory_pareto_point": {
+    "selection_status": "EXPLORATORY_NOT_PRIMARY_SELECTED",
+    "config": {
+      "transition_weight": 0.4,
+      "class_adjustment_tau": 0.4,
+      "history_order": 1,
+      "smoothing": 1.0
+    },
+    "metrics": {
+      "correct": 918,
+      "total": 2722,
+      "accuracy": 0.337252020573108,
+      "macro_f1": 0.2716688351997832,
+      "weighted_f1": 0.3261603003344228,
+      "invalid": 0
+    },
+    "delta_percentage_points_vs_baseline": {
+      "accuracy": 0.073475385745776,
+      "macro_f1": 0.642570769478297,
+      "weighted_f1": 0.51283949818004
+    }
+  },
+  "commitments": {
+    "canonical_train_records_sha256": "851780962b2ff674cb6a034eaad81b964256bdb39128fb2c69fde5ba87dba538",
+    "canonical_valid_records_sha256": "4fc4cfd08f0b2b0b0e5898c0d42cfdd00a1f79df7cf648a5839f0eff16d64990",
+    "canonical_valid_predictions_sha256": "1fef9fc8e8904c40776878726ca5bb5219450fec1a0a27f2e2ae47fc947a8826",
+    "selected_predictions_jsonl_sha256": "13393ef26371f59933339d4109ead40e864c7db506e8484cc0dfecc9dee22c04",
+    "full_development_summary_sha256": "0e269479cde8724ba15d11622b545c3b6aab8798922a6fb99f4a9e415e3a5a20",
+    "implementation_commit": "29a8700"
+  },
+  "adoption_decision": {
+    "transition_only": "REJECTED_ON_VALID",
+    "joint_primary": "KEEP_FOR_CLEAN_TRAIN_DEV_REPLICATION",
+    "exploratory_pareto": "REQUIRES_PREREGISTERED_REPLICATION",
+    "production": "BLOCKED_NOT_A_GENERATOR_NOT_FROZEN_EVALUATED_LICENSE_AND_SAFETY_UNCLEARED"
+  }
+}

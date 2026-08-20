@@ -12,68 +12,68 @@ optimizing against the frozen ESConv test split.
 
 ### C1. Code-first candidate gate
 
-- [ ] Every implementation candidate has a paper URL and an author/official code URL.
-- [ ] A repository counts as implemented only when the relevant model source and a
+- [x] Every implementation candidate has a paper URL and an author/official code URL.
+- [x] A repository counts as implemented only when the relevant model source and a
       concrete train or inference entry point are present; PDF/README/forthcoming-only
       repositories are excluded.
-- [ ] Checkpoint, dataset/preprocessing, exact command, dependency and license status
+- [x] Checkpoint, dataset/preprocessing, exact command, dependency and license status
       are reported separately. A pretrained base-model download is not called a paper
       checkpoint.
-- [ ] Paper-only Accuracy is never mixed with locally reproduced results.
+- [x] Paper-only Accuracy is never mixed with locally reproduced results.
 
 ### C2. Local artifact audit
 
-- [ ] `/Users/allenli/Desktop/EmoDynamiX-v2-master` and
+- [x] `/Users/allenli/Desktop/EmoDynamiX-v2-master` and
       `/Users/allenli/Desktop/MultiESC-main` are inspected byte-for-byte enough to
       establish whether source, data, paper checkpoints and metric assets are present.
-- [ ] The EmoDynamiX desktop archive is compared to the pinned official checkout.
-- [ ] MultiESC's modified strategy taxonomy and five-stage pipeline are disclosed.
+- [x] The EmoDynamiX desktop archive is compared to the pinned official checkout.
+- [x] MultiESC's modified strategy taxonomy and five-stage pipeline are disclosed.
 
 ### C3. Reproduced base
 
-- [ ] EmoDynamiX author-native checkpoint reproduction remains exactly 2,895 rows,
+- [x] EmoDynamiX author-native checkpoint reproduction remains exactly 2,895 rows,
       ACC 33.6097%, Macro-F1 27.7040%, Weighted-F1 32.7087%, invalid 0.
-- [ ] The released checkpoint is not declared eligible for the frozen leaderboard
+- [x] The released checkpoint is not declared eligible for the frozen leaderboard
       because its author training split overlaps the frozen test conversations.
 
 ### C4. MultiESC-inspired planning experiment
 
-- [ ] Transition/prior statistics are fitted from the author train split only.
-- [ ] Hyperparameters are selected on the author valid split only, with Macro-F1 as
+- [x] Transition/prior statistics are fitted from the author train split only.
+- [x] Hyperparameters are selected on the author valid split only, with Macro-F1 as
       primary metric and Accuracy as secondary metric; remaining ties prefer the
       smaller transition weight, lower history order and lower smoothing value.
-- [ ] No author test or frozen test data are read by the development command.
-- [ ] The planner consumes only prior strategy history and base logits; gold target
+- [x] No author test or frozen test data are read by the development command.
+- [x] The planner consumes only prior strategy history and base logits; gold target
       labels are used by the scorer only.
-- [ ] Baseline and candidate valid metrics, per-class metrics, configuration, source
+- [x] Baseline and candidate valid metrics, per-class metrics, configuration, source
       hashes and output hashes are recorded in a machine-readable receipt.
-- [ ] The result is labelled developmental and cannot be used as a paper reproduction
+- [x] The result is labelled developmental and cannot be used as a paper reproduction
       or frozen-test result.
 
 ### C5. Train-prior imbalance correction arm
 
-- [ ] The only added score is the frozen formula
+- [x] The only added score is the frozen formula
       `base_logit + transition_weight*log(transition_prior) - tau*log(train_class_prior)`.
-- [ ] Class priors are computed from author train labels only; `tau` is selected on
+- [x] Class priors are computed from author train labels only; `tau` is selected on
       author valid from `0,0.05,0.1,0.2,0.3,0.4,0.6,0.8,1.0`.
-- [ ] Candidate selection remains Macro-F1, then Accuracy; remaining ties prefer
+- [x] Candidate selection remains Macro-F1, then Accuracy; remaining ties prefer
       smaller transition weight, smaller tau, lower history order and lower smoothing.
-- [ ] A zero-transition, zero-tau configuration is retained as the exact base-logit
+- [x] A zero-transition, zero-tau configuration is retained as the exact base-logit
       control. A non-zero arm is adopted only if valid Macro-F1 strictly improves.
 
 ## Regression evals
 
-- [ ] Existing EmoDynamiX adapter tests pass.
-- [ ] Existing ESConv metric tests pass.
-- [ ] New tests prove split rejection, target isolation, deterministic transition
+- [x] Existing EmoDynamiX adapter tests pass.
+- [x] Existing ESConv metric tests pass.
+- [x] New tests prove split rejection, target isolation, deterministic transition
       probabilities, deterministic selection and hash-rich receipts.
-- [ ] No long training run or frozen-test prediction is started by the test suite.
+- [x] No long training run or frozen-test prediction is started by the test suite.
 
 ## Product gate
 
-- [ ] A strategy predictor/planner is described as a policy component, not a complete
+- [x] A strategy predictor/planner is described as a policy component, not a complete
       replacement for a response-generation API.
-- [ ] ESConv/checkpoint/data commercial-use clearance and clinical safety evaluation
+- [x] ESConv/checkpoint/data commercial-use clearance and clinical safety evaluation
       remain explicit blockers for production replacement.
 
 ## Success criteria
@@ -82,3 +82,19 @@ optimizing against the frozen ESConv test split.
 - Regression evals: pass^3 is required before a formal model-selection run.
 - Any frozen-test access, paper/checkpoint conflation, or target-response leakage is an
   automatic failure.
+
+## Execution evidence
+
+- Code-first human report: `reports/esconv_code_first_model_audit_20260820.md`.
+- Machine-readable candidate audit: `reports/esconv_code_first_model_audit_20260820.json`.
+- Development receipt with per-class metrics and byte commitments:
+  `reports/esconv_emodynamix_code_first_dev_20260820.json`.
+- Scoped regression: 25/25 tests passed three consecutive runs on 2026-08-20.
+- Built-in trace line coverage: `scripts/rerank_esconv_emodynamix.py` 93%;
+  `open_response_eval/esconv_metrics.py` 98%.
+- Transition-only result: rejected because the valid Macro-F1 optimum was the exact
+  zero-weight base control.
+- Primary valid selection: transition weight 0.1, class-adjustment tau 0.4;
+  Macro-F1 26.5243% -> 27.6500%, Accuracy 33.6517% -> 31.9618%.
+- Split receipt explicitly records `author_test_read=false` and
+  `frozen_test_read=false`; no formal test campaign was consumed.

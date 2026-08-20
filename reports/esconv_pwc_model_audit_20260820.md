@@ -2,6 +2,8 @@
 
 核查日期：2026-08-20（America/Los_Angeles）
 
+> **用途更正（2026-08-20）：** 本文前半部分是“论文数字与协议”的文献审计，不是可实施模型排名。没有真实源码/checkpoint 的 DPPLM、Causal-ESC、SAGE、CADSS 等不得用于工程基线选择；MultiESC 42.01 也不是 canonical ESConv 8-way 同协议成绩。实际的 code-first 选型、桌面包逐文件审计和当前改进结果见 [`esconv_code_first_model_audit_20260820.md`](esconv_code_first_model_audit_20260820.md)。
+
 ## 决策摘要
 
 这次不再把不同数据版本、标签空间和评测任务的 Accuracy 混成一张榜。当前应同时保留四个互斥结论：
