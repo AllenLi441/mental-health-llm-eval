@@ -50,6 +50,17 @@ optimizing against the frozen ESConv test split.
 - [ ] The result is labelled developmental and cannot be used as a paper reproduction
       or frozen-test result.
 
+### C5. Train-prior imbalance correction arm
+
+- [ ] The only added score is the frozen formula
+      `base_logit + transition_weight*log(transition_prior) - tau*log(train_class_prior)`.
+- [ ] Class priors are computed from author train labels only; `tau` is selected on
+      author valid from `0,0.05,0.1,0.2,0.3,0.4,0.6,0.8,1.0`.
+- [ ] Candidate selection remains Macro-F1, then Accuracy; remaining ties prefer
+      smaller transition weight, smaller tau, lower history order and lower smoothing.
+- [ ] A zero-transition, zero-tau configuration is retained as the exact base-logit
+      control. A non-zero arm is adopted only if valid Macro-F1 strictly improves.
+
 ## Regression evals
 
 - [ ] Existing EmoDynamiX adapter tests pass.

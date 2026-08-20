@@ -185,6 +185,7 @@ class RerankingTests(unittest.TestCase):
             {label: 0.0 for label in PLANNER.CANONICAL_LABELS},
             prior,
             transition_weight=2.0,
+            class_adjustment_tau=0.0,
         )
         self.assertEqual(output["prediction"], "Information")
         self.assertNotIn("gold", output)
@@ -223,6 +224,7 @@ class RerankingTests(unittest.TestCase):
             history_orders=(1,),
             smoothings=(0.1,),
             transition_weights=(0.0, 1.0),
+            class_adjustment_taus=(0.0,),
         )
         self.assertEqual(result["best"]["config"]["transition_weight"], 1.0)
         self.assertEqual(result["best"]["metrics"]["accuracy"], 1.0)
@@ -265,6 +267,8 @@ class RerankingTests(unittest.TestCase):
                     "0.1",
                     "--transition-weights",
                     "0.0,1.0",
+                    "--class-adjustment-taus",
+                    "0.0",
                     "--summary-output",
                     str(paths["summary"]),
                     "--predictions-output",
@@ -287,9 +291,33 @@ class RerankingTests(unittest.TestCase):
             [{"item_id": "v1", "prediction": "Questions", "invalid": False}],
             prior,
             transition_weight=1.0,
+            class_adjustment_tau=0.0,
         )
         self.assertTrue(predictions[0]["invalid"])
         self.assertEqual(metrics["invalid"], 1)
+
+    def test_train_prior_adjustment_can_rescue_a_rare_class(self) -> None:
+        train = [
+            record(f"q{i}", "[-1, 2]", "Questions", "train") for i in range(10)
+        ]
+        train.extend(
+            record(f"x-{label}", "[-1, 2]", label, "train")
+            for label in PLANNER.CANONICAL_LABELS
+            if label != "Questions"
+        )
+        prior = PLANNER.fit_transition_prior(train, history_order=1, smoothing=1.0)
+        logits = {label: -1.0 for label in PLANNER.CANONICAL_LABELS}
+        logits["Questions"] = 0.2
+        logits["Information"] = 0.1
+        output = PLANNER.rerank_one(
+            model_input("[-1, 2]"),
+            logits,
+            prior,
+            transition_weight=0.0,
+            class_adjustment_tau=1.0,
+        )
+        self.assertEqual(output["base_prediction"], "Questions")
+        self.assertEqual(output["prediction"], "Information")
 
 
 if __name__ == "__main__":
