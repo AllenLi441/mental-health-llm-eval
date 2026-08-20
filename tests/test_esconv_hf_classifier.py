@@ -627,6 +627,7 @@ class HFClassifierEvaluatorTests(unittest.TestCase):
             payload = (
                 json.dumps(receipt_document, sort_keys=True, indent=2) + "\n"
             ).encode()
+            context["receipt_armed_sha256"] = sha256_bytes(payload)
             receipt_path.write_bytes(payload)
             subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
             subprocess.run(
