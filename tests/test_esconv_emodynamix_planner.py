@@ -90,6 +90,45 @@ class DevelopmentSplitTests(unittest.TestCase):
         self.assertNotIn("gold", prepared[0]["model_input"])
         self.assertNotIn("label", prepared[0]["model_input"])
 
+    def test_prepare_cli_writes_manifest_and_refuses_overwrite(self) -> None:
+        payload = [
+            {
+                "dialogue_history": "seeker text",
+                "strategy_history": "[-1]",
+                "speaker_turn": "seeker",
+                "label": 2,
+                "parsed_dialogue": [],
+                "erc_logits": [[0.0] * 7],
+            }
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            source = directory / "train.pkl"
+            output = directory / "train.jsonl"
+            manifest = directory / "train-manifest.json"
+            source.write_bytes(pickle.dumps(payload))
+            digest = hashlib.sha256(source.read_bytes()).hexdigest()
+            argv = [
+                "prepare",
+                "--split",
+                "train",
+                "--source-pickle",
+                str(source),
+                "--expected-sha256",
+                digest,
+                "--output",
+                str(output),
+                "--manifest-output",
+                str(manifest),
+                "--allow-unsafe-pickle",
+            ]
+            self.assertEqual(PLANNER.main(argv), 0)
+            document = json.loads(manifest.read_text())
+            self.assertEqual(document["output"]["rows"], 1)
+            self.assertFalse(document["target_strategy_in_model_input"])
+            with self.assertRaises(FileExistsError):
+                PLANNER.main(argv)
+
 
 class TransitionPriorTests(unittest.TestCase):
     def test_smoothed_probabilities_are_exact_and_deterministic(self) -> None:
@@ -126,6 +165,15 @@ class TransitionPriorTests(unittest.TestCase):
                 history_order=1,
                 smoothing=1.0,
             )
+
+    def test_invalid_history_and_hyperparameters_fail_closed(self) -> None:
+        bad = record("t1", "not-a-list", "Questions", "train")
+        with self.assertRaisesRegex(ValueError, "strategy_history"):
+            PLANNER.fit_transition_prior([bad], history_order=1, smoothing=1.0)
+        with self.assertRaisesRegex(ValueError, "history_order"):
+            PLANNER.fit_transition_prior([], history_order=0, smoothing=1.0)
+        with self.assertRaisesRegex(ValueError, "smoothing"):
+            PLANNER.fit_transition_prior([], history_order=1, smoothing=0.0)
 
 
 class RerankingTests(unittest.TestCase):
@@ -182,6 +230,66 @@ class RerankingTests(unittest.TestCase):
         self.assertEqual(len(result["commitments"]["train_records_sha256"]), 64)
         self.assertEqual(len(result["commitments"]["valid_predictions_sha256"]), 64)
         json.dumps(result, sort_keys=True)
+
+    def test_select_cli_writes_summary_and_selected_predictions(self) -> None:
+        train = [record("t1", "[-1, 2]", "Information", "train")]
+        valid = [record("v1", "[-1, 2]", "Information", "valid")]
+        logits = {label: 0.0 for label in PLANNER.CANONICAL_LABELS}
+        logits["Questions"] = 0.1
+        raw = [raw_prediction("v1", logits)]
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            paths = {
+                "train": directory / "train.jsonl",
+                "valid": directory / "valid.jsonl",
+                "raw": directory / "raw.jsonl",
+                "summary": directory / "summary.json",
+                "predictions": directory / "predictions.jsonl",
+            }
+            for name, rows in (("train", train), ("valid", valid), ("raw", raw)):
+                paths[name].write_text(
+                    "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+                )
+            rc = PLANNER.main(
+                [
+                    "select",
+                    "--train-prepared",
+                    str(paths["train"]),
+                    "--valid-prepared",
+                    str(paths["valid"]),
+                    "--valid-predictions",
+                    str(paths["raw"]),
+                    "--history-orders",
+                    "1",
+                    "--smoothings",
+                    "0.1",
+                    "--transition-weights",
+                    "0.0,1.0",
+                    "--summary-output",
+                    str(paths["summary"]),
+                    "--predictions-output",
+                    str(paths["predictions"]),
+                ]
+            )
+            self.assertEqual(rc, 0)
+            summary = json.loads(paths["summary"].read_text())
+            prediction = json.loads(paths["predictions"].read_text().strip())
+        self.assertEqual(summary["best"]["config"]["transition_weight"], 1.0)
+        self.assertEqual(summary["artifacts"]["selected_predictions"]["rows"], 1)
+        self.assertEqual(prediction["prediction"], "Information")
+
+    def test_missing_logits_become_invalid_instead_of_leaking_gold(self) -> None:
+        train = [record("t1", "[-1, 2]", "Information", "train")]
+        valid = [record("v1", "[-1, 2]", "Information", "valid")]
+        prior = PLANNER.fit_transition_prior(train, history_order=1, smoothing=1.0)
+        predictions, metrics = PLANNER.evaluate_configuration(
+            valid,
+            [{"item_id": "v1", "prediction": "Questions", "invalid": False}],
+            prior,
+            transition_weight=1.0,
+        )
+        self.assertTrue(predictions[0]["invalid"])
+        self.assertEqual(metrics["invalid"], 1)
 
 
 if __name__ == "__main__":
