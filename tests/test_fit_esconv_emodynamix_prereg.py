@@ -116,6 +116,25 @@ def document():
 
 
 class PilotPreregistrationTests(unittest.TestCase):
+    def test_source_hash_roster_is_complete_and_missing_cli_anchor_fails(self):
+        hashes = FIT.current_pilot_source_hashes()
+        self.assertEqual(
+            set(hashes),
+            {
+                "trainer_sha256",
+                "data_builder_sha256",
+                "model_sha256",
+                "metrics_sha256",
+            },
+        )
+        for digest in hashes.values():
+            self.assertRegex(digest, r"^[0-9a-f]{64}$")
+        arguments = args()
+        arguments.preregistration = None
+        arguments.preregistration_sha256 = None
+        with self.assertRaisesRegex(ValueError, "preregistration.*SHA"):
+            FIT.load_pilot_execution_provenance(arguments)
+
     def test_frozen_document_authorizes_one_exact_arm_and_returns_feature_contract(self):
         validated = FIT.validate_pilot_preregistration_document(
             document(), args(), current_source_hashes=SOURCE_HASHES

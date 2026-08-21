@@ -347,6 +347,7 @@ class CliBoundaryTests(unittest.TestCase):
         self.assertIn("--expected-base-tree-sha256", options)
         self.assertIn("--preregistration", options)
         self.assertIn("--preregistration-sha256", options)
+        self.assertIn("--arm-id", options)
         self.assertIn("--max-grad-norm", options)
         self.assertIn("--smoke-train-rows", options)
         self.assertIn("--smoke-dev-rows", options)
