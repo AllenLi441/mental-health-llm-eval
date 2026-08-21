@@ -4,7 +4,10 @@ import json
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -154,6 +157,77 @@ class MaterializerBoundaryTests(unittest.TestCase):
                     materializer_path=SCRIPT,
                 )
             self.assertEqual(sentinel.read_text(encoding="utf-8"), "user data")
+
+    def test_main_audit_never_loads_runtime_or_writes(self):
+        output = StringIO()
+        with mock.patch.object(
+            MATERIALIZER.DATA,
+            "prepare_canonical_data",
+            return_value=sample_prepared(),
+        ), mock.patch.object(
+            MATERIALIZER.FEATURES,
+            "load_verified_feature_runtime",
+        ) as load_runtime, redirect_stdout(output):
+            result = MATERIALIZER.main([])
+
+        self.assertEqual(result, 0)
+        load_runtime.assert_not_called()
+        summary = json.loads(output.getvalue())
+        self.assertEqual(summary["status"], "FEATURE_MATERIALIZATION_AUDIT_ONLY")
+        self.assertFalse(summary["artifact_written"])
+        self.assertFalse(summary["model_loaded"])
+        self.assertEqual(summary["planned_unique_feature_rows"], 2)
+
+    def test_main_execute_loads_runtime_only_after_explicit_flag(self):
+        output = StringIO()
+        fake_summary = {
+            "status": "VERIFIED_FEATURES_REQUIRES_TRAINING_PREREGISTRATION"
+        }
+
+        def fake_execute(**kwargs):
+            kwargs["progress_callback"]({"completed": 2, "total": 2})
+            return fake_summary
+
+        with tempfile.TemporaryDirectory() as directory, mock.patch.object(
+            MATERIALIZER.DATA,
+            "prepare_canonical_data",
+            return_value=sample_prepared(),
+        ), mock.patch.object(
+            MATERIALIZER.FEATURES,
+            "load_verified_feature_runtime",
+            return_value=(FakeRuntime(), runtime_receipt()),
+        ) as load_runtime, mock.patch.object(
+            MATERIALIZER,
+            "execute_feature_materialization",
+            side_effect=fake_execute,
+        ) as execute, redirect_stdout(output):
+            result = MATERIALIZER.main(
+                [
+                    "--execute",
+                    "--device",
+                    "cpu",
+                    "--run-dir",
+                    str(Path(directory) / "run"),
+                ]
+            )
+
+        self.assertEqual(result, 0)
+        load_runtime.assert_called_once()
+        execute.assert_called_once()
+        self.assertIn('"completed": 2', output.getvalue())
+        self.assertIn("VERIFIED_FEATURES_REQUIRES_TRAINING_PREREGISTRATION", output.getvalue())
+
+    def test_publish_target_must_be_absolute_and_non_symlinked(self):
+        with self.assertRaisesRegex(ValueError, "absolute"):
+            MATERIALIZER._validate_publish_target(Path("relative/run"))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            real = root / "real"
+            real.mkdir()
+            link = root / "link"
+            link.symlink_to(real, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, "symlinked ancestor"):
+                MATERIALIZER._validate_publish_target(link / "new-run")
 
 
 if __name__ == "__main__":
