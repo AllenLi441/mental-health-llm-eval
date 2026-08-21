@@ -661,6 +661,160 @@ def evaluate_emodynamix(
     )
 
 
+def run_training_epochs(
+    model,
+    train_loader,
+    *,
+    dev_loader,
+    optimizer,
+    scheduler,
+    device,
+    epochs: int,
+    gradient_accumulation_steps: int,
+    max_updates: int,
+    max_grad_norm: float,
+    loss_mode: str,
+    class_counts: Sequence[int],
+    author_weight_temperature: float,
+    class_balance_beta: float,
+    logit_adjustment_tau: float,
+    checkpoint_callback,
+) -> dict[str, Any]:
+    """Run the train/dev loop with exact complete-window normalization."""
+
+    import torch
+
+    if isinstance(epochs, bool) or not isinstance(epochs, int) or epochs < 1:
+        raise ValueError("epochs must be a positive integer")
+    if (
+        isinstance(gradient_accumulation_steps, bool)
+        or not isinstance(gradient_accumulation_steps, int)
+        or gradient_accumulation_steps < 1
+    ):
+        raise ValueError("gradient accumulation steps must be a positive integer")
+    if isinstance(max_updates, bool) or not isinstance(max_updates, int) or max_updates < 1:
+        raise ValueError("max_updates must be a positive integer")
+    if not math.isfinite(max_grad_norm) or max_grad_norm <= 0.0:
+        raise ValueError("max_grad_norm must be positive and finite")
+    try:
+        total_batches = len(train_loader)
+    except TypeError as error:
+        raise ValueError("training loader must have a finite length") from error
+    if total_batches < 1:
+        raise ValueError("training loader is empty")
+
+    actual_updates = 0
+    actual_scheduler_steps = 0
+    best_epoch: int | None = None
+    best_metrics: dict[str, Any] | None = None
+    history: list[dict[str, Any]] = []
+    stop_reason = "epochs_completed"
+
+    for epoch in range(1, epochs + 1):
+        model.train()
+        optimizer.zero_grad(set_to_none=True)
+        window_denominator = 0.0
+        epoch_numerator = 0.0
+        epoch_denominator = 0.0
+        batches_seen = 0
+        reached_max_updates = False
+        for batch_index, batch in enumerate(train_loader):
+            if set(batch) != {"model_batch", "labels", "item_ids"}:
+                raise ValueError("training batch fields mismatch")
+            labels = batch["labels"].to(device)
+            model_batch = {
+                key: value.to(device) if torch.is_tensor(value) else value
+                for key, value in batch["model_batch"].items()
+            }
+            outputs = model(model_batch)
+            if not isinstance(outputs, dict) or "logits" not in outputs:
+                raise ValueError("training model output lacks logits")
+            numerator, denominator = loss_components(
+                outputs["logits"],
+                labels,
+                mode=loss_mode,
+                class_counts=class_counts,
+                author_weight_temperature=author_weight_temperature,
+                class_balance_beta=class_balance_beta,
+                logit_adjustment_tau=logit_adjustment_tau,
+            )
+            numerator.backward()
+            denominator_value = float(denominator.detach().cpu())
+            if not math.isfinite(denominator_value) or denominator_value <= 0.0:
+                raise ValueError("training loss denominator is invalid")
+            window_denominator += denominator_value
+            epoch_numerator += float(numerator.detach().cpu())
+            epoch_denominator += denominator_value
+            batches_seen += 1
+
+            closes_window = (
+                batches_seen % gradient_accumulation_steps == 0
+                or batch_index + 1 == total_batches
+            )
+            if not closes_window:
+                continue
+            normalize_accumulated_gradients(model.parameters(), window_denominator)
+            gradient_norm = torch.nn.utils.clip_grad_norm_(
+                model.parameters(), max_grad_norm
+            )
+            if not math.isfinite(float(gradient_norm.detach().cpu())):
+                raise ValueError("training gradient norm is nonfinite")
+            optimizer.step()
+            if scheduler is not None:
+                scheduler.step()
+                actual_scheduler_steps += 1
+            optimizer.zero_grad(set_to_none=True)
+            actual_updates += 1
+            window_denominator = 0.0
+            if actual_updates >= max_updates:
+                reached_max_updates = True
+                break
+
+        if batches_seen < 1 or epoch_denominator <= 0.0:
+            raise ValueError("training loader yielded no batches")
+        dev_metrics = evaluate_emodynamix(
+            model,
+            dev_loader,
+            device=device,
+            loss_mode=loss_mode,
+            class_counts=class_counts,
+            author_weight_temperature=author_weight_temperature,
+            class_balance_beta=class_balance_beta,
+            logit_adjustment_tau=logit_adjustment_tau,
+        )
+        history.append(
+            {
+                "epoch": epoch,
+                "actual_optimizer_updates": actual_updates,
+                "train_objective_loss": epoch_numerator / epoch_denominator,
+                "dev": dev_metrics,
+            }
+        )
+        if is_better_dev(dev_metrics, best_metrics):
+            best_epoch = epoch
+            best_metrics = dict(dev_metrics)
+            checkpoint_callback(
+                epoch=epoch,
+                metrics=dev_metrics,
+                model=model,
+                actual_updates=actual_updates,
+            )
+        if reached_max_updates:
+            stop_reason = "max_updates_reached"
+            break
+
+    if best_epoch is None or best_metrics is None:
+        raise ValueError("training completed without a selectable dev checkpoint")
+    return {
+        "history": history,
+        "best_epoch": best_epoch,
+        "best_dev": best_metrics,
+        "actual_optimizer_updates": actual_updates,
+        "actual_scheduler_steps": actual_scheduler_steps,
+        "stop_reason": stop_reason,
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     from scripts import train_esconv_emodynamix_clean as data_contract
 
