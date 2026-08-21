@@ -74,6 +74,12 @@ def runtime_receipt():
     }
 
 
+def bound_fake_runtime(receipt):
+    runtime = FakeRuntime()
+    runtime.runtime_receipt_sha256 = FEATURES.canonical_json_sha256(receipt)
+    return runtime
+
+
 class MaterializerBoundaryTests(unittest.TestCase):
     def test_cli_is_read_only_by_default_and_has_no_test_or_dataset_input(self):
         parser = MATERIALIZER.build_parser()
@@ -94,10 +100,11 @@ class MaterializerBoundaryTests(unittest.TestCase):
     def test_execution_materializes_unique_features_in_atomic_run_directory(self):
         with tempfile.TemporaryDirectory() as directory:
             run_dir = Path(directory) / "feature-run"
+            receipt = runtime_receipt()
             summary = MATERIALIZER.execute_feature_materialization(
                 prepared=sample_prepared(),
-                runtime=FakeRuntime(),
-                runtime_receipt=runtime_receipt(),
+                runtime=bound_fake_runtime(receipt),
+                runtime_receipt=receipt,
                 run_dir=run_dir,
                 batch_size=2,
                 feature_implementation_path=FEATURE_MODULE,
@@ -144,6 +151,23 @@ class MaterializerBoundaryTests(unittest.TestCase):
                 json.loads((run_dir / "feature_run_summary.json").read_text()),
             )
 
+    def test_runtime_must_be_bound_to_the_exact_receipt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory) / "feature-run"
+            runtime = FakeRuntime()
+            runtime.runtime_receipt_sha256 = "f" * 64
+            with self.assertRaisesRegex(ValueError, "runtime.*receipt"):
+                MATERIALIZER.execute_feature_materialization(
+                    prepared=sample_prepared(),
+                    runtime=runtime,
+                    runtime_receipt=runtime_receipt(),
+                    run_dir=run_dir,
+                    batch_size=2,
+                    feature_implementation_path=FEATURE_MODULE,
+                    materializer_path=SCRIPT,
+                )
+            self.assertFalse(run_dir.exists())
+
     def test_existing_run_directory_is_never_overwritten(self):
         with tempfile.TemporaryDirectory() as directory:
             run_dir = Path(directory) / "feature-run"
@@ -151,10 +175,11 @@ class MaterializerBoundaryTests(unittest.TestCase):
             sentinel = run_dir / "keep.txt"
             sentinel.write_text("user data", encoding="utf-8")
             with self.assertRaisesRegex(FileExistsError, "already exists"):
+                receipt = runtime_receipt()
                 MATERIALIZER.execute_feature_materialization(
                     prepared=sample_prepared(),
-                    runtime=FakeRuntime(),
-                    runtime_receipt=runtime_receipt(),
+                    runtime=bound_fake_runtime(receipt),
+                    runtime_receipt=receipt,
                     run_dir=run_dir,
                     batch_size=2,
                     feature_implementation_path=FEATURE_MODULE,
