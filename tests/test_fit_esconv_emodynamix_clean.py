@@ -2,7 +2,10 @@ import importlib.util
 import math
 import sys
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
+from unittest import mock
 
 import torch
 import torch.nn.functional as functional
@@ -341,10 +344,40 @@ class CliBoundaryTests(unittest.TestCase):
         self.assertIn("--train-file", options)
         self.assertIn("--dev-file", options)
         self.assertIn("--feature-run-dir", options)
+        self.assertIn("--expected-base-tree-sha256", options)
+        self.assertIn("--preregistration", options)
+        self.assertIn("--preregistration-sha256", options)
+        self.assertIn("--max-grad-norm", options)
         self.assertNotIn("--test", options)
         self.assertNotIn("--test-file", options)
         self.assertNotIn("--dataset-dir", options)
         self.assertNotIn("--init-checkpoint", options)
+
+    def test_default_main_only_prepares_train_dev_and_prints_data_ready(self):
+        prepared = {
+            "train_records": [{"label_id": 0}],
+            "dev_records": [{"label_id": 1}],
+            "source_audit": {"train": {"rows": 1}, "dev": {"rows": 1}},
+            "audit": {"post_filter_overlap_count": 0},
+        }
+        output = StringIO()
+        with mock.patch(
+            "scripts.train_esconv_emodynamix_clean.prepare_canonical_data",
+            return_value=prepared,
+        ) as prepare, mock.patch.object(
+            TRAINER, "load_verified_feature_run", wraps=TRAINER.load_verified_feature_run
+        ) as load_features, redirect_stdout(output):
+            result = TRAINER.main([])
+
+        self.assertEqual(result, 0)
+        prepare.assert_called_once()
+        load_features.assert_not_called()
+        summary = __import__("json").loads(output.getvalue())
+        self.assertEqual(summary["status"], "DATA_READY")
+        self.assertFalse(summary["model_loaded"])
+        self.assertFalse(summary["optimizer_created"])
+        self.assertFalse(summary["artifact_written"])
+        self.assertFalse(summary["frozen_test_accessed"])
 
 
 if __name__ == "__main__":
