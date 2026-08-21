@@ -47,7 +47,7 @@ test without inheriting the released checkpoint's split contamination.
       per input node and discourse edges whose endpoints and relation ids are
       in range. The author-compatible control preserves the upstream model's
       second softmax; true-logit handling is a separate ablation.
-- [ ] Feature generation and loading exclude the current target response and
+- [x] Feature generation and loading exclude the current target response and
       strategy, bind the SDDP/ERC implementation and weight hashes, and reject
       missing, duplicate-key, extra, or mutated feature rows. Record-level
       duplicate inputs remain valid and join many-to-one to a feature key.
