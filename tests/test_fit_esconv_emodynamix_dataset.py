@@ -97,7 +97,7 @@ class CleanDatasetAndCollatorTests(unittest.TestCase):
             FIT.CleanEmoDynamiXTrainingDataset(tampered, features)
 
         wrong_feature = dict(features[records[0]["model_input_sha256"]])
-        wrong_feature["model_input_sha256"] = records[1]["model_input_sha256"]
+        wrong_feature["model_input_sha256"] = records[2]["model_input_sha256"]
         with self.assertRaisesRegex(ValueError, "feature.*SHA"):
             FIT.CleanEmoDynamiXTrainingDataset(
                 [records[0]],

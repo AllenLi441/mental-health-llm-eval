@@ -458,6 +458,129 @@ def load_verified_feature_run(
     return features, audit
 
 
+class CleanEmoDynamiXTrainingDataset:
+    """Record-preserving many-to-one join from labels to causal features."""
+
+    _ITEM_FIELDS = {
+        "item_id",
+        "model_input_sha256",
+        "model_input",
+        "feature",
+        "label_id",
+    }
+
+    def __init__(
+        self,
+        records: Sequence[dict[str, Any]],
+        features_by_input_sha256: Mapping[str, dict[str, Any]],
+    ) -> None:
+        from scripts import train_esconv_emodynamix_clean as data_contract
+
+        if not records:
+            raise ValueError("training dataset records must not be empty")
+        items: list[dict[str, Any]] = []
+        for record_index, record in enumerate(records):
+            try:
+                item_id = record["item_id"]
+                model_input_sha256 = record["model_input_sha256"]
+                model_input = record["model_input"]
+                label_id = record["label_id"]
+            except (KeyError, TypeError) as error:
+                raise ValueError(
+                    f"training record {record_index} lacks required fields"
+                ) from error
+            if not isinstance(item_id, str) or not item_id:
+                raise ValueError("training item_id must be a non-empty string")
+            if not isinstance(model_input, dict):
+                raise ValueError("training model_input must be an object")
+            if data_contract.canonical_json_sha256(model_input) != model_input_sha256:
+                raise ValueError("training model input SHA does not match input bytes")
+            if isinstance(label_id, bool) or not isinstance(label_id, int):
+                raise ValueError("training label_id must be an integer")
+            if not 0 <= label_id < len(EMODYNAMIX_ID_TO_CANONICAL):
+                raise ValueError("training label_id is outside the eight-class range")
+            feature = features_by_input_sha256.get(model_input_sha256)
+            if feature is None:
+                raise ValueError(f"missing feature for training record: {item_id}")
+            if feature.get("model_input_sha256") != model_input_sha256:
+                raise ValueError("training feature SHA does not match record input SHA")
+            data_contract.validate_feature_row(
+                feature, expected_input_sha256=model_input_sha256
+            )
+            items.append(
+                {
+                    "item_id": item_id,
+                    "model_input_sha256": model_input_sha256,
+                    "model_input": dict(model_input),
+                    "feature": feature,
+                    "label_id": label_id,
+                }
+            )
+        self._items = items
+
+    def __len__(self) -> int:
+        return len(self._items)
+
+    def __getitem__(self, index: int) -> dict[str, Any]:
+        return self._items[index]
+
+
+def make_training_collator(*, model_module: Any, device: Any):
+    """Build a collator that keeps labels outside the exact model input."""
+
+    import torch
+    from scripts import train_esconv_emodynamix_clean as data_contract
+
+    expected_item_fields = CleanEmoDynamiXTrainingDataset._ITEM_FIELDS
+    expected_model_batch_fields = {
+        "dialogue_history",
+        "strategy_history",
+        "speaker_turn",
+        "parsed_dialogue",
+        "erc_probabilities",
+        "dialogue_sizes",
+    }
+
+    def collate(items: Sequence[dict[str, Any]]) -> dict[str, Any]:
+        if not items:
+            raise ValueError("training batch must not be empty")
+        model_inputs = []
+        feature_rows = []
+        labels = []
+        item_ids = []
+        for item in items:
+            if set(item) != expected_item_fields:
+                raise ValueError("training item fields do not match the clean contract")
+            key = item["model_input_sha256"]
+            model_input = item["model_input"]
+            feature = item["feature"]
+            if data_contract.canonical_json_sha256(model_input) != key:
+                raise ValueError("training batch model input SHA mismatch")
+            if feature.get("model_input_sha256") != key:
+                raise ValueError("training batch feature SHA mismatch")
+            label_id = item["label_id"]
+            if isinstance(label_id, bool) or not isinstance(label_id, int):
+                raise ValueError("training batch label must be an integer")
+            if not 0 <= label_id < len(EMODYNAMIX_ID_TO_CANONICAL):
+                raise ValueError("training batch label is outside the eight-class range")
+            model_inputs.append(model_input)
+            feature_rows.append(feature)
+            labels.append(label_id)
+            item_ids.append(item["item_id"])
+        model_batch = model_module.collate_clean_model_batch(
+            model_inputs, feature_rows, device=device
+        )
+        if set(model_batch) != expected_model_batch_fields:
+            raise ValueError("model collator returned unexpected fields")
+        return {
+            "model_batch": model_batch,
+            "labels": torch.tensor(labels, dtype=torch.long, device=device),
+            "item_ids": item_ids,
+        }
+
+    return collate
+
+
 def build_parser() -> argparse.ArgumentParser:
     from scripts import train_esconv_emodynamix_clean as data_contract
 
