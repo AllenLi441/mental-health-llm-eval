@@ -12,6 +12,7 @@ import hashlib
 import json
 import math
 import os
+import random
 import shutil
 import sys
 import tempfile
@@ -918,6 +919,275 @@ def write_training_artifacts(
         "training_manifest": manifest,
         "artifact_receipt": receipt,
     }
+
+
+def class_counts_from_records(records: Sequence[dict[str, Any]]) -> tuple[int, ...]:
+    counts = [0] * len(EMODYNAMIX_ID_TO_CANONICAL)
+    for record in records:
+        label_id = record.get("label_id")
+        if type(label_id) is not int or not 0 <= label_id < len(counts):
+            raise ValueError("training record has an invalid integer label_id")
+        counts[label_id] += 1
+    return tuple(counts)
+
+
+def validate_training_execution(
+    args,
+    *,
+    prepared: dict[str, Any],
+    feature_run: dict[str, Any],
+    execution_provenance: dict[str, Any],
+) -> dict[str, Any]:
+    """Enforce the smoke/pilot boundary before model or optimizer creation."""
+
+    mode = getattr(args, "mode", None)
+    if mode not in {"smoke", "pilot"}:
+        raise ValueError("training execution mode must be smoke or pilot")
+    features = feature_run.get("features_by_input_sha256")
+    audit = feature_run.get("audit")
+    if not isinstance(features, dict) or not features or not isinstance(audit, dict):
+        raise ValueError("training feature run is incomplete")
+    required_keys = {
+        str(record["model_input_sha256"])
+        for record in [*prepared["train_records"], *prepared["dev_records"]]
+    }
+    if set(features) != required_keys:
+        raise ValueError("training feature keys do not close over train/dev records")
+    if mode == "pilot":
+        if audit.get("verified_upstream_features") is not True:
+            raise ValueError("pilot requires a verified feature bundle")
+        if execution_provenance.get("execution_validated") is not True:
+            raise ValueError("pilot requires a frozen preregistration execution gate")
+        if len(prepared["train_records"]) != 8_433 or len(prepared["dev_records"]) != 2_985:
+            raise ValueError("pilot requires the complete canonical train/dev records")
+        if class_counts_from_records(prepared["train_records"]) != CLASS_COUNTS:
+            raise ValueError("pilot clean-train class counts differ from preregistration")
+    return {
+        "mode": mode,
+        "training_records": len(prepared["train_records"]),
+        "development_records": len(prepared["dev_records"]),
+        "unique_feature_keys": len(features),
+        "verified_upstream_features": audit.get("verified_upstream_features") is True,
+        "execution_validated": execution_provenance.get("execution_validated") is True,
+        "frozen_test_accessed": False,
+    }
+
+
+def _resolve_training_device(value: str):
+    import torch
+
+    if value == "auto":
+        if torch.backends.mps.is_available():
+            value = "mps"
+        elif torch.cuda.is_available():
+            value = "cuda"
+        else:
+            value = "cpu"
+    if value == "mps":
+        if not torch.backends.mps.is_available():
+            raise ValueError("requested MPS training device is unavailable")
+        if os.environ.get("PYTORCH_ENABLE_MPS_FALLBACK") != "0":
+            raise ValueError("MPS training requires PYTORCH_ENABLE_MPS_FALLBACK=0")
+    elif value == "cuda":
+        if not torch.cuda.is_available():
+            raise ValueError("requested CUDA training device is unavailable")
+    elif value != "cpu":
+        raise ValueError("training device must be auto, cpu, mps, or cuda")
+    return torch.device(value)
+
+
+def _seed_training(seed: int) -> None:
+    import torch
+
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+        raise ValueError("training seed must be a non-negative integer")
+    random.seed(seed)
+    try:
+        import numpy
+
+        numpy.random.seed(seed)
+    except ImportError:
+        pass
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    torch.use_deterministic_algorithms(True, warn_only=True)
+
+
+def _linear_warmup_scheduler(optimizer, *, warmup_updates: int, total_updates: int):
+    import torch
+
+    if warmup_updates < 0 or total_updates < 1 or warmup_updates > total_updates:
+        raise ValueError("scheduler warmup/total updates are invalid")
+
+    def multiplier(step: int) -> float:
+        if warmup_updates and step < warmup_updates:
+            return float(step + 1) / float(warmup_updates)
+        decay_steps = max(total_updates - warmup_updates, 1)
+        return max(0.0, float(total_updates - step) / float(decay_steps))
+
+    return torch.optim.lr_scheduler.LambdaLR(optimizer, multiplier)
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    return value
+
+
+def train_emodynamix(
+    args,
+    *,
+    prepared: dict[str, Any],
+    feature_run: dict[str, Any],
+    execution_provenance: dict[str, Any],
+    model_module=None,
+) -> dict[str, Any]:
+    """Orchestrate a clean smoke or preregistered full dev pilot."""
+
+    import torch
+    from torch.utils.data import DataLoader
+
+    execution_audit = validate_training_execution(
+        args,
+        prepared=prepared,
+        feature_run=feature_run,
+        execution_provenance=execution_provenance,
+    )
+    _seed_training(args.seed)
+    device = _resolve_training_device(args.device)
+    if model_module is None:
+        from open_response_eval import esconv_emodynamix_model as model_module
+
+    features = feature_run["features_by_input_sha256"]
+    train_dataset = CleanEmoDynamiXTrainingDataset(
+        prepared["train_records"], features
+    )
+    dev_dataset = CleanEmoDynamiXTrainingDataset(prepared["dev_records"], features)
+    collator = make_training_collator(model_module=model_module, device=device)
+    generator = torch.Generator(device="cpu")
+    generator.manual_seed(args.seed)
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=args.train_batch_size,
+        shuffle=True,
+        generator=generator,
+        num_workers=0,
+        collate_fn=collator,
+    )
+    dev_loader = DataLoader(
+        dev_dataset,
+        batch_size=args.eval_batch_size,
+        shuffle=False,
+        num_workers=0,
+        collate_fn=collator,
+    )
+    model, model_receipt = model_module.load_clean_emodynamix_model(
+        base_model_path=Path(args.base_model_dir),
+        expected_base_tree_sha256=args.expected_base_tree_sha256,
+        seed=args.seed,
+    )
+    if model_receipt.get("task_checkpoint_sha256") is not None:
+        raise ValueError("clean model was initialized from a task checkpoint")
+    model.to(device)
+    optimizer_groups, optimizer_audit = optimizer_parameter_groups(
+        model, weight_decay=args.weight_decay
+    )
+    optimizer = torch.optim.AdamW(
+        optimizer_groups,
+        lr=args.learning_rate,
+        betas=(0.9, 0.999),
+        eps=1e-8,
+        amsgrad=False,
+    )
+    updates_per_epoch = math.ceil(
+        len(train_loader) / args.gradient_accumulation_steps
+    )
+    planned_updates = min(args.max_updates, args.epochs * updates_per_epoch)
+    scheduler = _linear_warmup_scheduler(
+        optimizer,
+        warmup_updates=min(args.warmup_updates, planned_updates),
+        total_updates=planned_updates,
+    )
+    best_state: dict[str, Any] = {}
+
+    def capture_best(**kwargs) -> None:
+        del kwargs
+        best_state.clear()
+        best_state.update(
+            {
+                name: tensor.detach().cpu().clone()
+                for name, tensor in model.state_dict().items()
+            }
+        )
+
+    training_result = run_training_epochs(
+        model,
+        train_loader,
+        dev_loader=dev_loader,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        device=device,
+        epochs=args.epochs,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        max_updates=args.max_updates,
+        max_grad_norm=args.max_grad_norm,
+        loss_mode=args.loss,
+        class_counts=CLASS_COUNTS,
+        author_weight_temperature=args.author_weight_temperature,
+        class_balance_beta=args.class_balance_beta,
+        logit_adjustment_tau=args.logit_adjustment_tau,
+        checkpoint_callback=capture_best,
+    )
+    if not best_state:
+        raise ValueError("training did not capture a best dev state")
+    run_status = (
+        "DEVELOPMENTAL_SMOKE_NOT_SELECTABLE"
+        if args.mode == "smoke"
+        else "DEV_PILOT_CANDIDATE_NOT_FROZEN_TESTED"
+    )
+    manifest_base = {
+        "protocol_id": execution_provenance.get("protocol_id"),
+        "execution_provenance": execution_provenance,
+        "execution_audit": execution_audit,
+        "data_source_audit": prepared["source_audit"],
+        "data_overlap_audit": prepared["audit"],
+        "feature_run": feature_run["audit"],
+        "model_initialization": model_receipt,
+        "task_checkpoint_sha256": None,
+        "optimizer": {
+            "name": "torch.optim.AdamW",
+            "learning_rate": args.learning_rate,
+            "betas": [0.9, 0.999],
+            "eps": 1e-8,
+            "amsgrad": False,
+            "parameter_groups": optimizer_audit,
+        },
+        "training_configuration": _json_safe(vars(args)),
+        "training_result": training_result,
+        "best_epoch": training_result["best_epoch"],
+        "best_dev": training_result["best_dev"],
+        "device": str(device),
+        "determinism": {
+            "mode": f"best_effort_{device.type}",
+            "torch_deterministic_algorithms_warn_only": True,
+            "bitwise_reproducible_not_guaranteed": True,
+        },
+        "class_counts": list(CLASS_COUNTS),
+        "loss_mode": args.loss,
+        "frozen_test_accessed": False,
+    }
+    artifacts = write_training_artifacts(
+        Path(args.output_dir),
+        model_state_dict=best_state,
+        manifest_base=manifest_base,
+        run_status=run_status,
+    )
+    return {"training": training_result, **artifacts}
 
 
 def build_parser() -> argparse.ArgumentParser:

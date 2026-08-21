@@ -31,11 +31,12 @@ REAL_MODEL = load_module("esconv_emodynamix_model_for_orchestration", MODEL_MODU
 class TinyGraphPolicy(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.logits = torch.nn.Parameter(torch.linspace(-0.2, 0.2, 8))
+        self.classifier = torch.nn.Linear(1, 8)
 
     def forward(self, model_batch):
         batch_size = len(model_batch["dialogue_history"])
-        return {"logits": self.logits.unsqueeze(0).expand(batch_size, -1)}
+        values = torch.ones((batch_size, 1), device=self.classifier.weight.device)
+        return {"logits": self.classifier(values)}
 
 
 class FakeModelModule:
