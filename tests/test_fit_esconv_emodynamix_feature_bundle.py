@@ -66,7 +66,9 @@ def sample_prepared():
 def runtime_receipt():
     return {
         "upstream_commit": "c9213d718a9684a5e05ce5daa947f9cbbfb7b927",
-        "upstream_feature_code_tree_sha256": "1" * 64,
+        "upstream_feature_code_tree_sha256": (
+            FIT.EXPECTED_UPSTREAM_FEATURE_CODE_TREE_SHA256
+        ),
         "base_model_tree_sha256": FIT.EXPECTED_BASE_MODEL_TREE_SHA256,
         **FIT.EXPECTED_FEATURE_ASSET_SHA256,
         "device": "cpu",

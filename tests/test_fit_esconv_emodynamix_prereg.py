@@ -82,7 +82,9 @@ def document():
             "development_records": 2_985,
             "feature_rows": 11_366,
             "feature_batch_size": 8,
-            "generator_manifest_sha256": "b" * 64,
+            "generator_manifest_sha256": (
+                FIT.EXPECTED_FORMAL_GENERATOR_MANIFEST_SHA256
+            ),
             "features_jsonl_sha256": "c" * 64,
             "feature_table_sha256": "d" * 64,
             "generator_provenance": dict(

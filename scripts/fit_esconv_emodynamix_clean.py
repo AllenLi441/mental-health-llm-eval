@@ -63,6 +63,116 @@ LOSS_MODES = (
     "logit_adjusted",
 )
 
+FEATURE_SUMMARY_FIELDS = {
+    "schema_version",
+    "status",
+    "training_records",
+    "development_records",
+    "feature_rows",
+    "feature_batch_size",
+    "feature_table_sha256",
+    "features_jsonl_sha256",
+    "generator_manifest_sha256",
+    "generator_manifest_file_sha256",
+    "frozen_test_accessed",
+    "target_or_label_fields_in_features",
+    "selectable_model_produced",
+}
+FEATURE_GENERATOR_MANIFEST_FIELDS = {
+    "schema_version",
+    "feature_schema_version",
+    "feature_backend",
+    "implementation_sha256",
+    "runtime_assets",
+    "device",
+    "feature_batch_size",
+    "sddp_max_num_contexts",
+    "sddp_context_contract",
+    "causal_input_key",
+    "target_or_label_fields",
+    "erc_cache_semantics",
+    "author_double_softmax_preserved",
+    "sddp_external_relation_range",
+    "record_duplicates_preserved",
+    "feature_keys_unique",
+    "selectable_without_manifest_verification",
+    "materializer_sha256",
+    "data_builder_sha256",
+    "source_audit",
+    "overlap_audit",
+    "unique_input_keys_sha256",
+    "unique_input_count",
+}
+FEATURE_RUNTIME_ASSET_FIELDS = {
+    "upstream_commit",
+    "upstream_feature_code_tree_sha256",
+    "base_model_tree_sha256",
+    "sddp_tree_sha256",
+    "sddp_weights_sha256",
+    "sddp_config_sha256",
+    "sddp_tokenizer_sha256",
+    "erc_weights_sha256",
+    "device",
+    "sddp_max_contexts_length",
+    "sddp_max_num_contexts",
+    "mps_fallback_disabled",
+    "safe_weights_only",
+    "mmap",
+    "dependencies",
+    "sddp_load_missing_keys",
+    "sddp_load_unexpected_keys",
+    "sddp_legacy_position_ids_verified_and_removed",
+    "erc_load_missing_keys",
+    "erc_load_unexpected_keys",
+    "test_dataset_loaded",
+}
+FEATURE_RUNTIME_DEPENDENCY_FIELDS = {
+    "python",
+    "torch",
+    "transformers",
+    "torch_geometric",
+    "torch_struct",
+    "torch_struct_origin",
+    "torch_struct_python_tree_sha256",
+}
+EXPECTED_FEATURE_ASSET_SHA256 = {
+    "erc_weights_sha256": (
+        "5cf62bb54f97e09302b0c78dcdb2cdb2a7b1c96e761586b340746c0c8f614edf"
+    ),
+    "sddp_weights_sha256": (
+        "746b9a7daed6f5679714f340f42f4b560cb42bf6fb81cc423282a1eda5d2f680"
+    ),
+    "sddp_config_sha256": (
+        "ef0185e2aae6e06c5f105a285006952c340e20c7dbf43c86ec82601b13fc45e9"
+    ),
+    "sddp_tokenizer_sha256": (
+        "847bbeab6174d66a88898f729d52fa8d355fafe1bea101cf960dd404581df70e"
+    ),
+    "sddp_tree_sha256": (
+        "f8eca6108f311cb079c8be6c510fce2977ac16a3eb6844f627bc291172b3aa22"
+    ),
+}
+EXPECTED_UPSTREAM_FEATURE_CODE_TREE_SHA256 = (
+    "2544fd042e51eff3da712a0671a00b05d63e669bebad1b48cea8e5c072027e5c"
+)
+EXPECTED_FORMAL_FEATURE_PROVENANCE = {
+    "implementation_sha256": (
+        "372d95e441867a1616bdeb8797327a5d7ac27fc2eded0da23d4dd0082f55dc10"
+    ),
+    "materializer_sha256": (
+        "bbfa6dbe9f8a3800dc9e9adcac6ec6496df2ecb08698a113fb607bd829939ce1"
+    ),
+    "data_builder_sha256": (
+        "5155e44db850e90be10b0df0faf0113c7b1bbe4639eddf7f43d05031bfedd560"
+    ),
+    "runtime_assets_sha256": (
+        "e90abaeead9c09cce3148943bfd8058d888492e41959ebb2fdbf7665dbb917b2"
+    ),
+}
+EXPECTED_FORMAL_GENERATOR_MANIFEST_SHA256 = (
+    "ad57230a567df8c3697456db536746851efb8b9cfa1b71a19c74b7971deb108f"
+)
+
 
 def _validated_counts(class_counts: Sequence[int], *, like):
     import torch
@@ -396,6 +506,29 @@ def load_verified_feature_run(
         raise ValueError("feature summary or manifest is invalid JSON") from error
     if not isinstance(summary, dict) or not isinstance(manifest, dict):
         raise ValueError("feature summary and manifest must be JSON objects")
+    unknown_summary_fields = sorted(set(summary) - FEATURE_SUMMARY_FIELDS)
+    missing_summary_fields = sorted(FEATURE_SUMMARY_FIELDS - set(summary))
+    if unknown_summary_fields:
+        raise ValueError(
+            f"feature summary has unknown fields: {unknown_summary_fields}"
+        )
+    if missing_summary_fields:
+        raise ValueError(
+            f"feature summary is missing fields: {missing_summary_fields}"
+        )
+    if summary.get("schema_version") != "esconv-emodynamix-feature-run-v1":
+        raise ValueError("feature summary schema version mismatch")
+    if set(manifest) != FEATURE_GENERATOR_MANIFEST_FIELDS:
+        raise ValueError("feature generator manifest fields differ from its schema")
+
+    generator_provenance = preregistration_contract.get("generator_provenance")
+    if (
+        not isinstance(generator_provenance, dict)
+        or set(generator_provenance) != set(EXPECTED_FORMAL_FEATURE_PROVENANCE)
+    ):
+        raise ValueError("feature generator provenance contract is invalid")
+    for field in EXPECTED_FORMAL_FEATURE_PROVENANCE:
+        _required_contract_digest(generator_provenance, field)
 
     for field in (
         "generator_manifest_sha256",
@@ -438,6 +571,23 @@ def load_verified_feature_run(
         raise ValueError("generator manifest canonical SHA mismatch")
     if manifest.get("feature_backend") != data_contract.VERIFIED_FEATURE_BACKEND:
         raise ValueError("feature manifest backend is not verified upstream SDDP/ERC")
+    expected_manifest_semantics = {
+        "schema_version": "esconv-emodynamix-feature-generator-v1",
+        "feature_schema_version": "esconv-emodynamix-causal-feature-v1",
+        "sddp_context_contract": (
+            "author_faithful_upstream_max_num_contexts_37"
+        ),
+        "causal_input_key": "model_input_sha256",
+        "erc_cache_semantics": "upstream_post_softmax_probabilities",
+        "author_double_softmax_preserved": True,
+        "sddp_external_relation_range": [0, 16],
+        "record_duplicates_preserved": True,
+        "feature_keys_unique": True,
+        "selectable_without_manifest_verification": False,
+    }
+    for field, expected in expected_manifest_semantics.items():
+        if manifest.get(field) != expected:
+            raise ValueError(f"feature manifest {field} mismatch")
     if manifest.get("target_or_label_fields") != []:
         raise ValueError("feature manifest includes target or label fields")
     if manifest.get("sddp_max_num_contexts") != 37:
@@ -451,6 +601,79 @@ def load_verified_feature_run(
     if manifest.get("overlap_audit") != prepared["audit"]:
         raise ValueError("feature manifest overlap audit differs from prepared data")
 
+    expected_code_hashes = {
+        "implementation_sha256": _sha256_bytes(
+            (ROOT / "open_response_eval/esconv_emodynamix_features.py").read_bytes()
+        ),
+        "materializer_sha256": _sha256_bytes(
+            (ROOT / "scripts/materialize_esconv_emodynamix_features.py").read_bytes()
+        ),
+        "data_builder_sha256": _sha256_bytes(
+            (ROOT / "scripts/train_esconv_emodynamix_clean.py").read_bytes()
+        ),
+    }
+    for field, expected in expected_code_hashes.items():
+        if manifest.get(field) != expected:
+            raise ValueError(f"feature generator {field} differs from pinned code")
+        if generator_provenance.get(field) != expected:
+            raise ValueError(f"feature generator {field} differs from external contract")
+    runtime_assets = manifest.get("runtime_assets")
+    if not isinstance(runtime_assets, dict):
+        raise ValueError("feature runtime assets are missing")
+    if set(runtime_assets) != FEATURE_RUNTIME_ASSET_FIELDS:
+        raise ValueError("feature runtime asset fields differ from its schema")
+    runtime_assets_sha = data_contract.canonical_json_sha256(runtime_assets)
+    if generator_provenance.get("runtime_assets_sha256") != runtime_assets_sha:
+        raise ValueError("feature runtime assets SHA differs from external contract")
+    if runtime_assets.get("test_dataset_loaded") is not False:
+        raise ValueError("feature runtime did not prove that no test dataset was loaded")
+    if runtime_assets.get("upstream_commit") != (
+        "c9213d718a9684a5e05ce5daa947f9cbbfb7b927"
+    ):
+        raise ValueError("feature runtime upstream commit mismatch")
+    if runtime_assets.get("upstream_feature_code_tree_sha256") != (
+        EXPECTED_UPSTREAM_FEATURE_CODE_TREE_SHA256
+    ):
+        raise ValueError("feature runtime upstream code tree mismatch")
+    if runtime_assets.get("base_model_tree_sha256") != (
+        EXPECTED_BASE_MODEL_TREE_SHA256
+    ):
+        raise ValueError("feature runtime base model tree mismatch")
+    for field, expected in EXPECTED_FEATURE_ASSET_SHA256.items():
+        if runtime_assets.get(field) != expected:
+            raise ValueError(f"feature runtime {field} mismatch")
+    if runtime_assets.get("device") != manifest.get("device"):
+        raise ValueError("feature runtime device differs from generator manifest")
+    if runtime_assets.get("sddp_max_num_contexts") != 37:
+        raise ValueError("feature runtime SDDP context width mismatch")
+    if runtime_assets.get("sddp_max_contexts_length") != 48:
+        raise ValueError("feature runtime SDDP context length mismatch")
+    if runtime_assets.get("safe_weights_only") is not True:
+        raise ValueError("feature runtime did not use safe weights-only loading")
+    if runtime_assets.get("mmap") is not True:
+        raise ValueError("feature runtime did not use memory-mapped safe weights")
+    if runtime_assets.get("sddp_legacy_position_ids_verified_and_removed") is not True:
+        raise ValueError("feature runtime did not verify the legacy position ids")
+    if runtime_assets.get("device") == "mps":
+        if runtime_assets.get("mps_fallback_disabled") is not True:
+            raise ValueError("feature runtime did not disable MPS CPU fallback")
+    elif runtime_assets.get("mps_fallback_disabled") is not None:
+        raise ValueError("feature runtime has an invalid fallback declaration")
+    dependencies = runtime_assets.get("dependencies")
+    if not isinstance(dependencies, dict) or set(dependencies) != (
+        FEATURE_RUNTIME_DEPENDENCY_FIELDS
+    ):
+        raise ValueError("feature runtime dependency fields differ from its schema")
+    _required_contract_digest(dependencies, "torch_struct_python_tree_sha256")
+    for field in (
+        "sddp_load_missing_keys",
+        "sddp_load_unexpected_keys",
+        "erc_load_missing_keys",
+        "erc_load_unexpected_keys",
+    ):
+        if runtime_assets.get(field) != []:
+            raise ValueError(f"feature runtime {field} is not empty")
+
     actual_features_sha = _sha256_bytes(payloads["features"])
     if actual_features_sha != summary["features_jsonl_sha256"]:
         raise ValueError(
@@ -461,6 +684,11 @@ def load_verified_feature_run(
         str(record["model_input_sha256"])
         for record in [*prepared["train_records"], *prepared["dev_records"]]
     }
+    expected_unique_keys_sha = data_contract.canonical_json_sha256(
+        sorted(required_keys)
+    )
+    if manifest.get("unique_input_keys_sha256") != expected_unique_keys_sha:
+        raise ValueError("feature manifest unique input key commitment mismatch")
     features, feature_audit = data_contract.load_feature_jsonl_bytes(
         payloads["features"],
         required_input_sha256=required_keys,
@@ -486,15 +714,21 @@ def load_verified_feature_run(
 def derive_smoke_feature_contract(run_dir: Path) -> dict[str, Any]:
     """Self-anchor a feature summary for a non-selectable developmental smoke."""
 
+    from scripts import train_esconv_emodynamix_clean as data_contract
+
     run_dir = Path(run_dir)
     if run_dir.is_symlink() or not run_dir.is_dir():
         raise ValueError("smoke feature run directory is missing or symlinked")
     summary_path = run_dir / "feature_run_summary.json"
+    manifest_path = run_dir / "generator_manifest.json"
     if summary_path.is_symlink() or not summary_path.is_file():
         raise ValueError("smoke feature summary is missing or symlinked")
+    if manifest_path.is_symlink() or not manifest_path.is_file():
+        raise ValueError("smoke feature manifest is missing or symlinked")
     payload = summary_path.read_bytes()
     try:
         summary = json.loads(payload)
+        manifest = json.loads(manifest_path.read_bytes())
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
         raise ValueError("smoke feature summary is invalid JSON") from error
     if (
@@ -512,6 +746,14 @@ def derive_smoke_feature_contract(run_dir: Path) -> dict[str, Any]:
         "generator_manifest_sha256": summary.get("generator_manifest_sha256"),
         "features_jsonl_sha256": summary.get("features_jsonl_sha256"),
         "feature_table_sha256": summary.get("feature_table_sha256"),
+        "generator_provenance": {
+            "implementation_sha256": manifest.get("implementation_sha256"),
+            "materializer_sha256": manifest.get("materializer_sha256"),
+            "data_builder_sha256": manifest.get("data_builder_sha256"),
+            "runtime_assets_sha256": data_contract.canonical_json_sha256(
+                manifest.get("runtime_assets")
+            ),
+        },
     }
     for field in (
         "generator_manifest_sha256",
@@ -519,6 +761,8 @@ def derive_smoke_feature_contract(run_dir: Path) -> dict[str, Any]:
         "feature_table_sha256",
     ):
         _required_contract_digest(contract, field)
+    for field in EXPECTED_FORMAL_FEATURE_PROVENANCE:
+        _required_contract_digest(contract["generator_provenance"], field)
     for field in (
         "training_records",
         "development_records",
@@ -1190,6 +1434,19 @@ def validate_pilot_preregistration_document(
     feature_contract = document.get("feature_run_contract")
     if not isinstance(feature_contract, dict):
         raise ValueError("pilot feature run contract is missing")
+    expected_feature_contract_fields = {
+        "feature_run_summary_sha256",
+        "training_records",
+        "development_records",
+        "feature_rows",
+        "feature_batch_size",
+        "generator_manifest_sha256",
+        "features_jsonl_sha256",
+        "feature_table_sha256",
+        "generator_provenance",
+    }
+    if set(feature_contract) != expected_feature_contract_fields:
+        raise ValueError("pilot feature run contract fields mismatch")
     for field in (
         "feature_run_summary_sha256",
         "generator_manifest_sha256",
@@ -1205,6 +1462,14 @@ def validate_pilot_preregistration_document(
     ):
         if feature_contract.get(field) != expected:
             raise ValueError(f"pilot feature run contract {field} mismatch")
+    if feature_contract.get("generator_provenance") != (
+        EXPECTED_FORMAL_FEATURE_PROVENANCE
+    ):
+        raise ValueError("pilot feature generator provenance mismatch")
+    if feature_contract.get("generator_manifest_sha256") != (
+        EXPECTED_FORMAL_GENERATOR_MANIFEST_SHA256
+    ):
+        raise ValueError("pilot formal generator manifest mismatch")
 
     if document.get("base_model_contract") != {
         "tree_sha256": args.expected_base_tree_sha256,
