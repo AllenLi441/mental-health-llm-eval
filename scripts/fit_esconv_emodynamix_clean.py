@@ -1581,8 +1581,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.mode == "audit":
         raise SystemExit("--execute requires --mode smoke or --mode pilot")
     if args.mode == "pilot":
-        raise SystemExit("pilot requires a frozen child preregistration")
-    feature_contract = derive_smoke_feature_contract(args.feature_run_dir)
+        execution_provenance = load_pilot_execution_provenance(args)
+        feature_contract = execution_provenance["feature_run_contract"]
+    else:
+        feature_contract = derive_smoke_feature_contract(args.feature_run_dir)
+        execution_provenance = {
+            "protocol_id": "developmental-smoke-only",
+            "execution_validated": False,
+            "feature_run_summary_sha256": feature_contract[
+                "feature_run_summary_sha256"
+            ],
+            "frozen_test_accessed": False,
+        }
     features, feature_audit = load_verified_feature_run(
         args.feature_run_dir,
         prepared=prepared,
@@ -1595,14 +1605,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "features_by_input_sha256": features,
             "audit": feature_audit,
         },
-        execution_provenance={
-            "protocol_id": "developmental-smoke-only",
-            "execution_validated": False,
-            "feature_run_summary_sha256": feature_contract[
-                "feature_run_summary_sha256"
-            ],
-            "frozen_test_accessed": False,
-        },
+        execution_provenance=execution_provenance,
     )
     print(json.dumps(_json_safe(result), indent=2, sort_keys=True))
     return 0
