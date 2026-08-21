@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import math
 import os
@@ -971,6 +972,62 @@ def write_training_artifacts(
         "output_dir": str(output_dir),
         "training_manifest": manifest,
         "artifact_receipt": receipt,
+    }
+
+
+def load_training_checkpoint_strict(
+    path: Path, *, expected_sha256: str, model
+) -> dict[str, Any]:
+    """Load the exact audited bytes with weights-only and strict state matching."""
+
+    import torch
+
+    if (
+        not isinstance(expected_sha256, str)
+        or len(expected_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in expected_sha256)
+    ):
+        raise ValueError("expected checkpoint SHA-256 is invalid")
+    path = Path(path)
+    if not path.is_absolute() or path.is_symlink() or not path.is_file():
+        raise ValueError("training checkpoint must be an absolute regular file")
+    payload = path.read_bytes()
+    actual_sha = _sha256_bytes(payload)
+    if actual_sha != expected_sha256:
+        raise ValueError(
+            "checkpoint SHA mismatch: "
+            f"expected={expected_sha256} actual={actual_sha}"
+        )
+    checkpoint = torch.load(
+        io.BytesIO(payload), map_location="cpu", weights_only=True
+    )
+    if not isinstance(checkpoint, dict) or set(checkpoint) != {
+        "checkpoint_schema_version",
+        "label_order",
+        "model_state_dict",
+    }:
+        raise ValueError("training checkpoint schema mismatch")
+    if checkpoint["checkpoint_schema_version"] != "clean-emodynamix-state-dict-v1":
+        raise ValueError("training checkpoint schema version mismatch")
+    if checkpoint["label_order"] != list(EMODYNAMIX_ID_TO_CANONICAL):
+        raise ValueError("training checkpoint label order mismatch")
+    state = checkpoint["model_state_dict"]
+    if (
+        not isinstance(state, dict)
+        or not state
+        or any(not isinstance(name, str) or not torch.is_tensor(tensor) for name, tensor in state.items())
+    ):
+        raise ValueError("training checkpoint state dict is invalid")
+    try:
+        incompatible = model.load_state_dict(state, strict=True)
+    except RuntimeError as error:
+        raise ValueError("training checkpoint does not strictly match the model") from error
+    return {
+        "checkpoint_sha256": actual_sha,
+        "weights_only": True,
+        "strict": True,
+        "missing_keys": list(incompatible.missing_keys),
+        "unexpected_keys": list(incompatible.unexpected_keys),
     }
 
 
