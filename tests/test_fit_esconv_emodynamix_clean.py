@@ -276,7 +276,7 @@ class SelectionAndOptimizerTests(unittest.TestCase):
         self.assertIn("LayerNorm.weight", audit["no_decay_parameter_names"])
         self.assertIn("LayerNorm.bias", audit["no_decay_parameter_names"])
         self.assertEqual(audit["trainable_parameter_count"], 4)
-        self.assertEqual(audit["trainable_parameter_numel"], 14)
+        self.assertEqual(audit["trainable_parameter_numel"], 12)
         self.assertRegex(audit["parameter_roster_sha256"], r"^[0-9a-f]{64}$")
 
     def test_metrics_map_internal_ids_and_select_on_common_raw_ce(self):

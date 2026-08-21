@@ -8,12 +8,17 @@ input and no task-checkpoint initialization option.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import math
+import sys
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 DEFAULT_DATA_ROOT = ROOT / "tmp/official_benchmarks/esconv/codes/dataset"
 DEFAULT_FEATURE_RUN_DIR = (
     ROOT / "tmp/emodynamix-clean-features/canonical-train-dev-v1"
@@ -21,6 +26,26 @@ DEFAULT_FEATURE_RUN_DIR = (
 DEFAULT_OUTPUT_DIR = ROOT / "tmp/emodynamix-clean-training"
 
 CLASS_COUNTS = (706, 820, 1_523, 1_470, 1_392, 508, 524, 1_490)
+EMODYNAMIX_INTERNAL_LABELS = (
+    "Reflection of feelings",
+    "Self-disclosure",
+    "Question",
+    "Affirmation and Reassurance",
+    "Providing Suggestions",
+    "Restatement or Paraphrasing",
+    "Information",
+    "Others",
+)
+EMODYNAMIX_ID_TO_CANONICAL = (
+    "Reflection of feelings",
+    "Self-disclosure",
+    "Questions",
+    "Affirmation and Reassurance",
+    "Providing Suggestions",
+    "Restatement or Paraphrasing",
+    "Information",
+    "Other",
+)
 LOSS_MODES = (
     "author_weighted_ce",
     "ce",
@@ -37,6 +62,50 @@ def _validated_counts(class_counts: Sequence[int], *, like):
     if any(int(count) <= 0 for count in class_counts):
         raise ValueError("class_counts must be positive")
     return torch.as_tensor(class_counts, dtype=like.dtype, device=like.device)
+
+
+def _count_tensor(
+    class_counts: Sequence[int], *, dtype=None, device=None
+):
+    import torch
+
+    if len(class_counts) != 8:
+        raise ValueError("class_counts must contain exactly eight values")
+    if any(int(count) <= 0 for count in class_counts):
+        raise ValueError("class_counts must be positive")
+    return torch.as_tensor(class_counts, dtype=dtype, device=device)
+
+
+def author_weighted_ce_weights(
+    class_counts: Sequence[int],
+    *,
+    temperature: float = 1.75,
+    dtype=None,
+    device=None,
+):
+    import torch
+
+    if not math.isfinite(temperature) or temperature <= 0.0:
+        raise ValueError("author weight temperature must be positive and finite")
+    counts = _count_tensor(class_counts, dtype=dtype, device=device)
+    inverse_frequency = (counts.sum() / counts.numel()) / counts
+    return torch.softmax(inverse_frequency / temperature, dim=0)
+
+
+def class_balanced_weights(
+    class_counts: Sequence[int],
+    *,
+    beta: float = 0.999,
+    dtype=None,
+    device=None,
+):
+    import torch
+
+    if not 0.0 < beta < 1.0:
+        raise ValueError("class balance beta must be between zero and one")
+    counts = _count_tensor(class_counts, dtype=dtype, device=device)
+    raw_weights = (1.0 - beta) / (1.0 - torch.pow(beta, counts))
+    return raw_weights / raw_weights.mean()
 
 
 def loss_components(
@@ -71,29 +140,31 @@ def loss_components(
     counts = _validated_counts(class_counts, like=logits)
 
     if mode == "author_weighted_ce":
-        if not math.isfinite(author_weight_temperature) or author_weight_temperature <= 0:
-            raise ValueError("author_weight_temperature must be positive and finite")
-        inverse_frequency = (counts.sum() / counts.numel()) / counts
-        weights = torch.softmax(inverse_frequency / author_weight_temperature, dim=0)
+        weights = author_weighted_ce_weights(
+            class_counts,
+            temperature=author_weight_temperature,
+            dtype=logits.dtype,
+            device=logits.device,
+        )
         per_row = functional.cross_entropy(logits, labels, reduction="none")
         target_weights = weights[labels]
         return (per_row * target_weights).sum(), target_weights.sum()
 
     if mode == "class_balanced":
-        if not 0.0 < class_balance_beta < 1.0:
-            raise ValueError("class_balance_beta must be between zero and one")
-        raw_weights = (1.0 - class_balance_beta) / (
-            1.0 - torch.pow(class_balance_beta, counts)
+        weights = class_balanced_weights(
+            class_counts,
+            beta=class_balance_beta,
+            dtype=logits.dtype,
+            device=logits.device,
         )
-        weights = raw_weights / raw_weights.mean()
         numerator = functional.cross_entropy(
             logits, labels, weight=weights, reduction="sum"
         )
         return numerator, weights[labels].sum()
 
     if mode == "logit_adjusted":
-        if not math.isfinite(logit_adjustment_tau):
-            raise ValueError("logit_adjustment_tau must be finite")
+        if not math.isfinite(logit_adjustment_tau) or logit_adjustment_tau < 0.0:
+            raise ValueError("logit_adjustment_tau must be finite and non-negative")
         prior = counts / counts.sum()
         logits = logits + logit_adjustment_tau * torch.log(prior)
 
@@ -124,12 +195,12 @@ def is_better_dev(
     candidate_key = (
         float(candidate["macro_f1"]),
         float(candidate["accuracy"]),
-        -float(candidate["loss"]),
+        -float(candidate["selection_loss"]),
     )
     incumbent_key = (
         float(incumbent["macro_f1"]),
         float(incumbent["accuracy"]),
-        -float(incumbent["loss"]),
+        -float(incumbent["selection_loss"]),
     )
     return candidate_key > incumbent_key
 
@@ -164,28 +235,101 @@ def optimizer_parameter_groups(
         {"params": decay_parameters, "weight_decay": float(weight_decay)},
         {"params": no_decay_parameters, "weight_decay": 0.0},
     ]
+    roster = [
+        {
+            "name": name,
+            "numel": int(parameter.numel()),
+            "group": (
+                "no_decay" if name in no_decay_names else "decay"
+            ),
+        }
+        for name, parameter in sorted(model.named_parameters())
+        if parameter.requires_grad
+    ]
+    roster_sha256 = hashlib.sha256(
+        json.dumps(
+            roster,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
     return groups, {
         "rule": "all trainable parameters except bias and LayerNorm weights decay",
         "decay_parameter_names": sorted(decay_names),
         "no_decay_parameter_names": sorted(no_decay_names),
         "decay_parameter_count": len(decay_names),
         "no_decay_parameter_count": len(no_decay_names),
+        "trainable_parameter_count": len(roster),
+        "trainable_parameter_numel": sum(item["numel"] for item in roster),
+        "parameter_roster_sha256": roster_sha256,
     }
 
 
+def prediction_ids_from_raw_logits(logits) -> list[int]:
+    if logits.ndim != 2 or logits.shape[1] != 8:
+        raise ValueError("raw logits must have shape [batch, 8]")
+    return [int(value) for value in logits.argmax(dim=-1).detach().cpu().tolist()]
+
+
+def metrics_from_ids(
+    gold_ids: Sequence[int],
+    predicted_ids: Sequence[int],
+    *,
+    objective_loss: float,
+    selection_loss: float,
+) -> dict[str, Any]:
+    from open_response_eval.esconv_metrics import compute_classification_metrics
+
+    if len(gold_ids) != len(predicted_ids) or not gold_ids:
+        raise ValueError("gold and prediction ids must have the same non-zero length")
+    if any(
+        isinstance(value, bool) or not 0 <= int(value) < len(EMODYNAMIX_ID_TO_CANONICAL)
+        for value in [*gold_ids, *predicted_ids]
+    ):
+        raise ValueError("metric ids must be valid EmoDynamiX class ids")
+    if any(
+        not math.isfinite(float(value))
+        for value in (objective_loss, selection_loss)
+    ):
+        raise ValueError("metric losses must be finite")
+    records = [
+        {
+            "gold": EMODYNAMIX_ID_TO_CANONICAL[int(gold)],
+            "prediction": EMODYNAMIX_ID_TO_CANONICAL[int(prediction)],
+            "invalid": False,
+        }
+        for gold, prediction in zip(gold_ids, predicted_ids)
+    ]
+    metrics = compute_classification_metrics(
+        records, labels=EMODYNAMIX_ID_TO_CANONICAL
+    )
+    metrics["objective_loss"] = float(objective_loss)
+    metrics["selection_loss"] = float(selection_loss)
+    return metrics
+
+
 def build_parser() -> argparse.ArgumentParser:
+    from scripts import train_esconv_emodynamix_clean as data_contract
+
     parser = argparse.ArgumentParser(
         description="Audit or fit a clean train/dev-only EmoDynamiX strategy policy"
     )
     parser.add_argument(
         "--train-file",
         type=Path,
-        default=DEFAULT_DATA_ROOT / "trainWithStrategy_short.tsv",
+        default=(
+            data_contract.DEFAULT_DATA_ROOT
+            / data_contract.OFFICIAL_SPLITS["train"]["filename"]
+        ),
     )
     parser.add_argument(
         "--dev-file",
         type=Path,
-        default=DEFAULT_DATA_ROOT / "validWithStrategy_short.tsv",
+        default=(
+            data_contract.DEFAULT_DATA_ROOT
+            / data_contract.OFFICIAL_SPLITS["dev"]["filename"]
+        ),
     )
     parser.add_argument("--feature-run-dir", type=Path, default=DEFAULT_FEATURE_RUN_DIR)
     parser.add_argument("--base-model-dir", type=Path)
