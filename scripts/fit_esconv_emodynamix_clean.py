@@ -1053,6 +1053,127 @@ def validate_training_execution(
     }
 
 
+def validate_pilot_preregistration_document(
+    document: dict[str, Any],
+    args,
+    *,
+    current_source_hashes: Mapping[str, str],
+) -> dict[str, Any]:
+    """Validate one frozen train/dev pilot arm against exact launch arguments."""
+
+    protocol_id = "jingshi-esconv-emodynamix-clean-dev-pilot-v1"
+    if not isinstance(document, dict):
+        raise ValueError("pilot preregistration must be a JSON object")
+    if (
+        document.get("schema_version") != protocol_id
+        or document.get("protocol_id") != protocol_id
+        or document.get("parent_protocol_id") != "jingshi-esconv-first-v1"
+    ):
+        raise ValueError("pilot preregistration protocol identifiers mismatch")
+    if document.get("status") != "FROZEN" or not isinstance(
+        document.get("frozen_at"), str
+    ) or not document["frozen_at"]:
+        raise ValueError("pilot preregistration is not frozen")
+    if document.get("frozen_test_policy") != "FORBIDDEN_DURING_TRAIN_DEV_PILOT":
+        raise ValueError("pilot frozen-test policy mismatch")
+
+    data_contract = document.get("data_contract")
+    expected_data_contract = {
+        "training_records": 8_433,
+        "development_records": 2_985,
+        "feature_rows": 11_366,
+        "class_counts": list(CLASS_COUNTS),
+    }
+    if data_contract != expected_data_contract:
+        raise ValueError("pilot data contract mismatch")
+    feature_contract = document.get("feature_run_contract")
+    if not isinstance(feature_contract, dict):
+        raise ValueError("pilot feature run contract is missing")
+    for field in (
+        "feature_run_summary_sha256",
+        "generator_manifest_sha256",
+        "features_jsonl_sha256",
+        "feature_table_sha256",
+    ):
+        _required_contract_digest(feature_contract, field)
+    for field, expected in (
+        ("training_records", 8_433),
+        ("development_records", 2_985),
+        ("feature_rows", 11_366),
+        ("feature_batch_size", 8),
+    ):
+        if feature_contract.get(field) != expected:
+            raise ValueError(f"pilot feature run contract {field} mismatch")
+
+    if document.get("base_model_contract") != {
+        "tree_sha256": args.expected_base_tree_sha256,
+        "task_checkpoint_initialization": None,
+    } or args.expected_base_tree_sha256 != EXPECTED_BASE_MODEL_TREE_SHA256:
+        raise ValueError("pilot base model contract mismatch")
+    expected_source_fields = {
+        "trainer_sha256",
+        "data_builder_sha256",
+        "model_sha256",
+        "metrics_sha256",
+    }
+    source_contract = document.get("source_code_contract")
+    if (
+        not isinstance(source_contract, dict)
+        or set(source_contract) != expected_source_fields
+        or dict(source_contract) != dict(current_source_hashes)
+    ):
+        raise ValueError("pilot source code contract mismatch")
+    for field in expected_source_fields:
+        _required_contract_digest(source_contract, field)
+
+    shared = document.get("shared_training")
+    expected_shared = {
+        "device": args.device,
+        "epochs": args.epochs,
+        "train_batch_size": args.train_batch_size,
+        "gradient_accumulation_steps": args.gradient_accumulation_steps,
+        "eval_batch_size": args.eval_batch_size,
+        "learning_rate": args.learning_rate,
+        "weight_decay": args.weight_decay,
+        "warmup_updates": args.warmup_updates,
+        "max_updates": args.max_updates,
+        "max_grad_norm": args.max_grad_norm,
+        "author_weight_temperature": args.author_weight_temperature,
+        "class_balance_beta": args.class_balance_beta,
+        "logit_adjustment_tau": args.logit_adjustment_tau,
+    }
+    if shared != expected_shared:
+        raise ValueError("pilot shared training contract mismatch")
+    arms = document.get("arms")
+    if not isinstance(arms, dict) or args.arm_id not in arms:
+        raise ValueError("pilot arm is not preregistered")
+    selected_arm = arms[args.arm_id]
+    if selected_arm != {
+        "loss": args.loss,
+        "seed": args.seed,
+        "output_dir_name": Path(args.output_dir).name,
+    }:
+        if selected_arm.get("output_dir_name") != Path(args.output_dir).name:
+            raise ValueError("pilot output directory differs from the authorized arm")
+        raise ValueError("pilot arm hyperparameters differ from preregistration")
+    if document.get("selection") != {
+        "primary": "dev_macro_f1",
+        "secondary": "dev_accuracy",
+        "tertiary": "lower_raw_unweighted_ce",
+        "prediction_source": "raw_logits",
+    }:
+        raise ValueError("pilot selection contract mismatch")
+    return {
+        "protocol_id": protocol_id,
+        "arm_id": args.arm_id,
+        "frozen_at": document["frozen_at"],
+        "feature_run_contract": feature_contract,
+        "source_code_contract": source_contract,
+        "execution_validated": True,
+        "frozen_test_accessed": False,
+    }
+
+
 def _resolve_training_device(value: str):
     import torch
 
