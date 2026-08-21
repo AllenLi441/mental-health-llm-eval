@@ -76,9 +76,10 @@ def runtime_receipt():
     }
 
 
-def materialize_fixture(parent):
+def materialize_fixture(parent, *, runtime_overrides=None):
     prepared = sample_prepared()
     receipt = runtime_receipt()
+    receipt.update(runtime_overrides or {})
     runtime = FakeRuntime()
     runtime.runtime_receipt_sha256 = FEATURES.canonical_json_sha256(receipt)
     run_dir = Path(parent) / "feature-run"
@@ -140,6 +141,40 @@ class FeatureBundleGateTests(unittest.TestCase):
             features_path = run_dir / "features.jsonl"
             features_path.write_bytes(features_path.read_bytes() + b"\n")
             with self.assertRaisesRegex(ValueError, "features JSONL SHA"):
+                FIT.load_verified_feature_run(
+                    run_dir,
+                    prepared=prepared,
+                    preregistration_contract=contract,
+                )
+
+    def test_unknown_summary_fields_are_rejected_even_when_reanchored(self):
+        with tempfile.TemporaryDirectory() as directory:
+            prepared, run_dir, contract = materialize_fixture(directory)
+            summary_path = run_dir / "feature_run_summary.json"
+            summary = json.loads(summary_path.read_text())
+            summary["frozen_test_metrics"] = {"accuracy": 1.0}
+            payload = (
+                json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True)
+                + "\n"
+            ).encode("utf-8")
+            summary_path.write_bytes(payload)
+            contract["feature_run_summary_sha256"] = hashlib.sha256(
+                payload
+            ).hexdigest()
+
+            with self.assertRaisesRegex(ValueError, "summary.*unknown"):
+                FIT.load_verified_feature_run(
+                    run_dir,
+                    prepared=prepared,
+                    preregistration_contract=contract,
+                )
+
+    def test_runtime_must_prove_that_no_test_dataset_was_loaded(self):
+        with tempfile.TemporaryDirectory() as directory:
+            prepared, run_dir, contract = materialize_fixture(
+                directory, runtime_overrides={"test_dataset_loaded": True}
+            )
+            with self.assertRaisesRegex(ValueError, "test dataset"):
                 FIT.load_verified_feature_run(
                     run_dir,
                     prepared=prepared,
