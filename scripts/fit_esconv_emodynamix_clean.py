@@ -1223,13 +1223,22 @@ def validate_pilot_preregistration_document(
     if not isinstance(arms, dict) or args.arm_id not in arms:
         raise ValueError("pilot arm is not preregistered")
     selected_arm = arms[args.arm_id]
+    output_relative = selected_arm.get("output_dir_relative")
+    if (
+        not isinstance(output_relative, str)
+        or not output_relative
+        or Path(output_relative).is_absolute()
+        or ".." in Path(output_relative).parts
+    ):
+        raise ValueError("pilot output contract is invalid")
+    expected_output = (ROOT / output_relative).resolve()
+    if Path(args.output_dir).resolve() != expected_output:
+        raise ValueError("pilot output directory differs from the authorized arm")
     if selected_arm != {
         "loss": args.loss,
         "seed": args.seed,
-        "output_dir_name": Path(args.output_dir).name,
+        "output_dir_relative": output_relative,
     }:
-        if selected_arm.get("output_dir_name") != Path(args.output_dir).name:
-            raise ValueError("pilot output directory differs from the authorized arm")
         raise ValueError("pilot arm hyperparameters differ from preregistration")
     if document.get("selection") != {
         "primary": "dev_macro_f1",
