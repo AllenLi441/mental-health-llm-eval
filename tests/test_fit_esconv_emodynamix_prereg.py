@@ -1,9 +1,13 @@
 import argparse
 import copy
 import importlib.util
+import json
 import sys
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -116,6 +120,66 @@ def document():
 
 
 class PilotPreregistrationTests(unittest.TestCase):
+    def test_main_pilot_uses_frozen_contract_before_loading_features(self):
+        prepared = {
+            "train_records": [{"model_input_sha256": "1" * 64}],
+            "dev_records": [{"model_input_sha256": "2" * 64}],
+            "source_audit": {},
+            "audit": {},
+        }
+        feature_contract = document()["feature_run_contract"]
+        provenance = {
+            "protocol_id": document()["protocol_id"],
+            "arm_id": "author-control-seed7",
+            "feature_run_contract": feature_contract,
+            "execution_validated": True,
+            "frozen_test_accessed": False,
+        }
+        fake_result = {
+            "training": {"best_epoch": 1},
+            "output_dir": "/tmp/run",
+            "artifact_receipt": {"checkpoint_sha256": "c" * 64},
+        }
+        output = StringIO()
+        with mock.patch(
+            "scripts.train_esconv_emodynamix_clean.prepare_canonical_data",
+            return_value=prepared,
+        ), mock.patch.object(
+            FIT, "load_pilot_execution_provenance", return_value=provenance
+        ) as load_prereg, mock.patch.object(
+            FIT,
+            "load_verified_feature_run",
+            return_value=({"feature": {}}, {"verified_upstream_features": True}),
+        ) as load_features, mock.patch.object(
+            FIT, "train_emodynamix", return_value=fake_result
+        ) as train, redirect_stdout(output):
+            result = FIT.main(
+                [
+                    "--execute",
+                    "--mode",
+                    "pilot",
+                    "--arm-id",
+                    "author-control-seed7",
+                    "--preregistration",
+                    "/tmp/prereg.json",
+                    "--preregistration-sha256",
+                    "a" * 64,
+                ]
+            )
+
+        self.assertEqual(result, 0)
+        load_prereg.assert_called_once()
+        load_features.assert_called_once()
+        self.assertEqual(
+            load_features.call_args.kwargs["preregistration_contract"],
+            feature_contract,
+        )
+        train.assert_called_once()
+        self.assertEqual(
+            train.call_args.kwargs["execution_provenance"], provenance
+        )
+        self.assertEqual(json.loads(output.getvalue())["training"]["best_epoch"], 1)
+
     def test_source_hash_roster_is_complete_and_missing_cli_anchor_fails(self):
         hashes = FIT.current_pilot_source_hashes()
         self.assertEqual(
