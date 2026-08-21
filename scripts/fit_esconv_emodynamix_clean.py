@@ -596,6 +596,71 @@ def make_training_collator(*, model_module: Any, device: Any):
     return collate
 
 
+def evaluate_emodynamix(
+    model,
+    data_loader,
+    *,
+    device,
+    loss_mode: str,
+    class_counts: Sequence[int],
+    author_weight_temperature: float,
+    class_balance_beta: float,
+    logit_adjustment_tau: float,
+) -> dict[str, Any]:
+    """Evaluate complete dev data with raw-logit predictions and common CE."""
+
+    import torch
+    import torch.nn.functional as functional
+
+    objective_numerator = 0.0
+    objective_denominator = 0.0
+    selection_numerator = 0.0
+    gold_ids: list[int] = []
+    predicted_ids: list[int] = []
+    model.eval()
+    with torch.no_grad():
+        for batch in data_loader:
+            if set(batch) != {"model_batch", "labels", "item_ids"}:
+                raise ValueError("development batch fields mismatch")
+            labels = batch["labels"].to(device)
+            model_batch = {
+                key: value.to(device) if torch.is_tensor(value) else value
+                for key, value in batch["model_batch"].items()
+            }
+            outputs = model(model_batch)
+            if not isinstance(outputs, dict) or "logits" not in outputs:
+                raise ValueError("model output lacks raw logits")
+            logits = outputs["logits"]
+            if logits.ndim != 2 or logits.shape != (labels.numel(), 8):
+                raise ValueError("model raw logits have the wrong shape")
+            current_numerator, current_denominator = loss_components(
+                logits,
+                labels,
+                mode=loss_mode,
+                class_counts=class_counts,
+                author_weight_temperature=author_weight_temperature,
+                class_balance_beta=class_balance_beta,
+                logit_adjustment_tau=logit_adjustment_tau,
+            )
+            objective_numerator += float(current_numerator.detach().cpu())
+            objective_denominator += float(current_denominator.detach().cpu())
+            selection_numerator += float(
+                functional.cross_entropy(logits, labels, reduction="sum")
+                .detach()
+                .cpu()
+            )
+            gold_ids.extend(int(value) for value in labels.detach().cpu().tolist())
+            predicted_ids.extend(prediction_ids_from_raw_logits(logits))
+    if not gold_ids or objective_denominator <= 0.0:
+        raise ValueError("development loader is empty")
+    return metrics_from_ids(
+        gold_ids,
+        predicted_ids,
+        objective_loss=objective_numerator / objective_denominator,
+        selection_loss=selection_numerator / len(gold_ids),
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     from scripts import train_esconv_emodynamix_clean as data_contract
 
