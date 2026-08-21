@@ -77,6 +77,14 @@ def execute_feature_materialization(
 
     run_dir = Path(run_dir)
     _validate_publish_target(run_dir)
+    expected_runtime_receipt_sha256 = FEATURES.canonical_json_sha256(
+        runtime_receipt
+    )
+    if (
+        getattr(runtime, "runtime_receipt_sha256", None)
+        != expected_runtime_receipt_sha256
+    ):
+        raise ValueError("feature runtime is not bound to the supplied runtime receipt")
     combined_records = list(prepared["train_records"]) + list(
         prepared["dev_records"]
     )

@@ -357,10 +357,20 @@ def _hash_recovery_asset_tree(root: Path) -> str:
 
 
 class _VerifiedFeatureRuntime:
-    def __init__(self, parser: Any, erc: Any, device: Any) -> None:
+    def __init__(
+        self,
+        parser: Any,
+        erc: Any,
+        device: Any,
+        *,
+        runtime_receipt_sha256: str,
+    ) -> None:
         self.parser = parser
         self.erc = erc
         self.device = device
+        self.runtime_receipt_sha256 = _require_sha256(
+            runtime_receipt_sha256, "runtime receipt SHA"
+        )
 
     def parse_batch(self, dialogues: Sequence[list[dict[str, str]]]) -> list[Any]:
         return self.parser.parse(list(dialogues))
@@ -543,7 +553,6 @@ def load_verified_feature_runtime(
     erc.device = torch_device
     erc.eval()
 
-    runtime = _VerifiedFeatureRuntime(parser, erc, torch_device)
     torch_struct_root = Path(torch_struct.__file__).resolve().parent
     receipt = {
         "upstream_commit": head,
@@ -575,4 +584,10 @@ def load_verified_feature_runtime(
         "erc_load_unexpected_keys": list(erc_incompatible.unexpected_keys),
         "test_dataset_loaded": False,
     }
+    runtime = _VerifiedFeatureRuntime(
+        parser,
+        erc,
+        torch_device,
+        runtime_receipt_sha256=canonical_json_sha256(receipt),
+    )
     return runtime, receipt
