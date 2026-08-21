@@ -1355,6 +1355,10 @@ def train_emodynamix(
         feature_run=feature_run,
         execution_provenance=execution_provenance,
     )
+    launch_source_hashes = current_pilot_source_hashes()
+    preregistered_source_hashes = execution_provenance.get("source_code_contract")
+    if args.mode == "pilot" and preregistered_source_hashes != launch_source_hashes:
+        raise ValueError("pilot source code changed after preregistration validation")
     _seed_training(args.seed)
     device = _resolve_training_device(args.device)
     if model_module is None:
@@ -1454,6 +1458,8 @@ def train_emodynamix(
     )
     if not best_state:
         raise ValueError("training did not capture a best dev state")
+    if current_pilot_source_hashes() != launch_source_hashes:
+        raise ValueError("training source code changed during execution")
     run_status = (
         "DEVELOPMENTAL_SMOKE_NOT_SELECTABLE"
         if args.mode == "smoke"
@@ -1467,6 +1473,7 @@ def train_emodynamix(
         "data_overlap_audit": prepared["audit"],
         "feature_run": feature_run["audit"],
         "model_initialization": model_receipt,
+        "source_code_contract": launch_source_hashes,
         "task_checkpoint_sha256": None,
         "optimizer": {
             "name": "torch.optim.AdamW",
