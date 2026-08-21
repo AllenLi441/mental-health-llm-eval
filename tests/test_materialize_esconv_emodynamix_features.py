@@ -70,6 +70,7 @@ def runtime_receipt():
         "sddp_weights_sha256": "4" * 64,
         "erc_weights_sha256": "5" * 64,
         "device": "cpu",
+        "sddp_max_num_contexts": 37,
     }
 
 
@@ -131,6 +132,9 @@ class MaterializerBoundaryTests(unittest.TestCase):
                 hashlib.sha256((run_dir / "features.jsonl").read_bytes()).hexdigest(),
             )
             manifest = json.loads((run_dir / "generator_manifest.json").read_text())
+            self.assertEqual(manifest["feature_batch_size"], 2)
+            self.assertEqual(manifest["sddp_max_num_contexts"], 37)
+            self.assertNotIn("sddp_context_bound_parity", manifest)
             manifest_sha = FEATURES.generator_manifest_sha256(manifest)
             self.assertTrue(
                 all(row["generator_manifest_sha256"] == manifest_sha for row in features)

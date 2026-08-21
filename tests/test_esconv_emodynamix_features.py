@@ -5,6 +5,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -159,18 +160,50 @@ class FeatureGenerationContractTests(unittest.TestCase):
             "sddp_tree_sha256": "3" * 64,
             "sddp_weights_sha256": "4" * 64,
             "erc_weights_sha256": "5" * 64,
+            "sddp_max_num_contexts": 37,
         }
         manifest = FEATURES.build_generator_manifest(
             runtime_receipt=receipt,
             implementation_sha256="6" * 64,
             device="cpu",
+            batch_size=8,
         )
         self.assertEqual(manifest["runtime_assets"], receipt)
         self.assertEqual(manifest["implementation_sha256"], "6" * 64)
         self.assertEqual(manifest["feature_backend"], "verified_upstream_sddp_erc_v1")
         self.assertEqual(manifest["target_or_label_fields"], [])
         self.assertTrue(manifest["author_double_softmax_preserved"])
+        self.assertEqual(manifest["feature_batch_size"], 8)
+        self.assertEqual(manifest["sddp_max_num_contexts"], 37)
+        self.assertEqual(
+            manifest["sddp_context_contract"],
+            "author_faithful_upstream_max_num_contexts_37",
+        )
         self.assertRegex(FEATURES.generator_manifest_sha256(manifest), r"^[0-9a-f]{64}$")
+
+        with self.assertRaisesRegex(ValueError, "author-faithful.*37"):
+            FEATURES.build_generator_manifest(
+                runtime_receipt=dict(receipt, sddp_max_num_contexts=5),
+                implementation_sha256="6" * 64,
+                device="cpu",
+                batch_size=8,
+            )
+
+    def test_mps_generation_requires_fallback_to_be_explicitly_disabled(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(ValueError, "PYTORCH_ENABLE_MPS_FALLBACK=0"):
+                FEATURES.validate_generation_environment("mps")
+        with mock.patch.dict(
+            os.environ, {"PYTORCH_ENABLE_MPS_FALLBACK": "0"}, clear=True
+        ):
+            self.assertEqual(
+                FEATURES.validate_generation_environment("mps"),
+                {"mps_fallback_disabled": True},
+            )
+        self.assertEqual(
+            FEATURES.validate_generation_environment("cpu"),
+            {"mps_fallback_disabled": None},
+        )
 
     def test_runtime_loader_signature_has_no_dataset_or_test_argument(self):
         parameters = inspect.signature(FEATURES.load_verified_feature_runtime).parameters
@@ -212,6 +245,7 @@ class RealFeatureSmokeTests(unittest.TestCase):
             runtime_receipt=receipt,
             implementation_sha256=FEATURES.sha256_file(FEATURE_MODULE),
             device=receipt["device"],
+            batch_size=2,
         )
         manifest_sha = FEATURES.generator_manifest_sha256(manifest)
         rows = FEATURES.generate_verified_feature_rows(
