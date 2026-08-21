@@ -309,6 +309,155 @@ def metrics_from_ids(
     return metrics
 
 
+def _sha256_bytes(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _required_contract_digest(
+    contract: Mapping[str, Any], field: str
+) -> str:
+    value = contract.get(field)
+    if (
+        not isinstance(value, str)
+        or len(value) != 64
+        or any(character not in "0123456789abcdef" for character in value)
+    ):
+        raise ValueError(f"preregistration {field} must be a lowercase SHA-256")
+    return value
+
+
+def load_verified_feature_run(
+    run_dir: Path,
+    *,
+    prepared: dict[str, Any],
+    preregistration_contract: dict[str, Any],
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    """Load one externally anchored, three-file verified feature bundle."""
+
+    from scripts import train_esconv_emodynamix_clean as data_contract
+
+    run_dir = Path(run_dir)
+    if run_dir.is_symlink() or not run_dir.is_dir():
+        raise ValueError("feature run directory is missing or symlinked")
+    paths = {
+        "summary": run_dir / "feature_run_summary.json",
+        "manifest": run_dir / "generator_manifest.json",
+        "features": run_dir / "features.jsonl",
+    }
+    for path in paths.values():
+        if path.is_symlink():
+            raise ValueError(f"feature bundle file must not be a symlink: {path.name}")
+        if not path.is_file():
+            raise ValueError(f"feature bundle file is missing: {path.name}")
+    actual_names = {path.name for path in run_dir.iterdir()}
+    expected_names = {path.name for path in paths.values()}
+    if actual_names != expected_names:
+        raise ValueError("feature run directory must contain exactly three bundle files")
+
+    payloads = {name: path.read_bytes() for name, path in paths.items()}
+    expected_summary_sha = _required_contract_digest(
+        preregistration_contract, "feature_run_summary_sha256"
+    )
+    actual_summary_sha = _sha256_bytes(payloads["summary"])
+    if actual_summary_sha != expected_summary_sha:
+        raise ValueError(
+            "feature run summary SHA mismatch: "
+            f"expected={expected_summary_sha} actual={actual_summary_sha}"
+        )
+    try:
+        summary = json.loads(payloads["summary"])
+        manifest = json.loads(payloads["manifest"])
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("feature summary or manifest is invalid JSON") from error
+    if not isinstance(summary, dict) or not isinstance(manifest, dict):
+        raise ValueError("feature summary and manifest must be JSON objects")
+
+    for field in (
+        "generator_manifest_sha256",
+        "features_jsonl_sha256",
+        "feature_table_sha256",
+    ):
+        expected = _required_contract_digest(preregistration_contract, field)
+        if summary.get(field) != expected:
+            raise ValueError(f"feature summary {field} differs from preregistration")
+    for field in (
+        "training_records",
+        "development_records",
+        "feature_rows",
+        "feature_batch_size",
+    ):
+        expected = preregistration_contract.get(field)
+        if isinstance(expected, bool) or not isinstance(expected, int) or expected < 1:
+            raise ValueError(f"preregistration {field} must be a positive integer")
+        if summary.get(field) != expected:
+            raise ValueError(f"feature summary {field} differs from preregistration")
+
+    if summary.get("training_records") != len(prepared["train_records"]):
+        raise ValueError("feature summary training record count mismatch")
+    if summary.get("development_records") != len(prepared["dev_records"]):
+        raise ValueError("feature summary development record count mismatch")
+    if summary.get("status") != "VERIFIED_FEATURES_REQUIRES_TRAINING_PREREGISTRATION":
+        raise ValueError("feature summary status is not verified")
+    if summary.get("frozen_test_accessed") is not False:
+        raise ValueError("feature summary does not prove frozen-test isolation")
+    if summary.get("target_or_label_fields_in_features") != []:
+        raise ValueError("feature summary declares target or label fields")
+    if summary.get("selectable_model_produced") is not False:
+        raise ValueError("feature generation must not claim a selectable model")
+
+    manifest_file_sha = _sha256_bytes(payloads["manifest"])
+    if summary.get("generator_manifest_file_sha256") != manifest_file_sha:
+        raise ValueError("generator manifest file SHA mismatch")
+    manifest_sha = data_contract.canonical_json_sha256(manifest)
+    if manifest_sha != summary["generator_manifest_sha256"]:
+        raise ValueError("generator manifest canonical SHA mismatch")
+    if manifest.get("feature_backend") != data_contract.VERIFIED_FEATURE_BACKEND:
+        raise ValueError("feature manifest backend is not verified upstream SDDP/ERC")
+    if manifest.get("target_or_label_fields") != []:
+        raise ValueError("feature manifest includes target or label fields")
+    if manifest.get("sddp_max_num_contexts") != 37:
+        raise ValueError("feature manifest is not author-faithful SDDP=37")
+    if manifest.get("feature_batch_size") != summary["feature_batch_size"]:
+        raise ValueError("feature batch size differs between manifest and summary")
+    if manifest.get("unique_input_count") != summary["feature_rows"]:
+        raise ValueError("feature manifest unique input count mismatch")
+    if manifest.get("source_audit") != prepared["source_audit"]:
+        raise ValueError("feature manifest source audit differs from prepared data")
+    if manifest.get("overlap_audit") != prepared["audit"]:
+        raise ValueError("feature manifest overlap audit differs from prepared data")
+
+    actual_features_sha = _sha256_bytes(payloads["features"])
+    if actual_features_sha != summary["features_jsonl_sha256"]:
+        raise ValueError(
+            "features JSONL SHA mismatch: "
+            f"expected={summary['features_jsonl_sha256']} actual={actual_features_sha}"
+        )
+    required_keys = {
+        str(record["model_input_sha256"])
+        for record in [*prepared["train_records"], *prepared["dev_records"]]
+    }
+    features, feature_audit = data_contract.load_feature_jsonl_bytes(
+        payloads["features"],
+        required_input_sha256=required_keys,
+        expected_generator_manifest_sha256=manifest_sha,
+        expected_table_sha256=summary["feature_table_sha256"],
+        allow_fixture=False,
+    )
+    if len(features) != summary["feature_rows"]:
+        raise ValueError("verified feature row count mismatch")
+    audit = {
+        **feature_audit,
+        "feature_run_summary_sha256": actual_summary_sha,
+        "generator_manifest_file_sha256": manifest_file_sha,
+        "features_jsonl_sha256": actual_features_sha,
+        "missing_feature_keys": [],
+        "extra_feature_keys": [],
+        "verified_upstream_features": True,
+        "frozen_test_accessed": False,
+    }
+    return features, audit
+
+
 def build_parser() -> argparse.ArgumentParser:
     from scripts import train_esconv_emodynamix_clean as data_contract
 
