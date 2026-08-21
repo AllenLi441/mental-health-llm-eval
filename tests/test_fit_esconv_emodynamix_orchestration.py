@@ -139,6 +139,15 @@ class CleanTrainingOrchestrationTests(unittest.TestCase):
             self.assertEqual(manifest["execution_audit"]["executed_development_records"], 1)
             self.assertEqual(manifest["feature_run"]["status"], "DEVELOPMENTAL_SMOKE_NOT_SELECTABLE")
             self.assertIsNone(manifest["model_initialization"]["task_checkpoint_sha256"])
+            self.assertEqual(
+                set(manifest["source_code_contract"]),
+                {
+                    "trainer_sha256",
+                    "data_builder_sha256",
+                    "model_sha256",
+                    "metrics_sha256",
+                },
+            )
 
     def test_pilot_rejects_unverified_features_or_unfrozen_execution(self):
         prepared, features = sample_prepared_and_features()
