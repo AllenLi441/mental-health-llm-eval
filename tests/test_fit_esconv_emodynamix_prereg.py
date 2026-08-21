@@ -39,7 +39,10 @@ def args():
     return argparse.Namespace(
         mode="pilot",
         arm_id="author-control-seed7",
-        output_dir=Path("/tmp/author-control-seed7"),
+        output_dir=(
+            ROOT
+            / "tmp/emodynamix-clean-training/pilot-v1/author-control-seed7"
+        ),
         expected_base_tree_sha256=FIT.EXPECTED_BASE_MODEL_TREE_SHA256,
         device="mps",
         seed=7,
@@ -107,7 +110,9 @@ def document():
             "author-control-seed7": {
                 "loss": "author_weighted_ce",
                 "seed": 7,
-                "output_dir_name": "author-control-seed7",
+                "output_dir_relative": (
+                    "tmp/emodynamix-clean-training/pilot-v1/author-control-seed7"
+                ),
             }
         },
         "selection": {
@@ -225,7 +230,7 @@ class PilotPreregistrationTests(unittest.TestCase):
         changed_source = dict(SOURCE_HASHES, trainer_sha256="f" * 64)
         cases.append((document(), args(), changed_source, "source code"))
         wrong_output = args()
-        wrong_output.output_dir = Path("/tmp/cherry-picked-rerun")
+        wrong_output.output_dir = ROOT / "tmp/cherry-picked-rerun"
         cases.append((document(), wrong_output, SOURCE_HASHES, "output"))
 
         for payload, arguments, hashes, message in cases:
