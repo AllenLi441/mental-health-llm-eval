@@ -242,6 +242,23 @@ class PilotPreregistrationTests(unittest.TestCase):
                         current_source_hashes=hashes,
                     )
 
+    def test_unknown_or_test_result_fields_are_rejected(self):
+        payload = document()
+        payload["frozen_test_metrics"] = {"accuracy": 1.0}
+        with self.assertRaisesRegex(ValueError, "unknown.*field"):
+            FIT.validate_pilot_preregistration_document(
+                payload, args(), current_source_hashes=SOURCE_HASHES
+            )
+
+        relative_output = args()
+        relative_output.output_dir = Path(
+            "tmp/emodynamix-clean-training/pilot-v1/author-control-seed7"
+        )
+        with self.assertRaisesRegex(ValueError, "absolute"):
+            FIT.validate_pilot_preregistration_document(
+                document(), relative_output, current_source_hashes=SOURCE_HASHES
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

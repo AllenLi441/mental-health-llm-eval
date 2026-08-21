@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import torch
 
@@ -139,6 +140,32 @@ class CleanTrainingOrchestrationTests(unittest.TestCase):
             self.assertEqual(manifest["execution_audit"]["executed_development_records"], 1)
             self.assertEqual(manifest["feature_run"]["status"], "DEVELOPMENTAL_SMOKE_NOT_SELECTABLE")
             self.assertIsNone(manifest["model_initialization"]["task_checkpoint_sha256"])
+            self.assertEqual(manifest["optimizer"]["eps"], 1e-6)
+            self.assertEqual(
+                manifest["scheduler"],
+                {
+                    "name": "huggingface_linear_warmup_decay_compatible_v1",
+                    "step_order": "optimizer_then_scheduler",
+                    "stepping_unit": "optimizer_update",
+                    "updates_per_epoch": 1,
+                    "total_schedule_updates": 1,
+                    "execution_update_cap": 1,
+                    "planned_execution_updates": 1,
+                    "warmup_updates": 0,
+                    "actual_scheduler_steps": 1,
+                },
+            )
+            self.assertEqual(
+                set(manifest["training_dependencies"]),
+                {
+                    "python",
+                    "platform",
+                    "torch",
+                    "transformers",
+                    "torch_geometric",
+                    "numpy",
+                },
+            )
             self.assertEqual(
                 set(manifest["source_code_contract"]),
                 {
@@ -155,7 +182,9 @@ class CleanTrainingOrchestrationTests(unittest.TestCase):
 
     def test_pilot_rejects_unverified_features_or_unfrozen_execution(self):
         prepared, features = sample_prepared_and_features()
-        args = argparse.Namespace(mode="pilot")
+        args = argparse.Namespace(
+            mode="pilot", output_dir=(ROOT / "tmp/nonexistent-pilot-output")
+        )
         with self.assertRaisesRegex(ValueError, "verified feature"):
             FIT.validate_training_execution(
                 args,
@@ -176,6 +205,52 @@ class CleanTrainingOrchestrationTests(unittest.TestCase):
                 },
                 execution_provenance={"execution_validated": False},
             )
+
+    def test_output_path_fails_before_model_loading_or_optimizer_creation(self):
+        prepared, features = sample_prepared_and_features()
+        feature_run = {
+            "features_by_input_sha256": features,
+            "audit": {"verified_upstream_features": False},
+        }
+        provenance = {"execution_validated": False}
+
+        relative = argparse.Namespace(mode="smoke", output_dir=Path("relative-run"))
+        with self.assertRaisesRegex(ValueError, "absolute"):
+            FIT.validate_training_execution(
+                relative,
+                prepared=prepared,
+                feature_run=feature_run,
+                execution_provenance=provenance,
+            )
+
+        with tempfile.TemporaryDirectory() as directory:
+            existing = Path(directory) / "existing"
+            existing.mkdir()
+            arguments = argparse.Namespace(mode="smoke", output_dir=existing)
+            with self.assertRaisesRegex(FileExistsError, "already exists"):
+                FIT.validate_training_execution(
+                    arguments,
+                    prepared=prepared,
+                    feature_run=feature_run,
+                    execution_provenance=provenance,
+                )
+
+            full_args = argparse.Namespace(
+                mode="smoke",
+                output_dir=existing,
+            )
+            with mock.patch.object(
+                FakeModelModule, "load_clean_emodynamix_model"
+            ) as load_model:
+                with self.assertRaises(FileExistsError):
+                    FIT.train_emodynamix(
+                        full_args,
+                        prepared=prepared,
+                        feature_run=feature_run,
+                        execution_provenance=provenance,
+                        model_module=FakeModelModule,
+                    )
+            load_model.assert_not_called()
 
 
 if __name__ == "__main__":

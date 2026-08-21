@@ -63,6 +63,42 @@ def batch(rows, labels):
 
 
 class CleanTrainingLoopTests(unittest.TestCase):
+    def test_linear_scheduler_matches_huggingface_boundary_sequence(self):
+        parameter = torch.nn.Parameter(torch.tensor(1.0))
+        optimizer = torch.optim.SGD([parameter], lr=1.0)
+        scheduler = FIT._linear_warmup_scheduler(
+            optimizer, warmup_updates=2, total_updates=4
+        )
+
+        learning_rates_used = []
+        for _ in range(4):
+            learning_rates_used.append(optimizer.param_groups[0]["lr"])
+            optimizer.step()
+            scheduler.step()
+
+        self.assertEqual(learning_rates_used, [0.0, 0.5, 1.0, 0.5])
+        self.assertEqual(optimizer.param_groups[0]["lr"], 0.0)
+
+    def test_schedule_horizon_is_epoch_capacity_not_execution_cap(self):
+        plan = FIT.training_schedule_plan(
+            microbatch_count=2_109,
+            gradient_accumulation_steps=4,
+            epochs=8,
+            max_updates=3_000,
+            warmup_updates=500,
+        )
+
+        self.assertEqual(
+            plan,
+            {
+                "updates_per_epoch": 528,
+                "total_schedule_updates": 4_224,
+                "execution_update_cap": 3_000,
+                "planned_execution_updates": 3_000,
+                "warmup_updates": 500,
+            },
+        )
+
     def test_odd_accumulation_windows_step_and_best_epoch_is_not_last(self):
         model = TinyPolicy()
         optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
