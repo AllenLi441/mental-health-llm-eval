@@ -885,6 +885,7 @@ def write_training_artifacts(
     model_state_dict: Mapping[str, Any],
     manifest_base: Mapping[str, Any],
     run_status: str,
+    verification_model=None,
 ) -> dict[str, Any]:
     """Atomically publish a safe state-dict checkpoint and hash-closed receipt."""
 
@@ -928,6 +929,21 @@ def write_training_artifacts(
         }
         torch.save(checkpoint, checkpoint_path)
         checkpoint_sha = _sha256_bytes(checkpoint_path.read_bytes())
+        if verification_model is None:
+            checkpoint_reload_audit = {
+                "performed": False,
+                "strict": None,
+                "weights_only": None,
+            }
+        else:
+            checkpoint_reload_audit = {
+                "performed": True,
+                **load_training_checkpoint_strict(
+                    checkpoint_path,
+                    expected_sha256=checkpoint_sha,
+                    model=verification_model,
+                ),
+            }
 
         manifest = dict(manifest_base)
         manifest.update(
@@ -937,6 +953,7 @@ def write_training_artifacts(
                 "checkpoint_filename": checkpoint_path.name,
                 "checkpoint_sha256": checkpoint_sha,
                 "checkpoint_format": "pytorch_state_dict_weights_only_v1",
+                "checkpoint_reload_audit": checkpoint_reload_audit,
                 "label_order": list(EMODYNAMIX_ID_TO_CANONICAL),
                 "task_checkpoint_sha256": None,
                 "selectable_model_produced": (
@@ -1554,11 +1571,20 @@ def train_emodynamix(
         "loss_mode": args.loss,
         "frozen_test_accessed": False,
     }
+    reload_model, reload_model_receipt = model_module.load_clean_emodynamix_model(
+        base_model_path=Path(args.base_model_dir),
+        expected_base_tree_sha256=args.expected_base_tree_sha256,
+        seed=args.seed,
+    )
+    if reload_model_receipt.get("task_checkpoint_sha256") is not None:
+        raise ValueError("checkpoint reload model used a task checkpoint")
+    manifest_base["checkpoint_reload_model_initialization"] = reload_model_receipt
     artifacts = write_training_artifacts(
         Path(args.output_dir),
         model_state_dict=best_state,
         manifest_base=manifest_base,
         run_status=run_status,
+        verification_model=reload_model,
     )
     return {"training": training_result, **artifacts}
 
