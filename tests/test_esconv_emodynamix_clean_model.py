@@ -90,6 +90,14 @@ class ArchitectureContractTests(unittest.TestCase):
         self.assertNotIn("checkpoint", parameters)
         self.assertNotIn("task_checkpoint", parameters)
 
+    def test_context_rendering_preserves_author_whitespace_semantics(self):
+        self.assertEqual(
+            MODEL.author_context_string(
+                "<START> </s> I feel lost", ["None", "seeker"]
+            ),
+            "[None] <START>  [seeker]  I feel lost",
+        )
+
     @unittest.skipUnless(BASE_MODEL.is_dir(), "materialized RoBERTa base absent")
     def test_symlink_base_model_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
