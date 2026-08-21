@@ -107,6 +107,8 @@ class CleanTrainingOrchestrationTests(unittest.TestCase):
                 author_weight_temperature=1.75,
                 class_balance_beta=0.999,
                 logit_adjustment_tau=1.0,
+                smoke_train_rows=8,
+                smoke_dev_rows=8,
             )
             result = FIT.train_emodynamix(
                 args,
@@ -133,6 +135,8 @@ class CleanTrainingOrchestrationTests(unittest.TestCase):
             self.assertEqual(manifest["status"], "DEVELOPMENTAL_SMOKE_NOT_SELECTABLE")
             self.assertFalse(manifest["selectable_model_produced"])
             self.assertFalse(manifest["frozen_leaderboard_eligible"])
+            self.assertEqual(manifest["execution_audit"]["executed_training_records"], 3)
+            self.assertEqual(manifest["execution_audit"]["executed_development_records"], 1)
             self.assertEqual(manifest["feature_run"]["status"], "DEVELOPMENTAL_SMOKE_NOT_SELECTABLE")
             self.assertIsNone(manifest["model_initialization"]["task_checkpoint_sha256"])
 

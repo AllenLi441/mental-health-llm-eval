@@ -348,6 +348,8 @@ class CliBoundaryTests(unittest.TestCase):
         self.assertIn("--preregistration", options)
         self.assertIn("--preregistration-sha256", options)
         self.assertIn("--max-grad-norm", options)
+        self.assertIn("--smoke-train-rows", options)
+        self.assertIn("--smoke-dev-rows", options)
         self.assertNotIn("--test", options)
         self.assertNotIn("--test-file", options)
         self.assertNotIn("--dataset-dir", options)
