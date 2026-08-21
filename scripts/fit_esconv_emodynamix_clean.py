@@ -983,6 +983,34 @@ def class_counts_from_records(records: Sequence[dict[str, Any]]) -> tuple[int, .
     return tuple(counts)
 
 
+def _select_smoke_records(
+    records: Sequence[dict[str, Any]], limit: int
+) -> list[dict[str, Any]]:
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
+        raise ValueError("smoke row limit must be a positive integer")
+    if len(records) <= limit:
+        return list(records)
+    selected_indices: list[int] = []
+    seen_labels: set[int] = set()
+    for index, record in enumerate(records):
+        label_id = record.get("label_id")
+        if type(label_id) is not int or not 0 <= label_id < 8:
+            raise ValueError("smoke record has an invalid label_id")
+        if label_id not in seen_labels:
+            selected_indices.append(index)
+            seen_labels.add(label_id)
+            if len(selected_indices) == limit:
+                break
+    if len(selected_indices) < limit:
+        selected = set(selected_indices)
+        for index in range(len(records)):
+            if index not in selected:
+                selected_indices.append(index)
+                if len(selected_indices) == limit:
+                    break
+    return [records[index] for index in sorted(selected_indices)]
+
+
 def validate_training_execution(
     args,
     *,
@@ -1116,10 +1144,22 @@ def train_emodynamix(
         from open_response_eval import esconv_emodynamix_model as model_module
 
     features = feature_run["features_by_input_sha256"]
+    if args.mode == "smoke":
+        training_records = _select_smoke_records(
+            prepared["train_records"], args.smoke_train_rows
+        )
+        development_records = _select_smoke_records(
+            prepared["dev_records"], args.smoke_dev_rows
+        )
+    else:
+        training_records = list(prepared["train_records"])
+        development_records = list(prepared["dev_records"])
+    execution_audit["executed_training_records"] = len(training_records)
+    execution_audit["executed_development_records"] = len(development_records)
     train_dataset = CleanEmoDynamiXTrainingDataset(
-        prepared["train_records"], features
+        training_records, features
     )
-    dev_dataset = CleanEmoDynamiXTrainingDataset(prepared["dev_records"], features)
+    dev_dataset = CleanEmoDynamiXTrainingDataset(development_records, features)
     collator = make_training_collator(model_module=model_module, device=device)
     generator = torch.Generator(device="cpu")
     generator.manual_seed(args.seed)
@@ -1287,6 +1327,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--warmup-updates", type=int, default=500)
     parser.add_argument("--max-updates", type=int, default=5_000)
     parser.add_argument("--max-grad-norm", type=float, default=1.0)
+    parser.add_argument("--smoke-train-rows", type=int, default=8)
+    parser.add_argument("--smoke-dev-rows", type=int, default=8)
     parser.add_argument("--author-weight-temperature", type=float, default=1.75)
     parser.add_argument("--class-balance-beta", type=float, default=0.999)
     parser.add_argument("--logit-adjustment-tau", type=float, default=1.0)
