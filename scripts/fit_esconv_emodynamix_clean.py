@@ -28,6 +28,10 @@ DEFAULT_FEATURE_RUN_DIR = (
     ROOT / "tmp/emodynamix-clean-features/canonical-train-dev-v1"
 )
 DEFAULT_OUTPUT_DIR = ROOT / "tmp/emodynamix-clean-training"
+DEFAULT_BASE_MODEL_DIR = ROOT / "tmp/official_benchmarks/roberta-base-e2da-materialized"
+EXPECTED_BASE_MODEL_TREE_SHA256 = (
+    "1d9faa93557a63a92292cd11dfbca3de8e336ffa60768745a71ecd1ed19aa91c"
+)
 
 CLASS_COUNTS = (706, 820, 1_523, 1_470, 1_392, 508, 524, 1_490)
 EMODYNAMIX_INTERNAL_LABELS = (
@@ -1213,10 +1217,17 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("--feature-run-dir", type=Path, default=DEFAULT_FEATURE_RUN_DIR)
-    parser.add_argument("--base-model-dir", type=Path)
+    parser.add_argument("--base-model-dir", type=Path, default=DEFAULT_BASE_MODEL_DIR)
+    parser.add_argument(
+        "--expected-base-tree-sha256",
+        default=EXPECTED_BASE_MODEL_TREE_SHA256,
+    )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument("--preregistration", type=Path)
+    parser.add_argument("--preregistration-sha256")
     parser.add_argument("--mode", choices=("audit", "smoke", "pilot"), default="audit")
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--device", choices=("auto", "cpu", "mps", "cuda"), default="mps")
     parser.add_argument("--loss", choices=LOSS_MODES, default="author_weighted_ce")
     parser.add_argument("--seed", type=int, default=114_514)
     parser.add_argument("--epochs", type=int, default=10)
@@ -1227,6 +1238,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--weight-decay", type=float, default=1e-3)
     parser.add_argument("--warmup-updates", type=int, default=500)
     parser.add_argument("--max-updates", type=int, default=5_000)
+    parser.add_argument("--max-grad-norm", type=float, default=1.0)
     parser.add_argument("--author-weight-temperature", type=float, default=1.75)
     parser.add_argument("--class-balance-beta", type=float, default=0.999)
     parser.add_argument("--logit-adjustment-tau", type=float, default=1.0)
@@ -1235,17 +1247,34 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    from scripts import train_esconv_emodynamix_clean as data_contract
+
+    prepared = data_contract.prepare_canonical_data(args.train_file, args.dev_file)
+    if not args.execute:
+        print(
+            json.dumps(
+                {
+                    "status": "DATA_READY",
+                    "mode": args.mode,
+                    "training_records": len(prepared["train_records"]),
+                    "development_records": len(prepared["dev_records"]),
+                    "source_audit": prepared["source_audit"],
+                    "overlap_audit": prepared["audit"],
+                    "model_loaded": False,
+                    "optimizer_created": False,
+                    "artifact_written": False,
+                    "frozen_test_accessed": False,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return 0
+    if args.mode == "audit":
+        raise SystemExit("--execute requires --mode smoke or --mode pilot")
     if args.mode != "audit" and not args.execute:
         raise SystemExit("smoke/pilot requires explicit --execute")
-    print(
-        {
-            "status": "AUDIT_ONLY" if not args.execute else "NOT_YET_IMPLEMENTED",
-            "mode": args.mode,
-            "loss": args.loss,
-            "frozen_test_accessed": False,
-        }
-    )
-    return 0
+    raise SystemExit("execution contract loading is not yet configured")
 
 
 if __name__ == "__main__":
