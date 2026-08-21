@@ -481,6 +481,54 @@ def load_verified_feature_run(
     return features, audit
 
 
+def derive_smoke_feature_contract(run_dir: Path) -> dict[str, Any]:
+    """Self-anchor a feature summary for a non-selectable developmental smoke."""
+
+    run_dir = Path(run_dir)
+    if run_dir.is_symlink() or not run_dir.is_dir():
+        raise ValueError("smoke feature run directory is missing or symlinked")
+    summary_path = run_dir / "feature_run_summary.json"
+    if summary_path.is_symlink() or not summary_path.is_file():
+        raise ValueError("smoke feature summary is missing or symlinked")
+    payload = summary_path.read_bytes()
+    try:
+        summary = json.loads(payload)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("smoke feature summary is invalid JSON") from error
+    if (
+        not isinstance(summary, dict)
+        or summary.get("status")
+        != "VERIFIED_FEATURES_REQUIRES_TRAINING_PREREGISTRATION"
+    ):
+        raise ValueError("smoke feature summary status is not verified")
+    contract = {
+        "feature_run_summary_sha256": _sha256_bytes(payload),
+        "training_records": summary.get("training_records"),
+        "development_records": summary.get("development_records"),
+        "feature_rows": summary.get("feature_rows"),
+        "feature_batch_size": summary.get("feature_batch_size"),
+        "generator_manifest_sha256": summary.get("generator_manifest_sha256"),
+        "features_jsonl_sha256": summary.get("features_jsonl_sha256"),
+        "feature_table_sha256": summary.get("feature_table_sha256"),
+    }
+    for field in (
+        "generator_manifest_sha256",
+        "features_jsonl_sha256",
+        "feature_table_sha256",
+    ):
+        _required_contract_digest(contract, field)
+    for field in (
+        "training_records",
+        "development_records",
+        "feature_rows",
+        "feature_batch_size",
+    ):
+        value = contract[field]
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise ValueError(f"smoke feature summary {field} is invalid")
+    return contract
+
+
 class CleanEmoDynamiXTrainingDataset:
     """Record-preserving many-to-one join from labels to causal features."""
 
@@ -1272,9 +1320,32 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.mode == "audit":
         raise SystemExit("--execute requires --mode smoke or --mode pilot")
-    if args.mode != "audit" and not args.execute:
-        raise SystemExit("smoke/pilot requires explicit --execute")
-    raise SystemExit("execution contract loading is not yet configured")
+    if args.mode == "pilot":
+        raise SystemExit("pilot requires a frozen child preregistration")
+    feature_contract = derive_smoke_feature_contract(args.feature_run_dir)
+    features, feature_audit = load_verified_feature_run(
+        args.feature_run_dir,
+        prepared=prepared,
+        preregistration_contract=feature_contract,
+    )
+    result = train_emodynamix(
+        args,
+        prepared=prepared,
+        feature_run={
+            "features_by_input_sha256": features,
+            "audit": feature_audit,
+        },
+        execution_provenance={
+            "protocol_id": "developmental-smoke-only",
+            "execution_validated": False,
+            "feature_run_summary_sha256": feature_contract[
+                "feature_run_summary_sha256"
+            ],
+            "frozen_test_accessed": False,
+        },
+    )
+    print(json.dumps(_json_safe(result), indent=2, sort_keys=True))
+    return 0
 
 
 if __name__ == "__main__":
