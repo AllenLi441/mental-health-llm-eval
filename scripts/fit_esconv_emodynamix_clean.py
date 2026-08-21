@@ -14,6 +14,7 @@ import math
 import os
 import random
 import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -1174,6 +1175,101 @@ def validate_pilot_preregistration_document(
     }
 
 
+def current_pilot_source_hashes() -> dict[str, str]:
+    return {
+        "trainer_sha256": _sha256_bytes(Path(__file__).read_bytes()),
+        "data_builder_sha256": _sha256_bytes(
+            (ROOT / "scripts/train_esconv_emodynamix_clean.py").read_bytes()
+        ),
+        "model_sha256": _sha256_bytes(
+            (ROOT / "open_response_eval/esconv_emodynamix_model.py").read_bytes()
+        ),
+        "metrics_sha256": _sha256_bytes(
+            (ROOT / "open_response_eval/esconv_metrics.py").read_bytes()
+        ),
+    }
+
+
+def load_pilot_execution_provenance(args) -> dict[str, Any]:
+    """Load an externally SHA-anchored, committed-clean pilot preregistration."""
+
+    path = getattr(args, "preregistration", None)
+    expected_sha = getattr(args, "preregistration_sha256", None)
+    if path is None or expected_sha is None:
+        raise ValueError("pilot requires preregistration path and SHA-256 anchor")
+    if (
+        not isinstance(expected_sha, str)
+        or len(expected_sha) != 64
+        or any(character not in "0123456789abcdef" for character in expected_sha)
+    ):
+        raise ValueError("pilot preregistration SHA-256 anchor is invalid")
+    path = Path(path)
+    if not path.is_absolute() or path.is_symlink() or not path.is_file():
+        raise ValueError("pilot preregistration must be an absolute regular file")
+    try:
+        relative_path = path.relative_to(ROOT).as_posix()
+    except ValueError as error:
+        raise ValueError("pilot preregistration must be inside the repository") from error
+    payload = path.read_bytes()
+    actual_sha = _sha256_bytes(payload)
+    if actual_sha != expected_sha:
+        raise ValueError(
+            "pilot preregistration SHA mismatch: "
+            f"expected={expected_sha} actual={actual_sha}"
+        )
+    try:
+        document = json.loads(payload)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("pilot preregistration is invalid JSON") from error
+    source_hashes = current_pilot_source_hashes()
+    validated = validate_pilot_preregistration_document(
+        document, args, current_source_hashes=source_hashes
+    )
+    relevant_paths = [
+        relative_path,
+        "scripts/fit_esconv_emodynamix_clean.py",
+        "scripts/train_esconv_emodynamix_clean.py",
+        "open_response_eval/esconv_emodynamix_model.py",
+        "open_response_eval/esconv_metrics.py",
+    ]
+    tracked = subprocess.run(
+        ["git", "-C", str(ROOT), "ls-files", "--error-unmatch", *relevant_paths],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if tracked.returncode != 0:
+        raise ValueError("pilot preregistration or source code is not git tracked")
+    clean = subprocess.run(
+        ["git", "-C", str(ROOT), "diff", "--quiet", "HEAD", "--", *relevant_paths],
+        check=False,
+    )
+    if clean.returncode != 0:
+        raise ValueError("pilot preregistration or source code has uncommitted changes")
+    head = subprocess.run(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    preregistration_commit = subprocess.run(
+        ["git", "-C", str(ROOT), "log", "-1", "--format=%H", "--", relative_path],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    if not preregistration_commit:
+        raise ValueError("pilot preregistration has no committed freeze point")
+    return {
+        **validated,
+        "preregistration_path": str(path),
+        "preregistration_sha256": actual_sha,
+        "preregistration_commit": preregistration_commit,
+        "launch_git_head": head,
+        "source_code_contract": source_hashes,
+    }
+
+
 def _resolve_training_device(value: str):
     import torch
 
@@ -1434,6 +1530,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--preregistration", type=Path)
     parser.add_argument("--preregistration-sha256")
+    parser.add_argument("--arm-id")
     parser.add_argument("--mode", choices=("audit", "smoke", "pilot"), default="audit")
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--device", choices=("auto", "cpu", "mps", "cuda"), default="mps")
