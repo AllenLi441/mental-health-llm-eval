@@ -56,12 +56,12 @@ test without inheriting the released checkpoint's split contamination.
 
 ### C3. EmoDynamiX-derived policy model
 
-- [ ] The model contains a locally materialized RoBERTa context encoder, mixed
+- [x] The model contains a locally materialized RoBERTa context encoder, mixed
       ERC prototypes, prior-strategy embeddings, relational graph layers, and
       an eight-class classification head.
-- [ ] The model accepts precomputed history-only features and has no parameter
+- [x] The model accepts precomputed history-only features and has no parameter
       or forward input for the current gold label/response.
-- [ ] Base model loading is local-tree-only and SHA-256 bound; remote ids,
+- [x] Base model loading is local-tree-only and SHA-256 bound; remote ids,
       symlinks, and the released EmoDynamiX task checkpoint are rejected.
 - [ ] CE and train-only class-balanced/logit-adjusted objectives use complete
       accumulation-window normalization and are covered by analytic tests.
