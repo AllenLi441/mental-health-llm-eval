@@ -16,7 +16,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 
 UPSTREAM_COMMIT = "c9213d718a9684a5e05ce5daa947f9cbbfb7b927"
@@ -194,6 +194,7 @@ def generate_verified_feature_rows(
     runtime: Any,
     generator_manifest_sha256: str,
     batch_size: int,
+    progress_callback: Callable[[dict[str, int]], None] | None = None,
 ) -> list[dict[str, Any]]:
     """Generate deterministic feature rows from unique history-only inputs."""
 
@@ -249,6 +250,10 @@ def generate_verified_feature_rows(
                     "feature_backend": VERIFIED_FEATURE_BACKEND,
                     "generator_manifest_sha256": generator_manifest_sha256,
                 }
+            )
+        if progress_callback is not None:
+            progress_callback(
+                {"completed": len(generated), "total": len(unique_inputs)}
             )
     return sorted(generated, key=lambda row: row["model_input_sha256"])
 
