@@ -85,6 +85,9 @@ def document():
             "generator_manifest_sha256": "b" * 64,
             "features_jsonl_sha256": "c" * 64,
             "feature_table_sha256": "d" * 64,
+            "generator_provenance": dict(
+                FIT.EXPECTED_FORMAL_FEATURE_PROVENANCE
+            ),
         },
         "base_model_contract": {
             "tree_sha256": FIT.EXPECTED_BASE_MODEL_TREE_SHA256,

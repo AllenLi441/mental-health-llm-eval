@@ -67,12 +67,29 @@ def runtime_receipt():
     return {
         "upstream_commit": "c9213d718a9684a5e05ce5daa947f9cbbfb7b927",
         "upstream_feature_code_tree_sha256": "1" * 64,
-        "base_model_tree_sha256": "2" * 64,
-        "sddp_tree_sha256": "3" * 64,
-        "sddp_weights_sha256": "4" * 64,
-        "erc_weights_sha256": "5" * 64,
+        "base_model_tree_sha256": FIT.EXPECTED_BASE_MODEL_TREE_SHA256,
+        **FIT.EXPECTED_FEATURE_ASSET_SHA256,
         "device": "cpu",
+        "sddp_max_contexts_length": 48,
         "sddp_max_num_contexts": 37,
+        "mps_fallback_disabled": None,
+        "safe_weights_only": True,
+        "mmap": True,
+        "dependencies": {
+            "python": "test",
+            "torch": "test",
+            "transformers": "test",
+            "torch_geometric": "test",
+            "torch_struct": "test",
+            "torch_struct_origin": "/test",
+            "torch_struct_python_tree_sha256": "6" * 64,
+        },
+        "sddp_load_missing_keys": [],
+        "sddp_load_unexpected_keys": [],
+        "sddp_legacy_position_ids_verified_and_removed": True,
+        "erc_load_missing_keys": [],
+        "erc_load_unexpected_keys": [],
+        "test_dataset_loaded": False,
     }
 
 
@@ -93,6 +110,7 @@ def materialize_fixture(parent, *, runtime_overrides=None):
         materializer_path=MATERIALIZER_SCRIPT,
     )
     summary = json.loads((run_dir / "feature_run_summary.json").read_text())
+    manifest = json.loads((run_dir / "generator_manifest.json").read_text())
     contract = {
         "feature_run_summary_sha256": hashlib.sha256(
             (run_dir / "feature_run_summary.json").read_bytes()
@@ -104,6 +122,14 @@ def materialize_fixture(parent, *, runtime_overrides=None):
         "generator_manifest_sha256": summary["generator_manifest_sha256"],
         "features_jsonl_sha256": summary["features_jsonl_sha256"],
         "feature_table_sha256": summary["feature_table_sha256"],
+        "generator_provenance": {
+            "implementation_sha256": manifest["implementation_sha256"],
+            "materializer_sha256": manifest["materializer_sha256"],
+            "data_builder_sha256": manifest["data_builder_sha256"],
+            "runtime_assets_sha256": FEATURES.canonical_json_sha256(
+                manifest["runtime_assets"]
+            ),
+        },
     }
     return prepared, run_dir, contract
 
@@ -175,6 +201,31 @@ class FeatureBundleGateTests(unittest.TestCase):
                 directory, runtime_overrides={"test_dataset_loaded": True}
             )
             with self.assertRaisesRegex(ValueError, "test dataset"):
+                FIT.load_verified_feature_run(
+                    run_dir,
+                    prepared=prepared,
+                    preregistration_contract=contract,
+                )
+
+    def test_runtime_and_external_provenance_are_exactly_bound(self):
+        with tempfile.TemporaryDirectory() as directory:
+            prepared, run_dir, contract = materialize_fixture(
+                directory, runtime_overrides={"frozen_test_metrics": {}}
+            )
+            with self.assertRaisesRegex(ValueError, "runtime.*fields"):
+                FIT.load_verified_feature_run(
+                    run_dir,
+                    prepared=prepared,
+                    preregistration_contract=contract,
+                )
+
+        with tempfile.TemporaryDirectory() as directory:
+            prepared, run_dir, contract = materialize_fixture(directory)
+            contract["generator_provenance"] = dict(
+                contract["generator_provenance"],
+                runtime_assets_sha256="f" * 64,
+            )
+            with self.assertRaisesRegex(ValueError, "runtime.*SHA"):
                 FIT.load_verified_feature_run(
                     run_dir,
                     prepared=prepared,
