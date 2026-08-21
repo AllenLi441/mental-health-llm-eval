@@ -191,18 +191,33 @@ def is_better_dev(
     """Apply the frozen pilot tie-break: Macro-F1, accuracy, then lower CE."""
 
     if incumbent is None:
+        _validated_dev_selection_key(candidate)
         return True
-    candidate_key = (
-        float(candidate["macro_f1"]),
-        float(candidate["accuracy"]),
-        -float(candidate["selection_loss"]),
-    )
-    incumbent_key = (
-        float(incumbent["macro_f1"]),
-        float(incumbent["accuracy"]),
-        -float(incumbent["selection_loss"]),
-    )
+    candidate_key = _validated_dev_selection_key(candidate)
+    incumbent_key = _validated_dev_selection_key(incumbent)
     return candidate_key > incumbent_key
+
+
+def _validated_dev_selection_key(metrics: Mapping[str, float]) -> tuple[float, ...]:
+    try:
+        macro_f1 = float(metrics["macro_f1"])
+        accuracy = float(metrics["accuracy"])
+        selection_loss = float(metrics["selection_loss"])
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("dev metric selection fields are invalid") from error
+    if (
+        not all(math.isfinite(value) for value in (macro_f1, accuracy, selection_loss))
+        or not 0.0 <= macro_f1 <= 1.0
+        or not 0.0 <= accuracy <= 1.0
+        or selection_loss < 0.0
+    ):
+        raise ValueError("dev metric values are nonfinite or outside valid bounds")
+    candidate_key = (
+        macro_f1,
+        accuracy,
+        -selection_loss,
+    )
+    return candidate_key
 
 
 def optimizer_parameter_groups(
@@ -283,11 +298,11 @@ def metrics_from_ids(
 
     if len(gold_ids) != len(predicted_ids) or not gold_ids:
         raise ValueError("gold and prediction ids must have the same non-zero length")
-    if any(
-        isinstance(value, bool) or not 0 <= int(value) < len(EMODYNAMIX_ID_TO_CANONICAL)
-        for value in [*gold_ids, *predicted_ids]
-    ):
-        raise ValueError("metric ids must be valid EmoDynamiX class ids")
+    metric_ids = [*gold_ids, *predicted_ids]
+    if any(type(value) is not int for value in metric_ids):
+        raise ValueError("metric ids must be strict integers")
+    if any(not 0 <= value < len(EMODYNAMIX_ID_TO_CANONICAL) for value in metric_ids):
+        raise ValueError("metric integer ids must be valid EmoDynamiX classes")
     if any(
         not math.isfinite(float(value))
         for value in (objective_loss, selection_loss)
