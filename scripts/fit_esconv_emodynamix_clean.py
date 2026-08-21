@@ -11,7 +11,10 @@ import argparse
 import hashlib
 import json
 import math
+import os
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -812,6 +815,108 @@ def run_training_epochs(
         "actual_optimizer_updates": actual_updates,
         "actual_scheduler_steps": actual_scheduler_steps,
         "stop_reason": stop_reason,
+    }
+
+
+def _pretty_json_bytes(value: Any) -> bytes:
+    return (
+        json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+
+
+def write_training_artifacts(
+    output_dir: Path,
+    *,
+    model_state_dict: Mapping[str, Any],
+    manifest_base: Mapping[str, Any],
+    run_status: str,
+) -> dict[str, Any]:
+    """Atomically publish a safe state-dict checkpoint and hash-closed receipt."""
+
+    import torch
+
+    allowed_statuses = {
+        "DEVELOPMENTAL_SMOKE_NOT_SELECTABLE",
+        "DEV_PILOT_CANDIDATE_NOT_FROZEN_TESTED",
+    }
+    if run_status not in allowed_statuses:
+        raise ValueError("training artifact run status is unsupported")
+    output_dir = Path(output_dir)
+    if not output_dir.is_absolute():
+        raise ValueError("training output directory must be absolute")
+    if output_dir.exists() or output_dir.is_symlink():
+        raise FileExistsError(f"training output directory already exists: {output_dir}")
+    if manifest_base.get("task_checkpoint_sha256", "MISSING") is not None:
+        raise ValueError("clean training manifest must forbid task checkpoint initialization")
+    if not model_state_dict:
+        raise ValueError("model state dict must not be empty")
+    safe_state: dict[str, Any] = {}
+    for name, tensor in model_state_dict.items():
+        if not isinstance(name, str) or not name or not torch.is_tensor(tensor):
+            raise ValueError("model state dict must map names to tensors")
+        safe_state[name] = tensor.detach().cpu().clone()
+
+    output_dir.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(
+        tempfile.mkdtemp(
+            prefix=f".{output_dir.name}.staging-", dir=str(output_dir.parent)
+        )
+    )
+    try:
+        checkpoint_path = staging / "best_model.pt"
+        manifest_path = staging / "training_manifest.json"
+        receipt_path = staging / "artifact_receipt.json"
+        checkpoint = {
+            "checkpoint_schema_version": "clean-emodynamix-state-dict-v1",
+            "label_order": list(EMODYNAMIX_ID_TO_CANONICAL),
+            "model_state_dict": safe_state,
+        }
+        torch.save(checkpoint, checkpoint_path)
+        checkpoint_sha = _sha256_bytes(checkpoint_path.read_bytes())
+
+        manifest = dict(manifest_base)
+        manifest.update(
+            {
+                "schema_version": "clean-emodynamix-training-manifest-v1",
+                "status": run_status,
+                "checkpoint_filename": checkpoint_path.name,
+                "checkpoint_sha256": checkpoint_sha,
+                "checkpoint_format": "pytorch_state_dict_weights_only_v1",
+                "label_order": list(EMODYNAMIX_ID_TO_CANONICAL),
+                "task_checkpoint_sha256": None,
+                "selectable_model_produced": (
+                    run_status == "DEV_PILOT_CANDIDATE_NOT_FROZEN_TESTED"
+                ),
+                "frozen_leaderboard_eligible": False,
+                "frozen_test_accessed": False,
+            }
+        )
+        manifest_payload = _pretty_json_bytes(manifest)
+        manifest_path.write_bytes(manifest_payload)
+        manifest_sha = _sha256_bytes(manifest_payload)
+        receipt = {
+            "schema_version": "clean-emodynamix-artifact-receipt-v1",
+            "status": run_status,
+            "checkpoint_filename": checkpoint_path.name,
+            "checkpoint_sha256": checkpoint_sha,
+            "training_manifest_filename": manifest_path.name,
+            "training_manifest_sha256": manifest_sha,
+            "frozen_test_accessed": False,
+        }
+        receipt_path.write_bytes(_pretty_json_bytes(receipt))
+        if output_dir.exists():
+            raise FileExistsError(
+                f"training output directory appeared before publish: {output_dir}"
+            )
+        os.rename(staging, output_dir)
+    except Exception:
+        if staging.exists():
+            shutil.rmtree(staging)
+        raise
+    return {
+        "output_dir": str(output_dir),
+        "training_manifest": manifest,
+        "artifact_receipt": receipt,
     }
 
 
