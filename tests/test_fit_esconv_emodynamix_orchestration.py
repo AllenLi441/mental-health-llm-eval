@@ -148,6 +148,10 @@ class CleanTrainingOrchestrationTests(unittest.TestCase):
                     "metrics_sha256",
                 },
             )
+            self.assertTrue(manifest["checkpoint_reload_audit"]["strict"])
+            self.assertTrue(manifest["checkpoint_reload_audit"]["weights_only"])
+            self.assertEqual(manifest["checkpoint_reload_audit"]["missing_keys"], [])
+            self.assertEqual(manifest["checkpoint_reload_audit"]["unexpected_keys"], [])
 
     def test_pilot_rejects_unverified_features_or_unfrozen_execution(self):
         prepared, features = sample_prepared_and_features()
