@@ -121,11 +121,13 @@ class FeatureGenerationContractTests(unittest.TestCase):
     def test_fake_runtime_generates_sorted_label_free_valid_feature_rows(self):
         runtime = FakeFeatureRuntime()
         rows = sample_input_rows()
+        progress = []
         generated = FEATURES.generate_verified_feature_rows(
             rows,
             runtime=runtime,
             generator_manifest_sha256="a" * 64,
             batch_size=2,
+            progress_callback=progress.append,
         )
 
         self.assertEqual(len(generated), 2)
@@ -147,6 +149,7 @@ class FeatureGenerationContractTests(unittest.TestCase):
                 self.assertNotIn(forbidden, serialized)
         self.assertEqual(len(runtime.dialogues), 2)
         self.assertEqual(len(runtime.erc_contexts), 2)
+        self.assertEqual(progress, [{"completed": 2, "total": 2}])
 
     def test_generator_manifest_binds_every_model_and_implementation_asset(self):
         receipt = {
