@@ -35,29 +35,6 @@ DEFAULT_ASSET_ROOT = (
 )
 DEFAULT_BASE_MODEL = ROOT / "tmp/official_benchmarks/roberta-base-e2da-materialized"
 DEFAULT_RUN_DIR = ROOT / "tmp/emodynamix-clean-features/canonical-train-dev-v1"
-SDDP_CONTEXT_BOUND_PARITY = {
-    "upstream_max_num_contexts": 37,
-    "clean_max_num_contexts": 5,
-    "sample_count": 8,
-    "sample_input_sha256_in_original_order": [
-        "3931953af24155880cf6630f9f3537a65c35e648f34f060126a1f26f5ef3dd2c",
-        "d39254473ef66b2f66b3d7618514528305d93d085257526b61de41634f37abbf",
-        "f7d9fbc80c1301c3b52eff61e1e91d816d4468ba260e7708019ed80be41197ec",
-        "e897a89889aa684e489ee9241e02d288dfabfa77bc939d2c42a59923bf9352c0",
-        "9ecea775b7ff5d8d2c8391d86fdf8f0737337ae7a42d2876f9cfbb5f04d2660d",
-        "f69b5f404c47339e9efe21c3428bbe4523caa82cca9c272a21c4a19474adb5ca",
-        "86e042f90d9b1d8ab10060cdf9a9d8e4108566e7b03619507f9067a6ac1bfc53",
-        "693cac3365af60f195cfd39b095abaf7282526e093f5309e156f6b61d01d3c39",
-    ],
-    "sorted_input_edge_mapping_sha256": (
-        "0814522b9d9c4b6bc17744efa8423eff9256161b8c5fa50a829fe309be1dd9fe"
-    ),
-    "max_37_equals_max_5": True,
-    "mps_fallback_disabled": True,
-    "scope": "developmental parity audit on canonical clean-train inputs",
-}
-
-
 def _canonical_json_bytes(value: Any, *, pretty: bool = False) -> bytes:
     if pretty:
         rendered = json.dumps(
@@ -110,6 +87,7 @@ def execute_feature_materialization(
         runtime_receipt=runtime_receipt,
         implementation_sha256=FEATURES.sha256_file(feature_implementation_path),
         device=str(runtime_receipt["device"]),
+        batch_size=batch_size,
     )
     generator_manifest.update(
         {
@@ -121,7 +99,6 @@ def execute_feature_materialization(
                 [row["model_input_sha256"] for row in unique_inputs]
             ),
             "unique_input_count": len(unique_inputs),
-            "sddp_context_bound_parity": SDDP_CONTEXT_BOUND_PARITY,
         }
     )
     manifest_sha = FEATURES.generator_manifest_sha256(generator_manifest)
@@ -158,6 +135,7 @@ def execute_feature_materialization(
         "training_records": len(prepared["train_records"]),
         "development_records": len(prepared["dev_records"]),
         "feature_rows": len(feature_rows),
+        "feature_batch_size": batch_size,
         "feature_table_sha256": feature_table_sha,
         "features_jsonl_sha256": hashlib.sha256(features_payload).hexdigest(),
         "generator_manifest_sha256": manifest_sha,
@@ -259,6 +237,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     device = _resolve_device(args.device)
+    FEATURES.validate_generation_environment(device)
     runtime, receipt = FEATURES.load_verified_feature_runtime(
         upstream_repo=args.upstream_repo,
         asset_root=args.asset_root,

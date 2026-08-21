@@ -11,6 +11,7 @@ import hashlib
 import importlib
 import json
 import math
+import os
 import platform
 import re
 import subprocess
@@ -22,6 +23,7 @@ from typing import Any, Callable, Sequence
 UPSTREAM_COMMIT = "c9213d718a9684a5e05ce5daa947f9cbbfb7b927"
 FEATURE_SCHEMA_VERSION = "esconv-emodynamix-causal-feature-v1"
 VERIFIED_FEATURE_BACKEND = "verified_upstream_sddp_erc_v1"
+AUTHOR_SDDP_MAX_NUM_CONTEXTS = 37
 EXPECTED_ASSETS = {
     "erc_weights_sha256": (
         "5cf62bb54f97e09302b0c78dcdb2cdb2a7b1c96e761586b340746c0c8f614edf"
@@ -127,6 +129,7 @@ def build_generator_manifest(
     runtime_receipt: dict[str, Any],
     implementation_sha256: str,
     device: str,
+    batch_size: int,
 ) -> dict[str, Any]:
     _require_sha256(implementation_sha256, "feature implementation SHA")
     required_runtime = {
@@ -136,16 +139,23 @@ def build_generator_manifest(
         "sddp_tree_sha256",
         "sddp_weights_sha256",
         "erc_weights_sha256",
+        "sddp_max_num_contexts",
     }
     missing = sorted(required_runtime - set(runtime_receipt))
     if missing:
         raise ValueError(f"runtime receipt lacks required assets: {missing}")
-    for field in required_runtime - {"upstream_commit"}:
+    for field in required_runtime - {"upstream_commit", "sddp_max_num_contexts"}:
         _require_sha256(runtime_receipt[field], field)
     if runtime_receipt["upstream_commit"] != UPSTREAM_COMMIT:
         raise ValueError("runtime receipt upstream commit mismatch")
     if device not in {"cpu", "mps", "cuda"}:
         raise ValueError("feature device must be cpu, mps, or cuda")
+    if runtime_receipt["sddp_max_num_contexts"] != AUTHOR_SDDP_MAX_NUM_CONTEXTS:
+        raise ValueError(
+            "author-faithful feature generation requires SDDP max_num_contexts=37"
+        )
+    if isinstance(batch_size, bool) or not isinstance(batch_size, int) or batch_size < 1:
+        raise ValueError("feature batch_size must be a positive integer")
     return {
         "schema_version": "esconv-emodynamix-feature-generator-v1",
         "feature_schema_version": FEATURE_SCHEMA_VERSION,
@@ -153,6 +163,9 @@ def build_generator_manifest(
         "implementation_sha256": implementation_sha256,
         "runtime_assets": runtime_receipt,
         "device": device,
+        "feature_batch_size": batch_size,
+        "sddp_max_num_contexts": AUTHOR_SDDP_MAX_NUM_CONTEXTS,
+        "sddp_context_contract": "author_faithful_upstream_max_num_contexts_37",
         "causal_input_key": "model_input_sha256",
         "target_or_label_fields": [],
         "erc_cache_semantics": "upstream_post_softmax_probabilities",
@@ -162,6 +175,20 @@ def build_generator_manifest(
         "feature_keys_unique": True,
         "selectable_without_manifest_verification": False,
     }
+
+
+def validate_generation_environment(device: str) -> dict[str, bool | None]:
+    """Fail closed when an MPS run could silently execute unsupported ops on CPU."""
+
+    if device not in {"cpu", "mps", "cuda"}:
+        raise ValueError("feature device must be cpu, mps, or cuda")
+    if device == "mps":
+        if os.environ.get("PYTORCH_ENABLE_MPS_FALLBACK") != "0":
+            raise ValueError(
+                "MPS feature generation requires PYTORCH_ENABLE_MPS_FALLBACK=0"
+            )
+        return {"mps_fallback_disabled": True}
+    return {"mps_fallback_disabled": None}
 
 
 def generator_manifest_sha256(manifest: dict[str, Any]) -> str:
@@ -398,6 +425,7 @@ def load_verified_feature_runtime(
 
     from open_response_eval.esconv_emodynamix_model import _validate_base_model_tree
 
+    generation_environment = validate_generation_environment(device)
     upstream_repo = Path(upstream_repo)
     asset_root = Path(asset_root)
     base_model_path = Path(base_model_path)
@@ -455,9 +483,7 @@ def load_verified_feature_runtime(
     )
     parser.device = torch_device
     parser.max_contexts_length = 48
-    # Five is the maximum clean canonical history. This avoids constructing
-    # dummy pairs for the upstream general-purpose limit of 37.
-    parser.max_num_contexts = 5
+    parser.max_num_contexts = AUTHOR_SDDP_MAX_NUM_CONTEXTS
     parser.tokenizer = sddp_module.AutoTokenizer.from_pretrained(
         str(sddp_root), local_files_only=True
     )
@@ -527,7 +553,8 @@ def load_verified_feature_runtime(
         **actual_assets,
         "device": device,
         "sddp_max_contexts_length": 48,
-        "sddp_max_num_contexts": 5,
+        "sddp_max_num_contexts": AUTHOR_SDDP_MAX_NUM_CONTEXTS,
+        **generation_environment,
         "safe_weights_only": True,
         "mmap": True,
         "dependencies": {
