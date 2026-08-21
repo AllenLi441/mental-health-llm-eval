@@ -86,6 +86,28 @@ class CleanTrainingArtifactTests(unittest.TestCase):
             )
             self.assertEqual(result["artifact_receipt"], receipt)
 
+            class ReloadTarget(torch.nn.Module):
+                def __init__(self):
+                    super().__init__()
+                    self.classifier = torch.nn.Linear(3, 4)
+
+            target = ReloadTarget()
+            reload_audit = FIT.load_training_checkpoint_strict(
+                output_dir / "best_model.pt",
+                expected_sha256=manifest["checkpoint_sha256"],
+                model=target,
+            )
+            self.assertEqual(reload_audit["missing_keys"], [])
+            self.assertEqual(reload_audit["unexpected_keys"], [])
+            for name, tensor in state.items():
+                self.assertTrue(torch.equal(target.state_dict()[name], tensor))
+            with self.assertRaisesRegex(ValueError, "checkpoint SHA"):
+                FIT.load_training_checkpoint_strict(
+                    output_dir / "best_model.pt",
+                    expected_sha256="f" * 64,
+                    model=ReloadTarget(),
+                )
+
     def test_existing_output_directory_is_never_overwritten(self):
         with tempfile.TemporaryDirectory() as directory:
             output_dir = Path(directory) / "run"
