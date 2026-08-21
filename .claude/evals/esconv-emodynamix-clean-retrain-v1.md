@@ -51,6 +51,10 @@ test without inheriting the released checkpoint's split contamination.
       strategy, bind the SDDP/ERC implementation and weight hashes, and reject
       missing, duplicate-key, extra, or mutated feature rows. Record-level
       duplicate inputs remain valid and join many-to-one to a feature key.
+- [ ] The selectable author-faithful control uses the upstream SDDP
+      `max_num_contexts=37`. A smaller contextualization width is an ablation
+      unless exact parity has been established for every one of the 11,366
+      canonical train/dev feature keys.
 - [x] A synthetic/structural fixture backend is permitted only for tests and
       explicitly labelled smoke runs; it can never produce a selectable model.
 
@@ -63,7 +67,10 @@ test without inheriting the released checkpoint's split contamination.
       or forward input for the current gold label/response.
 - [x] Base model loading is local-tree-only and SHA-256 bound; remote ids,
       symlinks, and the released EmoDynamiX task checkpoint are rejected.
-- [ ] CE and train-only class-balanced/logit-adjusted objectives use complete
+- [ ] The primary control reproduces the author's train-only class weighting:
+      `softmax((((N / 8) / class_count) / 1.75))`; weighted loss is normalized
+      once over the complete optimizer accumulation window.
+- [ ] CE and train-only class-balanced/logit-adjusted ablations use complete
       accumulation-window normalization and are covered by analytic tests.
 
 ### C4. Train/dev-only execution
@@ -72,8 +79,10 @@ test without inheriting the released checkpoint's split contamination.
       require explicit `--execute`.
 - [ ] Training never instantiates or loads a test dataset and never invokes an
       automatic test method after selecting a dev checkpoint.
-- [ ] Dev Macro-F1 is primary selection, dev Accuracy secondary, and lower dev
-      loss tertiary; every epoch reports all three plus Weighted-F1.
+- [ ] Dev Macro-F1 is primary selection, dev Accuracy secondary, and lower
+      raw-logit unweighted CE is tertiary; every epoch separately reports that
+      cross-arm `selection_loss`, the arm-specific `objective_loss`, and
+      Weighted-F1.
 - [ ] Checkpoint and manifest bind data, features, base tree, implementation,
       optimizer, loss, dependencies, git state, selected dev metrics, and all
       artifact SHA-256 values.
