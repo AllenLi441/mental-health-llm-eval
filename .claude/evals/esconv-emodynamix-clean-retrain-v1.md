@@ -67,26 +67,26 @@ test without inheriting the released checkpoint's split contamination.
       or forward input for the current gold label/response.
 - [x] Base model loading is local-tree-only and SHA-256 bound; remote ids,
       symlinks, and the released EmoDynamiX task checkpoint are rejected.
-- [ ] The primary control reproduces the author's train-only class weighting:
+- [x] The primary control reproduces the author's train-only class weighting:
       `softmax((((N / 8) / class_count) / 1.75))`; weighted loss is normalized
       once over the complete optimizer accumulation window.
-- [ ] CE and train-only class-balanced/logit-adjusted ablations use complete
+- [x] CE and train-only class-balanced/logit-adjusted ablations use complete
       accumulation-window normalization and are covered by analytic tests.
 
 ### C4. Train/dev-only execution
 
-- [ ] Audit is the default; model loading, optimizer steps, and artifact writes
+- [x] Audit is the default; model loading, optimizer steps, and artifact writes
       require explicit `--execute`.
-- [ ] Training never instantiates or loads a test dataset and never invokes an
+- [x] Training never instantiates or loads a test dataset and never invokes an
       automatic test method after selecting a dev checkpoint.
-- [ ] Dev Macro-F1 is primary selection, dev Accuracy secondary, and lower
+- [x] Dev Macro-F1 is primary selection, dev Accuracy secondary, and lower
       raw-logit unweighted CE is tertiary; every epoch separately reports that
       cross-arm `selection_loss`, the arm-specific `objective_loss`, and
       Weighted-F1.
 - [ ] Checkpoint and manifest bind data, features, base tree, implementation,
       optimizer, loss, dependencies, git state, selected dev metrics, and all
       artifact SHA-256 values.
-- [ ] Any fixture-feature run is marked `DEVELOPMENTAL_SMOKE_NOT_SELECTABLE`;
+- [x] Any fixture-feature run is marked `DEVELOPMENTAL_SMOKE_NOT_SELECTABLE`;
       only verified SDDP/ERC features can enter a full dev pilot.
 
 ## Regression evals
