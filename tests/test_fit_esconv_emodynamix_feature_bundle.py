@@ -4,7 +4,10 @@ import json
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -156,6 +159,63 @@ class FeatureBundleGateTests(unittest.TestCase):
                     prepared=prepared,
                     preregistration_contract=contract,
                 )
+
+    def test_smoke_contract_is_derived_from_exact_summary_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            _prepared, run_dir, expected = materialize_fixture(directory)
+            contract = FIT.derive_smoke_feature_contract(run_dir)
+            self.assertEqual(contract, expected)
+
+    def test_main_smoke_loads_feature_bundle_only_after_execute(self):
+        with tempfile.TemporaryDirectory() as directory:
+            prepared, run_dir, contract = materialize_fixture(directory)
+            output_dir = Path(directory) / "training-run"
+            output = StringIO()
+            fake_features = {"k": {"feature": True}}
+            fake_audit = {
+                "feature_run_summary_sha256": contract["feature_run_summary_sha256"],
+                "verified_upstream_features": True,
+            }
+            fake_result = {
+                "training": {"best_epoch": 1},
+                "output_dir": str(output_dir),
+                "artifact_receipt": {"checkpoint_sha256": "c" * 64},
+            }
+            with mock.patch(
+                "scripts.train_esconv_emodynamix_clean.prepare_canonical_data",
+                return_value=prepared,
+            ), mock.patch.object(
+                FIT,
+                "load_verified_feature_run",
+                return_value=(fake_features, fake_audit),
+            ) as load_bundle, mock.patch.object(
+                FIT, "train_emodynamix", return_value=fake_result
+            ) as train, redirect_stdout(output):
+                result = FIT.main(
+                    [
+                        "--execute",
+                        "--mode",
+                        "smoke",
+                        "--device",
+                        "cpu",
+                        "--feature-run-dir",
+                        str(run_dir),
+                        "--output-dir",
+                        str(output_dir),
+                    ]
+                )
+
+            self.assertEqual(result, 0)
+            load_bundle.assert_called_once()
+            self.assertEqual(
+                load_bundle.call_args.kwargs["preregistration_contract"], contract
+            )
+            train.assert_called_once()
+            execution = train.call_args.kwargs["execution_provenance"]
+            self.assertFalse(execution["execution_validated"])
+            self.assertEqual(execution["protocol_id"], "developmental-smoke-only")
+            printed = json.loads(output.getvalue())
+            self.assertEqual(printed["training"]["best_epoch"], 1)
 
 
 if __name__ == "__main__":
