@@ -302,6 +302,27 @@ class SelectionAndOptimizerTests(unittest.TestCase):
         )
         self.assertEqual(TRAINER.prediction_ids_from_raw_logits(raw_logits), [0])
 
+    def test_metrics_and_selector_reject_nonfinite_or_noninteger_values(self):
+        for bad_ids in ([1.2], ["1"], [True]):
+            with self.subTest(bad_ids=bad_ids):
+                with self.assertRaisesRegex(ValueError, "integer"):
+                    TRAINER.metrics_from_ids(
+                        bad_ids,
+                        [0],
+                        objective_loss=0.7,
+                        selection_loss=0.9,
+                    )
+        incumbent = {"macro_f1": 0.3, "accuracy": 0.4, "selection_loss": 1.2}
+        for candidate in (
+            {"macro_f1": float("nan"), "accuracy": 0.4, "selection_loss": 1.2},
+            {"macro_f1": 1.1, "accuracy": 0.4, "selection_loss": 1.2},
+            {"macro_f1": 0.3, "accuracy": -0.1, "selection_loss": 1.2},
+            {"macro_f1": 0.3, "accuracy": 0.4, "selection_loss": float("inf")},
+        ):
+            with self.subTest(candidate=candidate):
+                with self.assertRaisesRegex(ValueError, "dev metric"):
+                    TRAINER.is_better_dev(candidate, incumbent)
+
 
 class CliBoundaryTests(unittest.TestCase):
     def test_cli_defaults_to_audit_and_has_no_test_input(self):
