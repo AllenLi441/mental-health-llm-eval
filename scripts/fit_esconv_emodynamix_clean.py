@@ -1098,6 +1098,7 @@ def validate_training_execution(
     mode = getattr(args, "mode", None)
     if mode not in {"smoke", "pilot"}:
         raise ValueError("training execution mode must be smoke or pilot")
+    _validate_training_output_preflight(getattr(args, "output_dir", None))
     features = feature_run.get("features_by_input_sha256")
     audit = feature_run.get("audit")
     if not isinstance(features, dict) or not features or not isinstance(audit, dict):
@@ -1139,6 +1140,31 @@ def validate_pilot_preregistration_document(
     protocol_id = "jingshi-esconv-emodynamix-clean-dev-pilot-v1"
     if not isinstance(document, dict):
         raise ValueError("pilot preregistration must be a JSON object")
+    expected_document_fields = {
+        "schema_version",
+        "protocol_id",
+        "parent_protocol_id",
+        "status",
+        "frozen_at",
+        "frozen_test_policy",
+        "data_contract",
+        "feature_run_contract",
+        "base_model_contract",
+        "source_code_contract",
+        "shared_training",
+        "arms",
+        "selection",
+    }
+    unknown_fields = sorted(set(document) - expected_document_fields)
+    missing_fields = sorted(expected_document_fields - set(document))
+    if unknown_fields:
+        raise ValueError(
+            f"pilot preregistration has unknown fields: {unknown_fields}"
+        )
+    if missing_fields:
+        raise ValueError(
+            f"pilot preregistration is missing fields: {missing_fields}"
+        )
     if (
         document.get("schema_version") != protocol_id
         or document.get("protocol_id") != protocol_id
@@ -1232,6 +1258,8 @@ def validate_pilot_preregistration_document(
     ):
         raise ValueError("pilot output contract is invalid")
     expected_output = (ROOT / output_relative).resolve()
+    if not Path(args.output_dir).is_absolute():
+        raise ValueError("pilot output directory must be absolute")
     if Path(args.output_dir).resolve() != expected_output:
         raise ValueError("pilot output directory differs from the authorized arm")
     if selected_arm != {
@@ -1402,11 +1430,93 @@ def _linear_warmup_scheduler(optimizer, *, warmup_updates: int, total_updates: i
 
     def multiplier(step: int) -> float:
         if warmup_updates and step < warmup_updates:
-            return float(step + 1) / float(warmup_updates)
+            return float(step) / float(warmup_updates)
         decay_steps = max(total_updates - warmup_updates, 1)
         return max(0.0, float(total_updates - step) / float(decay_steps))
 
     return torch.optim.lr_scheduler.LambdaLR(optimizer, multiplier)
+
+
+def training_schedule_plan(
+    *,
+    microbatch_count: int,
+    gradient_accumulation_steps: int,
+    epochs: int,
+    max_updates: int,
+    warmup_updates: int,
+) -> dict[str, int]:
+    """Freeze scheduler capacity separately from an early execution cap."""
+
+    integer_fields = {
+        "microbatch_count": microbatch_count,
+        "gradient_accumulation_steps": gradient_accumulation_steps,
+        "epochs": epochs,
+        "max_updates": max_updates,
+    }
+    for name, value in integer_fields.items():
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise ValueError(f"{name} must be a positive integer")
+    if (
+        isinstance(warmup_updates, bool)
+        or not isinstance(warmup_updates, int)
+        or warmup_updates < 0
+    ):
+        raise ValueError("warmup_updates must be a non-negative integer")
+    updates_per_epoch = math.ceil(
+        microbatch_count / gradient_accumulation_steps
+    )
+    total_schedule_updates = epochs * updates_per_epoch
+    return {
+        "updates_per_epoch": updates_per_epoch,
+        "total_schedule_updates": total_schedule_updates,
+        "execution_update_cap": max_updates,
+        "planned_execution_updates": min(max_updates, total_schedule_updates),
+        "warmup_updates": min(warmup_updates, total_schedule_updates),
+    }
+
+
+def _validate_training_output_preflight(output_dir: Any) -> Path:
+    """Reject an unusable output target before loading a model or optimizer."""
+
+    if output_dir is None:
+        raise ValueError("training output directory is required")
+    path = Path(output_dir)
+    if not path.is_absolute():
+        raise ValueError("training output directory must be absolute")
+    if path.exists() or path.is_symlink():
+        raise FileExistsError(
+            f"training output directory already exists: {path}"
+        )
+    for ancestor in path.parents:
+        if ancestor.is_symlink():
+            raise ValueError(
+                f"training output directory has a symlink ancestor: {ancestor}"
+            )
+        if ancestor.exists() and not ancestor.is_dir():
+            raise ValueError(
+                f"training output ancestor is not a directory: {ancestor}"
+            )
+    if path.resolve(strict=False) != path:
+        raise ValueError("training output directory must be canonical")
+    return path
+
+
+def _training_dependency_receipt() -> dict[str, str]:
+    import platform
+
+    import numpy
+    import torch
+    import torch_geometric
+    import transformers
+
+    return {
+        "python": platform.python_version(),
+        "platform": platform.platform(),
+        "torch": str(torch.__version__),
+        "transformers": str(transformers.__version__),
+        "torch_geometric": str(torch_geometric.__version__),
+        "numpy": str(numpy.__version__),
+    }
 
 
 def _json_safe(value: Any) -> Any:
@@ -1497,17 +1607,20 @@ def train_emodynamix(
         optimizer_groups,
         lr=args.learning_rate,
         betas=(0.9, 0.999),
-        eps=1e-8,
+        eps=1e-6,
         amsgrad=False,
     )
-    updates_per_epoch = math.ceil(
-        len(train_loader) / args.gradient_accumulation_steps
+    schedule_plan = training_schedule_plan(
+        microbatch_count=len(train_loader),
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        epochs=args.epochs,
+        max_updates=args.max_updates,
+        warmup_updates=args.warmup_updates,
     )
-    planned_updates = min(args.max_updates, args.epochs * updates_per_epoch)
     scheduler = _linear_warmup_scheduler(
         optimizer,
-        warmup_updates=min(args.warmup_updates, planned_updates),
-        total_updates=planned_updates,
+        warmup_updates=schedule_plan["warmup_updates"],
+        total_updates=schedule_plan["total_schedule_updates"],
     )
     best_state: dict[str, Any] = {}
 
@@ -1562,10 +1675,18 @@ def train_emodynamix(
             "name": "torch.optim.AdamW",
             "learning_rate": args.learning_rate,
             "betas": [0.9, 0.999],
-            "eps": 1e-8,
+            "eps": 1e-6,
             "amsgrad": False,
             "parameter_groups": optimizer_audit,
         },
+        "scheduler": {
+            "name": "huggingface_linear_warmup_decay_compatible_v1",
+            "step_order": "optimizer_then_scheduler",
+            "stepping_unit": "optimizer_update",
+            **schedule_plan,
+            "actual_scheduler_steps": training_result["actual_scheduler_steps"],
+        },
+        "training_dependencies": _training_dependency_receipt(),
         "training_configuration": _json_safe(vars(args)),
         "training_result": training_result,
         "best_epoch": training_result["best_epoch"],

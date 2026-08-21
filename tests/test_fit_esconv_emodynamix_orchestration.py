@@ -90,7 +90,7 @@ class CleanTrainingOrchestrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             args = argparse.Namespace(
                 mode="smoke",
-                output_dir=Path(directory) / "run",
+                output_dir=Path(directory).resolve() / "run",
                 base_model_dir=Path(directory) / "fake-base",
                 expected_base_tree_sha256="b" * 64,
                 device="cpu",
