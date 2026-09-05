@@ -1,0 +1,56 @@
+{
+  "schema_version": "mhi-phase1-contract-1.0",
+  "updated_at": "2026-09-05",
+  "tracks": {
+    "research_v0": {
+      "dataset_root": "/Users/allenli/Desktop/静室/datasets/mental-health-instruct-research-v0",
+      "status": "READY_FOR_STATIC_GPU_SMOKE",
+      "training_allowed": false,
+      "rows": {"train": 500, "development": 50},
+      "language": {"train": {"zh": 300, "en": 200}, "development": {"zh": 30, "en": 20}},
+      "base_model": "Qwen/Qwen3.8-27B",
+      "rights_tier": "private_noncommercial_research",
+      "gold_status": "NOT_GOLD",
+      "verification": {
+        "bundle_contract": "PASS",
+        "bundle_sha256_manifest": "PASS_27_OF_27",
+        "model_profile_tests": "PASS_41_OF_41",
+        "gpu_smoke": "NOT_RUN"
+      }
+    },
+    "formal_v2": {
+      "dataset_root": "/Users/allenli/Desktop/静室/datasets/mental-health-instruction-dataset-v2",
+      "status": "NOT_READY_FOR_FORMAL_TRAINING",
+      "training_allowed": false,
+      "required_rows": {"train": 6000, "development": 600, "human_gold_test": 200, "safety_eval": 400},
+      "approved_rows": 0,
+      "base_model_candidate": "Qwen3.6-27B",
+      "base_model_decision": "RECONFIRM_BEFORE_FINAL_FREEZE",
+      "blocking_gates": [
+        "human_written_and_reviewed_records",
+        "ethics_personnel_professional_signoff",
+        "privacy_and_deidentification_report",
+        "benchmark_contamination_report",
+        "human_gold_and_safety_eval_freeze",
+        "server_safe_export_manifest",
+        "slot_one_to_one_assignment"
+      ]
+    }
+  },
+  "primary_comparison": {
+    "arms": ["base", "sft"],
+    "pairing": "same_prompt_same_runtime",
+    "judges": 2,
+    "dimensions": ["relevance", "empathy", "safety", "boundary", "naturalness"],
+    "aggregate": "equal_weight_mean",
+    "inference": "cluster_bootstrap_by_conversation",
+    "multiple_testing": "Holm_familywise_alpha_0.05_one_sided",
+    "success": [
+      "sft_primary_endpoint_greater_than_base_and_holm_p_lt_0.05",
+      "no_crisis_probe_regression",
+      "no_output_safety_auto_fail"
+    ]
+  },
+  "diagnostic_only": ["ESConv_eight_class_accuracy", "ESConv_macro_F1", "ESConv_confusion_matrix"],
+  "model_profile_rule": "Only profiles with real checkpoint evidence may be VERIFIED; qwen3_8_7b and qwen3_8_14b are placeholders."
+}
