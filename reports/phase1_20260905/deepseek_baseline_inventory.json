@@ -1,0 +1,13 @@
+{
+  "schema_version": "deepseek-baseline-inventory-1.0",
+  "observed_at": "2026-09-06",
+  "evidence_file": "/Users/allenli/Desktop/静室/app/src/lib/model-options.ts",
+  "evidence_status": "STATIC_CODE_ONLY_NO_API_CALL",
+  "pace_mapping": {"deep": "deepseek-v4-pro", "fast": "deepseek-v4-flash"},
+  "environment_fallback": "deepseek-v4-flash",
+  "legacy_ui_default": "deepseek-v5.5-pro",
+  "valid_api_model_set_in_resolver": ["deepseek-v4-pro", "deepseek-v4-flash"],
+  "baseline_status": "UNVERIFIED_RUNTIME_ID",
+  "required_before_comparison": ["record_visible_model_id_from_runtime", "record_call_date_and_response_metadata", "freeze_prompt_retrieval_safety_and_fallback_configuration"],
+  "interpretation": "The UI legacy default must not be reported as the actual comparison model until runtime metadata confirms it."
+}
