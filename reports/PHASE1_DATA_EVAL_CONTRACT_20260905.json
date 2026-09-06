@@ -1,5 +1,6 @@
 {
-  "schema_version": "mhi-phase1-contract-1.0",
+  "schema_version": "mhi-phase1-contract-1.0-superseded",
+  "superseded_by": "reports/phase1_20260905/contract_v1_1.json",
   "updated_at": "2026-09-05",
   "tracks": {
     "research_v0": {

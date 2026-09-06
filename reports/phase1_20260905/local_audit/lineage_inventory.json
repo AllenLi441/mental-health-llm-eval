@@ -1,0 +1,252 @@
+{
+  "schema_version": "phase1-lineage-inventory-1.0",
+  "observed_at_utc": "2026-09-06T04:48:24.044466+00:00",
+  "git_base_commit": "328f4b00d22710e137645b8fc493e704d244d69c",
+  "python_version": "3.10.4",
+  "audit_script_sha256": "cb3ab90b7ea8ef01ffb29c83183de1d7117cf1bedb3bf1d972a068e31273051c",
+  "checks": {
+    "research_contract": {
+      "command": [
+        "/Library/Frameworks/Python.framework/Versions/3.10/bin/python3",
+        "scripts/verify_bundle_contract.py"
+      ],
+      "cwd": "mental-health-instruct-research-v0",
+      "exit_code": 0,
+      "log": "research_contract.log",
+      "log_sha256": "3da3a4c1acea5477e88b924580c4c3dc5a167bd58717ebbd31de5fadd625041b"
+    },
+    "research_profiles": {
+      "command": [
+        "/Library/Frameworks/Python.framework/Versions/3.10/bin/python3",
+        "scripts/test_model_profiles.py"
+      ],
+      "cwd": "mental-health-instruct-research-v0/server_training_bundle",
+      "exit_code": 0,
+      "log": "research_profiles.log",
+      "log_sha256": "4131dc75e0d598a9fa9686d081cb98edb84a9b7faae0528d436fe3f99cb71b01"
+    },
+    "research_checksums": {
+      "command": [
+        "shasum",
+        "-a",
+        "256",
+        "-c",
+        "BUNDLE_CONTENTS.sha256"
+      ],
+      "cwd": "mental-health-instruct-research-v0/server_training_bundle",
+      "exit_code": 0,
+      "log": "research_checksums.log",
+      "log_sha256": "3a7e19fd66f2509d743f295b4e5e52599c5c800fbffdc11401f28ed498fe0d0e"
+    },
+    "legacy_v2_preflight_selftest": {
+      "command": [
+        "/Library/Frameworks/Python.framework/Versions/3.10/bin/python3",
+        "server_training_bundle/scripts/preflight.py",
+        "--selftest"
+      ],
+      "cwd": "mental-health-instruction-dataset-v2",
+      "exit_code": 0,
+      "log": "legacy_v2_preflight_selftest.log",
+      "log_sha256": "28a17b4709690e3fd05c972fd2562a6bc56710844684ee6e2b947bf5c149622b"
+    },
+    "candidate_tests": {
+      "command": [
+        "/Library/Frameworks/Python.framework/Versions/3.10/bin/python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/data",
+        "-p",
+        "test_prepare_a3_candidates.py",
+        "-v"
+      ],
+      "cwd": ".",
+      "exit_code": 0,
+      "log": "candidate_tests.log",
+      "log_sha256": "13ad652aab151d449c971bc977d7d016cba1c41ccb169c0c2edeff9eb386f7e3"
+    }
+  },
+  "protected_files_before_sha256": {
+    "mental-health-instruct-research-v0/exports/all-550.jsonl": "dc609defe2a6485bc0559868dcab5afb2345583c7c788cddca2f4d226ebf7b40",
+    "mental-health-instruct-research-v0/exports/development.jsonl": "1b8c237a62bd2a07e55960639f1a792b44f0fe2b7d29ff8619c75c14e69d9faf",
+    "mental-health-instruct-research-v0/exports/train.jsonl": "a22d0dcd2cc1148f02acb7576b73116b84c141d620899309f3a6323fa4c6bd19",
+    "mental-health-instruct-research-v0/manifests/export_manifest.json": "6fbb81057ff2137620d7876dbbb64f66e501d0a337257ac872175aa205bc039b",
+    "mental-health-instruct-research-v0/manifests/split_manifest.json": "7273093d63ecdeba975fe415e87031f6d9e4f51f9531f4f3b39a17d4be201b06",
+    "mental-health-instruct-research-v0/server_training_bundle/ATTRIBUTION.md": "bc5dab17fd67a6b1278725646fcc1d2e6e5ae487458da8a51d7552e374bfd410",
+    "mental-health-instruct-research-v0/server_training_bundle/README.md": "cae3021dfa31e419f72d4804125b671bbf5c5267d29c41c5da165f86c706d64b",
+    "mental-health-instruct-research-v0/server_training_bundle/configs/experimental-48gb.json": "e763e46fa548873b66d2c7af85f6b3923f7fcf1600518edfb3c93923d77dc2c5",
+    "mental-health-instruct-research-v0/server_training_bundle/configs/recommended-80gb.json": "49521bfa3517e782553a3c066deddb7148f083466f2e685e2d8e74d02c189fee",
+    "mental-health-instruct-research-v0/server_training_bundle/configs/smoke-48gb.json": "4cf67d0c649a93e74e4638c8b6445a3169271d6f07bcf575960488df2e02cfc7",
+    "mental-health-instruct-research-v0/server_training_bundle/configs/smoke-80gb.json": "638e379f3f036a920426219daa9f239b999345a82cfa947117b945238ebed76a",
+    "mental-health-instruct-research-v0/server_training_bundle/data/README.md": "d7195984f4fe5c6856f0e6b4d89cf23147e5ab672dbc3f3d266b80b887aa333c",
+    "mental-health-instruct-research-v0/server_training_bundle/data/development.jsonl": "1b8c237a62bd2a07e55960639f1a792b44f0fe2b7d29ff8619c75c14e69d9faf",
+    "mental-health-instruct-research-v0/server_training_bundle/data/export_manifest.json": "6fbb81057ff2137620d7876dbbb64f66e501d0a337257ac872175aa205bc039b",
+    "mental-health-instruct-research-v0/server_training_bundle/data/train.jsonl": "a22d0dcd2cc1148f02acb7576b73116b84c141d620899309f3a6323fa4c6bd19",
+    "mental-health-instruct-research-v0/server_training_bundle/licenses/AugESC-CC-BY-NC-4.0.txt": "82656a050544ab820c9aa7b61433f5181f8e80cacd042377140962a3e3eb5721",
+    "mental-health-instruct-research-v0/server_training_bundle/licenses/CPCD-Apache-2.0.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "mental-health-instruct-research-v0/server_training_bundle/licenses/ESConv-CC-BY-NC-4.0.txt": "82656a050544ab820c9aa7b61433f5181f8e80cacd042377140962a3e3eb5721",
+    "mental-health-instruct-research-v0/server_training_bundle/model_profiles/qwen3_8_14b.json": "16059c349696323da9c7879d074469125bd5cd7dcfab0d976def93c1d7fea54f",
+    "mental-health-instruct-research-v0/server_training_bundle/model_profiles/qwen3_8_27b.json": "8773929a78fa16570f032e6d6b03cb3ac09c3826aab479cca21bfe536ca46168",
+    "mental-health-instruct-research-v0/server_training_bundle/model_profiles/qwen3_8_7b.json": "89845e10eaf20662765966fdca41ff3370113168809244e58656d509b596d2b2",
+    "mental-health-instruct-research-v0/server_training_bundle/requirements.fastpath.lock.txt": "915902d4f259b1f8f19ef3e17fe16f6d4a0e8ad197ac5e712984c4b37bef5c34",
+    "mental-health-instruct-research-v0/server_training_bundle/requirements.lock.txt": "4db80776fee94d9983964e5615c02377a51f9e21be5170f2eab59cec3b416015",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/bootstrap.sh": "47cb60d2190290caf7cb4067300b0b289754346054ee430b360854677233774c",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/fetch_weights.py": "9e2c34037194605ea5871a870be9224fd0627473cdbee8282e83f443403ffac4",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/preflight.py": "a514dd513f657d506ffd027fd0301d6e91f63e0c1e54b8d34ec6c54c8090525c",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/run_smoke_48gb_experimental.sh": "42aee89ca4e82269d53ee86d4196a9f60d5da880494047e597b0245dfe11bfc9",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/run_smoke_80gb.sh": "124d4dc602cbd70de9b9ebb7767dd68f21ab91eede42bb0e7a9756ae6eedcee1",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/run_train_48gb_experimental.sh": "906f033425d759b7b79fd68830bc78d7f6913ca50de2e714d205bb1464c9a2de",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/run_train_80gb.sh": "8b27679b4274c8e416714c300dc5fd399f25c0afd32bc6eff5f56398436e5c01",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/test_model_profiles.py": "6e88d8e2fd41f3c395d54cfe76ca72a435f7af65da89c1bfd2103bd2259c65dd",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/train_qlora.py": "723b74c68a198013b4a88f973740fdc1c55d7ad91b0d25ad068ca80f3a4f0e03",
+    "mental-health-instruction-dataset-v2/manifests/training_readiness.json": "f2779f6c067e11d1fe9da2609e5862907cfee8f7111cb1993f1940d52f6bcf16",
+    "mental-health-instruction-dataset-v2/spec/DATASET_FREEZE_V2.md": "4db6492da78c75280ddb8d9d8d6410f4038a6ce53700b20893bed8dde5edcac0"
+  },
+  "protected_files_after_sha256": {
+    "mental-health-instruct-research-v0/exports/all-550.jsonl": "dc609defe2a6485bc0559868dcab5afb2345583c7c788cddca2f4d226ebf7b40",
+    "mental-health-instruct-research-v0/exports/development.jsonl": "1b8c237a62bd2a07e55960639f1a792b44f0fe2b7d29ff8619c75c14e69d9faf",
+    "mental-health-instruct-research-v0/exports/train.jsonl": "a22d0dcd2cc1148f02acb7576b73116b84c141d620899309f3a6323fa4c6bd19",
+    "mental-health-instruct-research-v0/manifests/export_manifest.json": "6fbb81057ff2137620d7876dbbb64f66e501d0a337257ac872175aa205bc039b",
+    "mental-health-instruct-research-v0/manifests/split_manifest.json": "7273093d63ecdeba975fe415e87031f6d9e4f51f9531f4f3b39a17d4be201b06",
+    "mental-health-instruct-research-v0/server_training_bundle/ATTRIBUTION.md": "bc5dab17fd67a6b1278725646fcc1d2e6e5ae487458da8a51d7552e374bfd410",
+    "mental-health-instruct-research-v0/server_training_bundle/README.md": "cae3021dfa31e419f72d4804125b671bbf5c5267d29c41c5da165f86c706d64b",
+    "mental-health-instruct-research-v0/server_training_bundle/configs/experimental-48gb.json": "e763e46fa548873b66d2c7af85f6b3923f7fcf1600518edfb3c93923d77dc2c5",
+    "mental-health-instruct-research-v0/server_training_bundle/configs/recommended-80gb.json": "49521bfa3517e782553a3c066deddb7148f083466f2e685e2d8e74d02c189fee",
+    "mental-health-instruct-research-v0/server_training_bundle/configs/smoke-48gb.json": "4cf67d0c649a93e74e4638c8b6445a3169271d6f07bcf575960488df2e02cfc7",
+    "mental-health-instruct-research-v0/server_training_bundle/configs/smoke-80gb.json": "638e379f3f036a920426219daa9f239b999345a82cfa947117b945238ebed76a",
+    "mental-health-instruct-research-v0/server_training_bundle/data/README.md": "d7195984f4fe5c6856f0e6b4d89cf23147e5ab672dbc3f3d266b80b887aa333c",
+    "mental-health-instruct-research-v0/server_training_bundle/data/development.jsonl": "1b8c237a62bd2a07e55960639f1a792b44f0fe2b7d29ff8619c75c14e69d9faf",
+    "mental-health-instruct-research-v0/server_training_bundle/data/export_manifest.json": "6fbb81057ff2137620d7876dbbb64f66e501d0a337257ac872175aa205bc039b",
+    "mental-health-instruct-research-v0/server_training_bundle/data/train.jsonl": "a22d0dcd2cc1148f02acb7576b73116b84c141d620899309f3a6323fa4c6bd19",
+    "mental-health-instruct-research-v0/server_training_bundle/licenses/AugESC-CC-BY-NC-4.0.txt": "82656a050544ab820c9aa7b61433f5181f8e80cacd042377140962a3e3eb5721",
+    "mental-health-instruct-research-v0/server_training_bundle/licenses/CPCD-Apache-2.0.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "mental-health-instruct-research-v0/server_training_bundle/licenses/ESConv-CC-BY-NC-4.0.txt": "82656a050544ab820c9aa7b61433f5181f8e80cacd042377140962a3e3eb5721",
+    "mental-health-instruct-research-v0/server_training_bundle/model_profiles/qwen3_8_14b.json": "16059c349696323da9c7879d074469125bd5cd7dcfab0d976def93c1d7fea54f",
+    "mental-health-instruct-research-v0/server_training_bundle/model_profiles/qwen3_8_27b.json": "8773929a78fa16570f032e6d6b03cb3ac09c3826aab479cca21bfe536ca46168",
+    "mental-health-instruct-research-v0/server_training_bundle/model_profiles/qwen3_8_7b.json": "89845e10eaf20662765966fdca41ff3370113168809244e58656d509b596d2b2",
+    "mental-health-instruct-research-v0/server_training_bundle/requirements.fastpath.lock.txt": "915902d4f259b1f8f19ef3e17fe16f6d4a0e8ad197ac5e712984c4b37bef5c34",
+    "mental-health-instruct-research-v0/server_training_bundle/requirements.lock.txt": "4db80776fee94d9983964e5615c02377a51f9e21be5170f2eab59cec3b416015",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/bootstrap.sh": "47cb60d2190290caf7cb4067300b0b289754346054ee430b360854677233774c",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/fetch_weights.py": "9e2c34037194605ea5871a870be9224fd0627473cdbee8282e83f443403ffac4",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/preflight.py": "a514dd513f657d506ffd027fd0301d6e91f63e0c1e54b8d34ec6c54c8090525c",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/run_smoke_48gb_experimental.sh": "42aee89ca4e82269d53ee86d4196a9f60d5da880494047e597b0245dfe11bfc9",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/run_smoke_80gb.sh": "124d4dc602cbd70de9b9ebb7767dd68f21ab91eede42bb0e7a9756ae6eedcee1",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/run_train_48gb_experimental.sh": "906f033425d759b7b79fd68830bc78d7f6913ca50de2e714d205bb1464c9a2de",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/run_train_80gb.sh": "8b27679b4274c8e416714c300dc5fd399f25c0afd32bc6eff5f56398436e5c01",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/test_model_profiles.py": "6e88d8e2fd41f3c395d54cfe76ca72a435f7af65da89c1bfd2103bd2259c65dd",
+    "mental-health-instruct-research-v0/server_training_bundle/scripts/train_qlora.py": "723b74c68a198013b4a88f973740fdc1c55d7ad91b0d25ad068ca80f3a4f0e03",
+    "mental-health-instruction-dataset-v2/manifests/training_readiness.json": "f2779f6c067e11d1fe9da2609e5862907cfee8f7111cb1993f1940d52f6bcf16",
+    "mental-health-instruction-dataset-v2/spec/DATASET_FREEZE_V2.md": "4db6492da78c75280ddb8d9d8d6410f4038a6ce53700b20893bed8dde5edcac0"
+  },
+  "protected_files_unchanged": true,
+  "tracks": {
+    "research_v0": {
+      "content_state": "FROZEN_SMOKE_EXPORT",
+      "actual_rows": {
+        "train": 500,
+        "development": 50
+      },
+      "gpu_execution": "NOT_RUN",
+      "product_use": "NOT_APPROVED"
+    },
+    "a3_b1": {
+      "content_state": "CANDIDATE_NOT_FROZEN",
+      "raw_records": 82567,
+      "normalized_candidates": 82401,
+      "raw_capacity_70_30": {
+        "total": 39250,
+        "zh": 27475,
+        "en": 11775,
+        "status": "ARITHMETIC_ONLY_NOT_MATERIALIZED"
+      },
+      "candidate_manifest": "candidate_manifest.json",
+      "final_split": "NOT_BUILT"
+    },
+    "m1_v1": {
+      "content_state": "HISTORICAL_CANDIDATE_SPLIT",
+      "actual_rows": {
+        "train": 8000,
+        "val": 500,
+        "test": 500
+      },
+      "issues": [
+        "license_scope_unresolved",
+        "PII_review_incomplete",
+        "target_truncation_reported",
+        "not_final_independent_test"
+      ]
+    },
+    "legacy_human_v2": {
+      "content_state": "NOT_READY_FOR_FORMAL_TRAINING",
+      "approved_file": {
+        "path": "production/canonical/approved_records.jsonl",
+        "exists": false
+      },
+      "actual_approved_rows": 0,
+      "planned_rows": {
+        "train": 6000,
+        "development": 600,
+        "human_gold": 200,
+        "safety": 400
+      },
+      "scope": "This historical route only; not the exclusive project route"
+    }
+  },
+  "evidence_files": [
+    {
+      "path": "project-ledger/CURRENT_STATUS.md",
+      "exists": true,
+      "sha256": "af9f0593b9636f035d2f0cd356e99a10b7f516c2de9e4c627667b4eb970d3758",
+      "bytes": 10604
+    },
+    {
+      "path": "论文和代码/B1_STATUS.md",
+      "exists": true,
+      "sha256": "42e91773bfb641b342caa30f115cf5acdf98a9e25938fb33f4b092d59736cace",
+      "bytes": 8315
+    },
+    {
+      "path": "论文和代码/licenses/license_manifest.tsv",
+      "exists": true,
+      "sha256": "e36fde06868e6f29d99c905cdda7a3f0b7f79aadeb343fa49ee71e16bc4f05bc",
+      "bytes": 5172
+    },
+    {
+      "path": "论文和代码/eval/instrument/preregistration_amendment_01.md",
+      "exists": true,
+      "sha256": "273bd3a6c231e4e274d457864b6589d576ab6caecab44ae8535e34c3e51a60e4",
+      "bytes": 6389
+    },
+    {
+      "path": "论文和代码/eval/instrument/rubric_text.txt",
+      "exists": true,
+      "sha256": "435289865306592f586c980c9a0e517bae846f25d5e60cc1cb6e3d9499737300",
+      "bytes": 1603
+    },
+    {
+      "path": "artifacts/m1-v1/audit/tokenization.json",
+      "exists": true,
+      "sha256": "ca3754a85f0958c383bca8417a58e233376d42ad97a3a1ef9e4fd1055debe8f7",
+      "bytes": 968
+    },
+    {
+      "path": "artifacts/m1-v1/audit/license_audit.json",
+      "exists": true,
+      "sha256": "b00a394474695c7d32d2a5c8ecc91323ca44829d8de42911f344dafe2578c2a7",
+      "bytes": 657
+    },
+    {
+      "path": "scripts/data/prepare_a3_candidates.py",
+      "exists": true,
+      "sha256": "bb27df365fd3194cc63062c3fe018703aa950d1a18b2417273ed382648333ed5",
+      "bytes": 14914
+    },
+    {
+      "path": "scripts/data/test_prepare_a3_candidates.py",
+      "exists": true,
+      "sha256": "1fed7e73e42c71671629ab47fc4a504e4189eeff1bc3afdfb1f76fbb7cde4c08",
+      "bytes": 4477
+    }
+  ]
+}

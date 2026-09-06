@@ -1,0 +1,13 @@
+{
+  "schema_version": "license-scope-matrix-1.0",
+  "observed_at": "2026-09-05",
+  "policy": "A mirror tag is evidence about that mirror only; unknown scope is not permission.",
+  "items": [
+    {"artifact": "CPsyCoun local archived source", "source": "CAS-SIAT-XinHai/CPsyCoun", "revision": "8fe0fa0f77630b921932bdaa6bae7481bc611cf2", "evidence": ["/Users/allenli/Desktop/静室/datasets/mental-health-training-sources-v1/metadata_only/cpsycoun/README.github.md", "/Users/allenli/Desktop/静室/datasets/mental-health-training-sources-v1/metadata_only/cpsycoun/LICENSE.github.txt"], "declared_license": "CC-BY-4.0", "scope_status": "SOURCE_AND_DATA_SCOPE_REQUIRES_RECONCILIATION", "project_use": "HOLD"},
+    {"artifact": "CPsyCoun HF dataset page", "source": "CAS-SIAT-XinHai/CPsyCoun", "revision": "NOT_FIXED_IN_LOCAL_EVIDENCE", "evidence": ["https://huggingface.co/datasets/CAS-SIAT-XinHai/CPsyCoun"], "declared_license": "cc-by-sa-4.0", "scope_status": "UNRESOLVED_REVISION_OR_SCOPE", "project_use": "HOLD"},
+    {"artifact": "PsyDTCorpus", "source": "lilili123456/PsyDTCorpus mirror; upstream scutcyr/SoulChat2.0 filenames", "revision": "NOT_FIXED_IN_LOCAL_EVIDENCE", "declared_license": "Apache-2.0 mirror claim", "scope_status": "SOURCE_SCOPE_REVIEWED_NOT_FINAL", "project_use": "CANDIDATE_ONLY"},
+    {"artifact": "MeChat_smile", "source": "ticoAg/MeChat_smile mirror", "revision": "NOT_FIXED_IN_LOCAL_EVIDENCE", "declared_license": "Apache-2.0 mirror claim", "scope_status": "SOURCE_SCOPE_REVIEWED_NOT_FINAL", "project_use": "CANDIDATE_ONLY"},
+    {"artifact": "CounselChat", "source": "nbertagnolli/counsel-chat", "revision": "LOCAL_ARCHIVE_NO_COMMIT", "declared_license": "MIT upstream repository", "scope_status": "SOURCE_SCOPE_RECORDED", "project_use": "CANDIDATE_ONLY"},
+    {"artifact": "EN_cand_CBT", "source": "yuana1234567/Mental-health-CBT-dialogues", "revision": "NOT_FIXED_IN_LOCAL_EVIDENCE", "declared_license": "CC-BY-4.0 mirror claim", "scope_status": "SYNTHETIC_AND_SCOPE_REVIEW_REQUIRED", "project_use": "CANDIDATE_ONLY"}
+  ]
+}

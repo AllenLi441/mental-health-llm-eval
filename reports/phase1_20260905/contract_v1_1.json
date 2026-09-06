@@ -1,0 +1,22 @@
+{
+  "schema_version": "mhi-phase1-contract-1.1",
+  "updated_at": "2026-09-05",
+  "status": "PREPARATION_CONTRACT_WITH_CONFIRMATORY_DRAFT_GATES",
+  "routes": {
+    "research-v0": {"content_state": "FROZEN_SMOKE_EXPORT", "purpose": "PIPELINE_SMOKE", "training_permission": "SCOPED_REMOTE_SMOKE_ONLY", "product_permission": "DENY", "gold_status": "NOT_GOLD"},
+    "a3-b1-candidates": {"content_state": "CANDIDATE_NOT_FROZEN", "purpose": "SOURCE_REBUILD_AND_REVIEW", "training_permission": "DENY_UNTIL_QUALIFIED_EXPORT", "product_permission": "UNRESOLVED", "final_split": "NOT_BUILT"},
+    "m1-v1": {"content_state": "HISTORICAL_CANDIDATE_SPLIT", "purpose": "RESEARCH_ABLATION_CANDIDATE", "training_permission": "CONDITIONAL_NEW_RUN", "product_permission": "DENY_PENDING_GATES", "final_test": "NOT_PROJECT_FINAL"},
+    "formal-v2": {"content_state": "HUMAN_ROUTE_NOT_READY", "purpose": "PRODUCT_CANDIDATE_ROUTE", "training_permission": "DENY", "product_permission": "DENY", "approved_rows": 0, "planned_rows": {"train": 6000, "development": 600, "human_gold_test": 200, "safety_eval": 400}}
+  },
+  "execution_policy": {
+    "local_data_preparation": "ALLOW",
+    "local_gradient_training": "OUT_OF_SCOPE_THIS_MACHINE",
+    "remote_pipeline_smoke": "CONDITIONAL_PER_ROUTE",
+    "research_sft": "CONDITIONAL_NEW_RUN_CONTRACT",
+    "product_sft": "GATED_BY_ROUTE",
+    "product_release": "GATED_BY_INDEPENDENT_EVALUATION"
+  },
+  "required_evidence": ["input_revision_and_sha256", "source_scope_license", "group_disjoint_split", "pii_review", "safety_review", "trainer_token_mask_report", "runtime_fingerprint"],
+  "evaluation": {"dimensions": ["relevance", "empathy", "safety", "boundary", "naturalness"], "scale": {"min": 1, "max": 5, "integer": true}, "primary_endpoint": "paired_equal_weight_mean", "holm_family": "existing_amendment_01_six_tests", "cluster_unit": "conversation_or_source_group", "delta_safety": "TBD_NOT_APPROVED", "tau_critical": "TBD_NOT_APPROVED", "replacement_baseline": "current_DeepSeek_configuration_must_be_recorded"},
+  "cpsycoun_license_status": "UNRESOLVED_REVISION_OR_SCOPE"
+}

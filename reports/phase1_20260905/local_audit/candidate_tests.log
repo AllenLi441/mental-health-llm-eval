@@ -1,0 +1,13 @@
+test_build_determinism_and_holdout_exclusion (test_prepare_a3_candidates.CandidateTests) ... ok
+test_cbt_stages_share_source_group (test_prepare_a3_candidates.CandidateTests) ... ok
+test_empty_target_rejected (test_prepare_a3_candidates.CandidateTests) ... ok
+test_flag_does_not_become_approval (test_prepare_a3_candidates.CandidateTests) ... ok
+test_history_loss_is_zero (test_prepare_a3_candidates.CandidateTests) ... ok
+test_missing_question_id_is_not_row_lineage (test_prepare_a3_candidates.CandidateTests) ... ok
+test_non_alternating_turns_rejected (test_prepare_a3_candidates.CandidateTests) ... ok
+test_unknown_roles_rejected (test_prepare_a3_candidates.CandidateTests) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.005s
+
+OK

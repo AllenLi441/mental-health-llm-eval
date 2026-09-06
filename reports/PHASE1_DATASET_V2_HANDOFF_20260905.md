@@ -2,6 +2,8 @@
 
 本目录是正式产品数据线；当前不能直接训练。
 
+> 本说明只描述 `formal-v2` 历史人工数据路线。项目同时维护 `research-v0`、`a3-b1-candidates` 和 `m1-v1`；路线、权限和导出状态以 [`reports/phase1_20260905/PHASE1_CONTRACT_AMENDMENT_01.md`](phase1_20260905/PHASE1_CONTRACT_AMENDMENT_01.md) 为准。`formal-v2` 的 0/6,600 不代表全项目数据数量。
+
 ## 当前可用与不可用
 
 - `production/candidates/`：候选和空白 writer 包，不是训练数据。

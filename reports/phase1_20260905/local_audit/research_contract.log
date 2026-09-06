@@ -1,0 +1,5 @@
+manifest     sha 6fbb81057ff21376  base Qwen/Qwen3.8-27B
+train        rows   500  sha a22d0dcd2cc1148f  matches frozen export  (augesc=199/cpcd=300/esconv=1)
+development  rows    50  sha 1b8c237a62bd2a07  matches frozen export  (augesc=19/cpcd=30/esconv=1)
+
+CONTRACT OK - bundle payload matches the frozen exports.

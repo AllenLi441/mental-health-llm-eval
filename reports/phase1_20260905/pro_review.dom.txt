@@ -1,0 +1,453 @@
+Source: https://chatgpt.com/c/6a9c4731-b210-83ec-97ac-e35df1caa8d6
+Captured: 2026-09-06 UTC
+Evidence: independent advisory review of three pasted local documents; no direct filesystem access by reviewer.
+
+  - heading "ChatGPT said:" [level=4]
+  - button "Worked for 7m 6s":
+    - text: Worked for 7m 6s
+  - paragraph: "**是的，把旧 v2 写成“产品唯一通路”过度了。应修正项目级路线登记和动作权限，但不能因此把 A3/B1 候选池或 M1-v1 自动升级为产品数据。**另一处必须修正的是导出流程：目前“正式 readiness 依赖导出清单，导出又依赖正式 readiness”，按三份文件合读会形成循环。"
+  - paragraph:
+    - text: 以下是
+    - strong: 合同文本审计和修订草案
+    - text: ，不是对本机数据的验证报告。我已看到你贴出的三份全文；
+    - code: CURRENT_STATUS
+    - text: 、本地许可文件和实际通过计数，仍属于你或合同提供的本地状态陈述，尚未由我独立核验。
+    - code: 328f4b0
+    - text: 只按本地提交记录，不视为远端已发布。本轮没有读取原始咨询文本、修改文件或运行实验。
+  - heading "一、P0 / P1 审查结果" [level=2]
+  - paragraph:
+    - text: 这里的
+    - strong: P0 指相应动作前必须消除的误放行、误阻塞或验收失效问题
+    - text: ，不表示停止本机所有公开语料整理。
+  - heading "P0：必须修正" [level=3]
+  - table:
+    - rowgroup:
+      - row "编号 原文依据与问题 可执行修正":
+        - columnheader "编号"
+        - columnheader "原文依据与问题"
+        - columnheader "可执行修正"
+    - rowgroup:
+      - row "P0-1 路线登记不完整，v2 被过度提升 主合同“先固定两条数据线”和“正式产品结论只能来自 v2 的 server-safe export”，没有覆盖你补充的 9 月 3 日 A3/B1 状态。v2 未就绪，不等于整个项目只允许走 v2。 改为至少四条谱系登记，分别记录用途、状态日期和证据。删除 v2 的项目级排他地位；保留它自身的人审、配额和批准门槛。产品上线结论来自独立评测，不由训练数据包名称决定。":
+        - cell "P0-1 路线登记不完整，v2 被过度提升":
+          - strong: P0-1 路线登记不完整，v2 被过度提升
+        - cell "主合同“先固定两条数据线”和“正式产品结论只能来自 v2 的 server-safe export”，没有覆盖你补充的 9 月 3 日 A3/B1 状态。v2 未就绪，不等于整个项目只允许走 v2。":
+          - text: 主合同“先固定两条数据线”和“正式产品结论只能来自 v2 的 server-safe export”，没有覆盖你补充的 9 月 3 日 A3/B1 状态。
+          - strong: v2 未就绪，不等于整个项目只允许走 v2。
+        - cell "改为至少四条谱系登记，分别记录用途、状态日期和证据。删除 v2 的项目级排他地位；保留它自身的人审、配额和批准门槛。产品上线结论来自独立评测，不由训练数据包名称决定。"
+      - row "P0-2 研究动作与权限字段矛盾 JSON tracks.research_v0.training_allowed=false，但主合同允许在远端进行含训练步骤的 smoke；“开训前唯一允许的顺序”又要求先完成人工 v2。一个布尔值无法区分 smoke、研究 SFT、产品 SFT。 拆成具体动作权限，并分开研究流程与产品流程。**research-v0 当前承诺的是 pipeline smoke，不能顺手扩张成任意完整研究训练授权。**完整研究 SFT 可另立 run 合同，不必等待 v2 人工 Gold。":
+        - cell "P0-2 研究动作与权限字段矛盾":
+          - strong: P0-2 研究动作与权限字段矛盾
+        - cell "JSON tracks.research_v0.training_allowed=false，但主合同允许在远端进行含训练步骤的 smoke；“开训前唯一允许的顺序”又要求先完成人工 v2。一个布尔值无法区分 smoke、研究 SFT、产品 SFT。":
+          - text: JSON
+          - code: tracks.research_v0.training_allowed=false
+          - text: ，但主合同允许在远端进行含训练步骤的 smoke；“开训前唯一允许的顺序”又要求先完成人工 v2。一个布尔值无法区分 smoke、研究 SFT、产品 SFT。
+        - cell "拆成具体动作权限，并分开研究流程与产品流程。**research-v0 当前承诺的是 pipeline smoke，不能顺手扩张成任意完整研究训练授权。**完整研究 SFT 可另立 run 合同，不必等待 v2 人工 Gold。"
+      - row "P0-3 readiness 与导出存在循环依赖 JSON 的正式训练阻塞项含 server_safe_export_manifest；交接说明却要求先达到 READY_FOR_FORMAL_TRAINING，才能运行 build_exports.py、package_server_bundle.py。 增设 READY_FOR_EXPORT。先确认记录具备用途资格，再导出和验证，最后计算正式训练 readiness。**导出前检查不得要求导出产物已经存在。**这是文本层面的矛盾；实际脚本是否同样循环，需要你本机确认。":
+        - cell "P0-3 readiness 与导出存在循环依赖":
+          - strong: P0-3 readiness 与导出存在循环依赖
+        - cell "JSON 的正式训练阻塞项含 server_safe_export_manifest；交接说明却要求先达到 READY_FOR_FORMAL_TRAINING，才能运行 build_exports.py、package_server_bundle.py。":
+          - text: JSON 的正式训练阻塞项含
+          - code: server_safe_export_manifest
+          - text: ；交接说明却要求先达到
+          - code: READY_FOR_FORMAL_TRAINING
+          - text: ，才能运行
+          - code: build_exports.py
+          - text: 、
+          - code: package_server_bundle.py
+          - text: 。
+        - cell "增设 READY_FOR_EXPORT。先确认记录具备用途资格，再导出和验证，最后计算正式训练 readiness。**导出前检查不得要求导出产物已经存在。**这是文本层面的矛盾；实际脚本是否同样循环，需要你本机确认。":
+          - text: 增设
+          - code: READY_FOR_EXPORT
+          - text: 。先确认记录具备用途资格，再导出和验证，最后计算正式训练 readiness。**导出前检查不得要求导出产物已经存在。**这是文本层面的矛盾；实际脚本是否同样循环，需要你本机确认。
+      - row "P0-4 验收规则尚不能执行 “五维等权主端点 + Holm”没有定义检验族；“crisis 不退化”没有非劣界值；自动失败门没有事件定义和裁决规则；200/400 没有样本量依据。 将当前成功条件降为待预注册草案。补齐主比较、效应定义、pilot 计划、安全绝对门与相对门。阈值未定时不得输出“验收通过”，但不阻塞研究准备。":
+        - cell "P0-4 验收规则尚不能执行":
+          - strong: P0-4 验收规则尚不能执行
+        - cell "“五维等权主端点 + Holm”没有定义检验族；“crisis 不退化”没有非劣界值；自动失败门没有事件定义和裁决规则；200/400 没有样本量依据。"
+        - cell "将当前成功条件降为待预注册草案。补齐主比较、效应定义、pilot 计划、安全绝对门与相对门。阈值未定时不得输出“验收通过”，但不阻塞研究准备。":
+          - text: 将当前成功条件降为
+          - strong: 待预注册草案
+          - text: 。补齐主比较、效应定义、pilot 计划、安全绝对门与相对门。阈值未定时不得输出“验收通过”，但不阻塞研究准备。
+      - row "P0-5 独立测试和替换基线只有要求，没有实施证据 主合同确实要求 Gold、Safety 独立冻结，不能说完全没写；但三份文本未给出实际冻结清单、排除关系或评测暴露记录。比较臂也没有现用 DeepSeek。 增加独立评测制品登记、来源组隔离和暴露日志。新增现用 DeepSeek 的产品基线；缺少它时，只能讨论相对 Qwen 底座的改进，不能据此认定可替换静室核心服务。":
+        - cell "P0-5 独立测试和替换基线只有要求，没有实施证据":
+          - strong: P0-5 独立测试和替换基线只有要求，没有实施证据
+        - cell "主合同确实要求 Gold、Safety 独立冻结，不能说完全没写；但三份文本未给出实际冻结清单、排除关系或评测暴露记录。比较臂也没有现用 DeepSeek。"
+        - cell "增加独立评测制品登记、来源组隔离和暴露日志。新增现用 DeepSeek 的产品基线；缺少它时，只能讨论相对 Qwen 底座的改进，不能据此认定可替换静室核心服务。"
+      - row "P0-6 CPsyCoun 许可尚不能定案 你报告本地 LICENSE=CC-BY-4.0，而上轮使用了 HF 卡片的 SA 标签；目前没有证明两者对应同一 revision、同一文件和同一授权作用域。 登记为 UNRESOLVED_REVISION_OR_SCOPE，逐文件核对后再判用途。我上轮的 CPsyCoun 许可分类应降为待核实，不应直接作为项目放行依据。":
+        - cell "P0-6 CPsyCoun 许可尚不能定案":
+          - strong: P0-6 CPsyCoun 许可尚不能定案
+        - cell "你报告本地 LICENSE=CC-BY-4.0，而上轮使用了 HF 卡片的 SA 标签；目前没有证明两者对应同一 revision、同一文件和同一授权作用域。":
+          - text: 你报告本地
+          - code: LICENSE=CC-BY-4.0
+          - text: ，而上轮使用了 HF 卡片的 SA 标签；目前没有证明两者对应同一 revision、同一文件和同一授权作用域。
+        - cell "登记为 UNRESOLVED_REVISION_OR_SCOPE，逐文件核对后再判用途。我上轮的 CPsyCoun 许可分类应降为待核实，不应直接作为项目放行依据。":
+          - text: 登记为
+          - code: UNRESOLVED_REVISION_OR_SCOPE
+          - text: ，逐文件核对后再判用途。
+          - strong: 我上轮的 CPsyCoun 许可分类应降为待核实，不应直接作为项目放行依据。
+  - button "Copy table":
+  - heading "P1：完善证据和语义，避免后续漂移" [level=3]
+  - table:
+    - rowgroup:
+      - row "问题 修正要求":
+        - columnheader "问题"
+        - columnheader "修正要求"
+    - rowgroup:
+      - row "“已验证模型”证据层级不清 区分配置自测、tokenizer 验证、checkpoint 元数据核验、实际加载和训练 smoke。41/41 配置测试或本地 tokenizer 本身不能证明远端模型加载成功。已有真实证据应补引用，不应凭本轮缺证据擅自否定。":
+        - cell "“已验证模型”证据层级不清":
+          - strong: “已验证模型”证据层级不清
+        - cell "区分配置自测、tokenizer 验证、checkpoint 元数据核验、实际加载和训练 smoke。41/41 配置测试或本地 tokenizer 本身不能证明远端模型加载成功。已有真实证据应补引用，不应凭本轮缺证据擅自否定。":
+          - text: 区分配置自测、tokenizer 验证、checkpoint 元数据核验、实际加载和训练 smoke。
+          - code: 41/41
+          - text: 配置测试或本地 tokenizer 本身不能证明远端模型加载成功。已有真实证据应补引用，不应凭本轮缺证据擅自否定。
+      - row "模型对照条款存在不正确的绝对限制 “不同模型的分数不能直接相减”应改成：**只有在同一冻结用例、评分口径和预先定义的配对设计下，差值才有明确意义。**模型本来就是比较变量；DeepSeek API 也无法与本地模型满足字面意义的 same_runtime。":
+        - cell "模型对照条款存在不正确的绝对限制":
+          - strong: 模型对照条款存在不正确的绝对限制
+        - cell "“不同模型的分数不能直接相减”应改成：**只有在同一冻结用例、评分口径和预先定义的配对设计下，差值才有明确意义。**模型本来就是比较变量；DeepSeek API 也无法与本地模型满足字面意义的 same_runtime。":
+          - text: “不同模型的分数不能直接相减”应改成：**只有在同一冻结用例、评分口径和预先定义的配对设计下，差值才有明确意义。**模型本来就是比较变量；DeepSeek API 也无法与本地模型满足字面意义的
+          - code: same_runtime
+          - text: 。
+      - row "静态扫描与风险等级混为一谈 将 R0_STATIC_SCREEN_ONLY 拆为 screening_status、content_risk_status 和 human_review_status。扫描通过不应自动表示临床风险低，也不等于人工安全批准。":
+        - cell "静态扫描与风险等级混为一谈":
+          - strong: 静态扫描与风险等级混为一谈
+        - cell "将 R0_STATIC_SCREEN_ONLY 拆为 screening_status、content_risk_status 和 human_review_status。扫描通过不应自动表示临床风险低，也不等于人工安全批准。":
+          - text: 将
+          - code: R0_STATIC_SCREEN_ONLY
+          - text: 拆为
+          - code: screening_status
+          - text: 、
+          - code: content_risk_status
+          - text: 和
+          - code: human_review_status
+          - text: 。扫描通过不应自动表示临床风险低，也不等于人工安全批准。
+      - row "计划规模、实际规模和测试计数没有统一证据结构 v2 的 6,000/600/200/400 应明确为该路线的计划规模；实际存在量、批准量、导出量分别登记。41/41、27/27 附脚本版本、输入哈希和日志，不能在脚本升级后继续当作永恒常量。":
+        - cell "计划规模、实际规模和测试计数没有统一证据结构":
+          - strong: 计划规模、实际规模和测试计数没有统一证据结构
+        - cell "v2 的 6,000/600/200/400 应明确为该路线的计划规模；实际存在量、批准量、导出量分别登记。41/41、27/27 附脚本版本、输入哈希和日志，不能在脚本升级后继续当作永恒常量。":
+          - text: v2 的 6,000/600/200/400 应明确为该路线的计划规模；实际存在量、批准量、导出量分别登记。
+          - code: 41/41
+          - text: 、
+          - code: 27/27
+          - text: 附脚本版本、输入哈希和日志，不能在脚本升级后继续当作永恒常量。
+  - button "Copy table":
+  - heading "二、四条数据路线应怎样登记" [level=2]
+  - paragraph:
+    - text: 下面是
+    - strong: 建议登记方式
+    - text: ，不是新冻结状态。
+  - table:
+    - rowgroup:
+      - row "路线 本轮已有的信息 应保留的状态边界":
+        - columnheader "路线"
+        - columnheader "本轮已有的信息"
+        - columnheader "应保留的状态边界"
+    - rowgroup:
+      - row "research-v0 合同报告 train 500 / development 50，静态检查通过，NOT_GOLD。 已有研究 smoke 包；本轮未独立重验。保持原用途，不自动提升为正式研究效果数据或产品数据。":
+        - cell "research-v0":
+          - strong: research-v0
+        - cell "合同报告 train 500 / development 50，静态检查通过，NOT_GOLD。":
+          - text: 合同报告 train 500 / development 50，静态检查通过，
+          - code: NOT_GOLD
+          - text: 。
+        - cell "已有研究 smoke 包；本轮未独立重验。保持原用途，不自动提升为正式研究效果数据或产品数据。"
+      - row "A3/B1 候选路线 你补充：9 月 3 日 CURRENT_STATUS 同时记有 zh70792 + en11775 和 39,250 候选池，尚未规范化、冻结。 登记为当前候选来源，不能写成 canonical、冻结 split 或可直接训练包。必须补清各数字对应的统计阶段与单位。":
+        - cell "A3/B1 候选路线":
+          - strong: A3/B1 候选路线
+        - cell "你补充：9 月 3 日 CURRENT_STATUS 同时记有 zh70792 + en11775 和 39,250 候选池，尚未规范化、冻结。":
+          - text: 你补充：9 月 3 日
+          - code: CURRENT_STATUS
+          - text: 同时记有
+          - code: zh70792 + en11775
+          - text: 和
+          - strong: 39,250 候选池
+          - text: ，尚未规范化、冻结。
+        - cell "登记为当前候选来源，不能写成 canonical、冻结 split 或可直接训练包。必须补清各数字对应的统计阶段与单位。"
+      - row "M1-v1 历史候选 合同报告 8,000/500/500，并列出 CPsyCounD、PsyDial-D1、CPsDD 的组成和审计结果。 保留为另一条历史候选／研究消融来源。它的历史 test 不能未经独立性核查就改称项目最终测试集。":
+        - cell "M1-v1 历史候选":
+          - strong: M1-v1 历史候选
+        - cell "合同报告 8,000/500/500，并列出 CPsyCounD、PsyDial-D1、CPsDD 的组成和审计结果。"
+        - cell "保留为另一条历史候选／研究消融来源。它的历史 test 不能未经独立性核查就改称项目最终测试集。"
+      - row "formal-v2 你说明它源自旧 8 月 3 日路线；本次合同仍报告批准量 0/6,600，正式导出缺失。 保留为有明确人工生产要求的产品候选路线。**0/6,600 只描述该路线，不描述全部项目数据。**实际最新状态由本机重算并标注日期。":
+        - cell "formal-v2":
+          - strong: formal-v2
+        - cell "你说明它源自旧 8 月 3 日路线；本次合同仍报告批准量 0/6,600，正式导出缺失。"
+        - cell "保留为有明确人工生产要求的产品候选路线。**0/6,600 只描述该路线，不描述全部项目数据。**实际最新状态由本机重算并标注日期。"
+  - button "Copy table":
+  - paragraph:
+    - text: 其中，
+    - code: 70,792 + 11,775 = 82,567
+    - text: ，并不等于 39,250。**这不自动构成数据错误，也不能自行解释成过滤损失。**需要你提供如下计数链：
+  - blockquote:
+    - paragraph: 来源快照及计数单位 → 选择规则 → 排除／去重规则 → 候选生成规则 → 39,250 条候选清单。
+  - paragraph: 每一步都应能关联到输入、脚本版本和输出计数；不要把“对话数”“展开后的 target 数”“候选记录数”混写。
+  - paragraph: 建议把主合同中的排他句替换为：
+  - blockquote:
+    - paragraph: 项目维护多条相互隔离的数据路线。任何路线只有通过其目标用途对应的权利、隐私、质量、切分和导出检查后，才能获得该用途资格。当前没有依据将任一未批准候选池视为正式产品训练包；也不将 formal-v2 设为项目唯一的潜在产品数据来源。
+  - heading "三、一致状态模型与导出流程草案" [level=2]
+  - heading "1. 不再用一个 training_allowed 表示所有权限" [level=3]:
+    - text: 1. 不再用一个
+    - code: training_allowed
+    - text: 表示所有权限
+  - paragraph: 状态至少拆成四部分：
+  - table:
+    - rowgroup:
+      - row "部分 回答的问题":
+        - columnheader "部分"
+        - columnheader "回答的问题"
+    - rowgroup:
+      - row "content_state 数据目前是候选、规范化记录、冻结切分还是已验证导出？":
+        - cell "content_state":
+          - code: content_state
+        - cell "数据目前是候选、规范化记录、冻结切分还是已验证导出？"
+      - row "evidence 这个判断依据什么文件、revision、哈希、时间和验证方式？":
+        - cell "evidence":
+          - code: evidence
+        - cell "这个判断依据什么文件、revision、哈希、时间和验证方式？"
+      - row "permissions 允许做哪一种具体动作、用于什么目的？":
+        - cell "permissions":
+          - code: permissions
+        - cell "允许做哪一种具体动作、用于什么目的？"
+      - row "gates 执行动作所需条件是否满足？未知不能当通过。":
+        - cell "gates":
+          - code: gates
+        - cell "执行动作所需条件是否满足？未知不能当通过。"
+  - button "Copy table":
+  - paragraph:
+    - text: 下面是
+    - strong: 结构示例，不是对现有状态的自动变更
+    - text: ：
+  - text: JSON
+  - button "Copy":
+  - code: "{ \"schema_version\": \"mhi-phase1-contract-1.1-draft\", \"execution_policy\": { \"mac\": { \"data_preparation\": \"ALLOW\", \"gradient_training_and_gpu_smoke\": \"DENY\", \"paid_api_and_compute_jobs\": \"DENY\" }, \"remote\": { \"training\": \"GATED\" } }, \"tracks\": { \"research_v0\": { \"purpose\": \"PIPELINE_SMOKE\", \"evidence_level\": \"REPORTED\", \"permissions\": { \"local_inventory_and_static_audit\": \"ALLOW\", \"local_rebuild_into_new_candidate\": \"CONDITIONAL\", \"remote_research_smoke\": \"CONDITIONAL\", \"research_sft\": \"UNDECIDED\", \"product_sft\": \"DENY\", \"product_release\": \"DENY\" } } } }"
+  - paragraph:
+    - code: CONDITIONAL
+    - text: 必须指向具体 gate，不能只是一个含糊标签：
+  - list:
+    - paragraph: "**本机新候选重建：**确认相应来源的获取／处理用途，输出到新目录，保留谱系，不修改既有冻结制品。"
+    - paragraph: "**远端 smoke：**输入包的相应用途允许、静态完整性检查通过、模型及运行环境 preflight 通过。"
+    - paragraph:
+      - text: "**完整研究 SFT：**另立研究 run，固定研究 train/development、来源使用条件、污染检查和模型配置，并完成远端 smoke。"
+      - strong: 不要求先完成人工 Gold，但不能输出产品上线结论。
+  - paragraph:
+    - text: 三份文件应由同一套定义生成或校验。旧 runner 若只理解
+    - code: training_allowed
+    - text: ，应明确报 schema 不兼容，不能把新增权限静默解释成“全部允许”。
+  - heading "2. 消除导出循环" [level=3]
+  - paragraph: 建议顺序为：
+  - button "Copy":
+  - code: 记录具备指定用途资格 → READY_FOR_EXPORT → EXPORT_BUILT → EXPORT_STATIC_VALIDATED → READY_FOR_REMOTE_SMOKE → REMOTE_SMOKE_PASSED → 指定研究或产品训练动作就绪
+  - paragraph:
+    - strong: 通过 smoke 只是执行条件，不会自动扩大数据使用权限。
+  - paragraph:
+    - text: 此外，另设
+    - code: READY_FOR_CONFIRMATORY_EVALUATION
+    - text: 和
+    - code: READY_FOR_PRODUCT_RELEASE
+    - text: 。Human Gold、Safety Eval、DeepSeek 对照和正式统计验收属于这条评测／上线链，不能再作为所有公开语料研究准备的统一前置条件。
+  - heading "四、指标与验收草案" [level=2]
+  - heading "对照臂：拆开“微调是否有效”和“是否值得替换产品”" [level=3]
+  - table:
+    - rowgroup:
+      - row "问题 必需对照":
+        - columnheader "问题"
+        - columnheader "必需对照"
+    - rowgroup:
+      - row "微调相对底座有没有收益？ 同一精确 base revision 的未微调 Qwen 与 SFT；尽量固定运行环境、量化和解码条件。":
+        - cell "微调相对底座有没有收益？"
+        - cell "同一精确 base revision 的未微调 Qwen 与 SFT；尽量固定运行环境、量化和解码条件。"
+      - row "改进后的系统能否替换静室？ 现用 DeepSeek 系统与候选系统，在相同冻结用户场景下比较；记录各自实际提示词、检索、安全处理和回退配置。":
+        - cell "改进后的系统能否替换静室？"
+        - cell "现用 DeepSeek 系统与候选系统，在相同冻结用户场景下比较；记录各自实际提示词、检索、安全处理和回退配置。":
+          - strong: 现用 DeepSeek 系统
+          - text: 与候选系统，在相同冻结用户场景下比较；记录各自实际提示词、检索、安全处理和回退配置。
+      - row "更换尺寸／版本是否有帮助？ base-B 为可选研究臂，不应成为第一轮研究准备的必需阻塞项。":
+        - cell "更换尺寸／版本是否有帮助？"
+        - cell "base-B 为可选研究臂，不应成为第一轮研究准备的必需阻塞项。":
+          - code: base-B
+          - text: 为可选研究臂，不应成为第一轮研究准备的必需阻塞项。
+  - button "Copy table":
+  - paragraph:
+    - text: 本机现在只登记 DeepSeek 的
+    - strong: 非敏感配置
+    - text: ，不调用收费 API。若服务端模型版本无法精确固定，应记录可见 model ID、调用日期和可见响应元数据，并明确这一限制，不能伪造 revision。
+  - heading "评测与放行条件" [level=3]
+  - table:
+    - rowgroup:
+      - row "项目 建议草案":
+        - columnheader "项目"
+        - columnheader "建议草案"
+    - rowgroup:
+      - row "主质量端点 保留已有五维及等权方案，不暗改已冻结 rubric；补齐量表范围、评分锚点、方向、缺失值规则和版本哈希。以配对 SFT−base 差值为主要研究比较，同时报告实际效应及不确定性。":
+        - cell "主质量端点":
+          - strong: 主质量端点
+        - cell "保留已有五维及等权方案，不暗改已冻结 rubric；补齐量表范围、评分锚点、方向、缺失值规则和版本哈希。以配对 SFT−base 差值为主要研究比较，同时报告实际效应及不确定性。"
+      - row "多重检验 若只有一个五维综合主比较，就不是“五个主检验”。五维分项先作描述性结果；需要分项确认性声明时，预先列出对应检验族并执行 Holm。与 DeepSeek 的确认性比较也必须事先登记，不能看结果后增删。":
+        - cell "多重检验":
+          - strong: 多重检验
+        - cell "若只有一个五维综合主比较，就不是“五个主检验”。五维分项先作描述性结果；需要分项确认性声明时，预先列出对应检验族并执行 Holm。与 DeepSeek 的确认性比较也必须事先登记，不能看结果后增删。"
+      - row "功效 pilot 用不进入最终测试集的场景组估计配对差值方差、组内相关、评分噪声和无效输出率。最小有意义改善及可接受退化幅度由用途与风险要求决定，不能为了使模型通过而倒推。现有 200/400 先保留为规划值，不声称足够。":
+        - cell "功效 pilot":
+          - strong: 功效 pilot
+        - cell "用不进入最终测试集的场景组估计配对差值方差、组内相关、评分噪声和无效输出率。最小有意义改善及可接受退化幅度由用途与风险要求决定，不能为了使模型通过而倒推。现有 200/400 先保留为规划值，不声称足够。"
+      - row "不可补偿的安全门 五维平均分不能抵消严重安全失败。预先定义 critical 事件、适用场景和裁决方式；建议任何经复核确认的 critical 事件都阻止当前版本上线。自动规则只标记候选，不直接代替最终裁决。":
+        - cell "不可补偿的安全门":
+          - strong: 不可补偿的安全门
+        - cell "五维平均分不能抵消严重安全失败。预先定义 critical 事件、适用场景和裁决方式；建议任何经复核确认的 critical 事件都阻止当前版本上线。自动规则只标记候选，不直接代替最终裁决。"
+      - row "危机和误升级 分别报告危机处理失败与不必要升级，不混成一个总体安全分。用预先确定的非劣界和风险上限判断，不能以“差异不显著”解释为“不退化”。":
+        - cell "危机和误升级":
+          - strong: 危机和误升级
+        - cell "分别报告危机处理失败与不必要升级，不混成一个总体安全分。用预先确定的非劣界和风险上限判断，不能以“差异不显著”解释为“不退化”。"
+      - row "评审与缺失 明确两个 judge 是人、模型还是混合安排；两次模型调用不自动构成独立专业评审。盲化、顺序随机化、严重分歧裁决、超时和无效回答处理都要预先固定，不能只统计成功输出。":
+        - cell "评审与缺失":
+          - strong: 评审与缺失
+        - cell "明确两个 judge 是人、模型还是混合安排；两次模型调用不自动构成独立专业评审。盲化、顺序随机化、严重分歧裁决、超时和无效回答处理都要预先固定，不能只统计成功输出。"
+  - button "Copy table":
+  - paragraph:
+    - text: 安全判定可以使用如下
+    - strong: 符号化门槛
+    - text: ，本轮不填未经依据的数字：
+  - blockquote:
+    - paragraph:
+      - text: 相对安全门：候选与对照的危机失败率差，其预注册置信上界不超过可接受退化幅度
+      - code: δ_safety
+      - text: 。
+      - text: 绝对安全门：严重失败率的置信上界不超过风险上限
+      - code: τ_critical
+      - text: ，并满足预设的 critical 事件否决规则。
+  - paragraph:
+    - code: δ_safety
+    - text: 、
+    - code: τ_critical
+    - text: 和最小有意义质量差目前均应标为
+    - strong: TBD / 未批准
+    - text: 。零次观察到严重失败也不等于真实风险为零。
+  - heading "独立测试要补什么证据" [level=3]
+  - paragraph: 至少需要补齐：来源和组级 ID 的隔离关系、冻结清单与哈希、训练／开发／检索／合成后代的排除登记，以及测试结果何时向开发者暴露的日志。
+  - paragraph:
+    - text: 同来源数据
+    - strong: 不自动意味着污染
+    - text: ；但未经组级隔离证明，也不能叫独立测试。即使隔离成立，同来源 held-out 与跨来源外部泛化仍应分别表述。
+  - paragraph: 统计重采样应保持同一用例各模型输出及其评分的配对关系；若同一人物设定、原始报告或会话族生成了多条记录，应按相应来源组处理，而不是把展开 target 或两位 judge 的评分当作新增独立样本。
+  - paragraph:
+    - strong: 在这些证据完成前，允许做研究准备和探索性研究；不允许宣称正式成功、安全通过或已经具备替换资格。
+  - heading "五、CPsyCoun 许可：回到具体制品核查" [level=2]
+  - paragraph: 本轮不依据标签裁决。你下一步应为本地仓库与 HF 快照分别登记：
+  - table:
+    - rowgroup:
+      - row "核查对象 必需证据":
+        - columnheader "核查对象"
+        - columnheader "必需证据"
+    - rowgroup:
+      - row "本地来源 仓库来源、精确 commit、LICENSE 相对路径与文件哈希、相关数据文件哈希。":
+        - cell "本地来源"
+        - cell "仓库来源、精确 commit、LICENSE 相对路径与文件哈希、相关数据文件哈希。":
+          - text: 仓库来源、精确 commit、
+          - code: LICENSE
+          - text: 相对路径与文件哈希、相关数据文件哈希。
+      - row "HF 来源 精确 dataset repo ID、固定 commit、README／卡片哈希、实际数据文件清单及哈希。":
+        - cell "HF 来源"
+        - cell "精确 dataset repo ID、固定 commit、README／卡片哈希、实际数据文件清单及哈希。"
+      - row "作用域 授权文字明确覆盖代码、数据、某个子集，还是模型；相关数据是否另有声明。":
+        - cell "作用域"
+        - cell "授权文字明确覆盖代码、数据、某个子集，还是模型；相关数据是否另有声明。"
+      - row "两者关系 是否同一数据制品、不同版本、镜像、派生子集，或只是同名资源。":
+        - cell "两者关系"
+        - cell "是否同一数据制品、不同版本、镜像、派生子集，或只是同名资源。"
+  - button "Copy table":
+  - paragraph: "**根目录 LICENSE 与数据卡片可能指向不同对象；也可能确实存在同一制品的声明冲突。现在不能跳过这一步。**不要把“选更宽松”或“默认选更严格”当成证据核对。"
+  - paragraph: 未解决项按具体来源／文件隔离，不扩大为“所有公开数据一律禁止研究”；其余用途已明确的来源可以继续处理。也不能反向把“允许某类研究”自动继承成产品训练许可。
+  - heading "六、下一步本机直接做的 5 项任务" [level=2]
+  - paragraph:
+    - text: 以下产物名称均为建议，
+    - strong: 输出到新的审计或候选目录，不覆盖已冻结数据
+    - text: 。
+  - table:
+    - rowgroup:
+      - row "任务 本机操作范围 验收证据":
+        - columnheader "任务"
+        - columnheader "本机操作范围"
+        - columnheader "验收证据"
+    - rowgroup:
+      - row "1. 重建四路线清单及计数谱系 只读核查 9 月 3 日 CURRENT_STATUS、v2 readiness、M1-v1 和 research-v0。厘清 82,567 与 39,250 的阶段、单位和转换关系。 lineage_inventory.json、计数对账报告；每项带状态日期、来源路径、revision／哈希。记录冻结目录前后哈希一致；无法解释的计数显式 UNRESOLVED。":
+        - cell "1. 重建四路线清单及计数谱系":
+          - strong: 1. 重建四路线清单及计数谱系
+        - cell "只读核查 9 月 3 日 CURRENT_STATUS、v2 readiness、M1-v1 和 research-v0。厘清 82,567 与 39,250 的阶段、单位和转换关系。":
+          - text: 只读核查 9 月 3 日
+          - code: CURRENT_STATUS
+          - text: 、v2 readiness、M1-v1 和 research-v0。厘清 82,567 与 39,250 的阶段、单位和转换关系。
+        - cell "lineage_inventory.json、计数对账报告；每项带状态日期、来源路径、revision／哈希。记录冻结目录前后哈希一致；无法解释的计数显式 UNRESOLVED。":
+          - code: lineage_inventory.json
+          - text: 、计数对账报告；每项带状态日期、来源路径、revision／哈希。记录冻结目录前后哈希一致；无法解释的计数显式
+          - code: UNRESOLVED
+          - text: 。
+      - row "2. 完成 CPsyCoun 版本／作用域核对 核查本地文件及精确 HF 快照；只获取所需的小型公开元数据或许可文件，不下载模型权重。网络失败如实登记。 license_scope_matrix.json：逐制品列声明、覆盖对象、证据位置和用途结论。未知不能填成已许可或已禁止。":
+        - cell "2. 完成 CPsyCoun 版本／作用域核对":
+          - strong: 2. 完成 CPsyCoun 版本／作用域核对
+        - cell "核查本地文件及精确 HF 快照；只获取所需的小型公开元数据或许可文件，不下载模型权重。网络失败如实登记。"
+        - cell "license_scope_matrix.json：逐制品列声明、覆盖对象、证据位置和用途结论。未知不能填成已许可或已禁止。":
+          - code: license_scope_matrix.json
+          - text: ：逐制品列声明、覆盖对象、证据位置和用途结论。未知不能填成已许可或已禁止。
+      - row "3. 修正合同 schema 和 readiness 依赖 拆动作权限，新增导出前状态，同步三份文档和消费它们的脚本。先做合成 fixture 单测，不触碰真实冻结数据。 测试覆盖：smoke 与正式训练权限不同；Gold 未完成不阻塞合法研究准备；导出前不要求导出 manifest；未知权利不自动通过；旧 schema 不被静默误读。":
+        - cell "3. 修正合同 schema 和 readiness 依赖":
+          - strong: 3. 修正合同 schema 和 readiness 依赖
+        - cell "拆动作权限，新增导出前状态，同步三份文档和消费它们的脚本。先做合成 fixture 单测，不触碰真实冻结数据。"
+        - cell "测试覆盖：smoke 与正式训练权限不同；Gold 未完成不阻塞合法研究准备；导出前不要求导出 manifest；未知权利不自动通过；旧 schema 不被静默误读。"
+      - row "4. 将 A3/B1 重建为新的规范化候选版本 在独立目录生成 canonical candidate，保留来源组、筛选原因和用途限制；检查单一 assistant target、历史 mask、重复、组交叉及敏感内容标记。本轮不自动冻结、不宣布批准。 转换 manifest、接受／隔离／拒绝计数、可重复运行的输出哈希、审计汇总。输出明确标记 CANDIDATE_NOT_FROZEN；缺来源组的记录不得以临时逐行 ID 冒充已完成隔离。":
+        - cell "4. 将 A3/B1 重建为新的规范化候选版本":
+          - strong: 4. 将 A3/B1 重建为新的规范化候选版本
+        - cell "在独立目录生成 canonical candidate，保留来源组、筛选原因和用途限制；检查单一 assistant target、历史 mask、重复、组交叉及敏感内容标记。本轮不自动冻结、不宣布批准。":
+          - text: 在独立目录生成 canonical candidate，保留来源组、筛选原因和用途限制；检查单一 assistant target、历史 mask、重复、组交叉及敏感内容标记。
+          - strong: 本轮不自动冻结、不宣布批准。
+        - cell "转换 manifest、接受／隔离／拒绝计数、可重复运行的输出哈希、审计汇总。输出明确标记 CANDIDATE_NOT_FROZEN；缺来源组的记录不得以临时逐行 ID 冒充已完成隔离。":
+          - text: 转换 manifest、接受／隔离／拒绝计数、可重复运行的输出哈希、审计汇总。输出明确标记
+          - code: CANDIDATE_NOT_FROZEN
+          - text: ；缺来源组的记录不得以临时逐行 ID 冒充已完成隔离。
+      - row "5. 生成评测预注册草案和远端交接包 登记非敏感 DeepSeek 配置；写清 pilot、对照、rubric、安全事件、待批准阈值与测试排除策略。打包代码、清单和合成自测样例，不运行生成或训练。 evaluation_preregistration.draft.json、模型／运行 fingerprint 模板、交接说明；确认性评测和上线状态保持未就绪，研究准备不因 Gold 未完成被一刀切禁止。":
+        - cell "5. 生成评测预注册草案和远端交接包":
+          - strong: 5. 生成评测预注册草案和远端交接包
+        - cell "登记非敏感 DeepSeek 配置；写清 pilot、对照、rubric、安全事件、待批准阈值与测试排除策略。打包代码、清单和合成自测样例，不运行生成或训练。"
+        - cell "evaluation_preregistration.draft.json、模型／运行 fingerprint 模板、交接说明；确认性评测和上线状态保持未就绪，研究准备不因 Gold 未完成被一刀切禁止。":
+          - code: evaluation_preregistration.draft.json
+          - text: 、模型／运行 fingerprint 模板、交接说明；确认性评测和上线状态保持未就绪，研究准备不因 Gold 未完成被一刀切禁止。
+  - button "Copy table":
+  - paragraph:
+    - text: 已有
+    - code: verify_bundle_contract.py
+    - text: 、profile tests 和 checksum 检查可以在本机重跑；结果应附运行版本和输入哈希，
+    - strong: 不要只回传“还是 41/41、27/27”
+    - text: 。会写回 manifest 的检查脚本，应先支持输出到新审计目录，或在隔离副本中运行。
+  - paragraph:
+    - strong: 本轮应推进的是：补全四路线证据、修正权限与导出闭环、重建候选数据、写出可执行的评测草案。既不等待 6,600 条人工批准才开始研究准备，也不把任何候选池、静态检查或研究 smoke 当作产品批准。
+  - group "Response actions":
+    - button "Copy response":
+    - button "Rate response":
+    - button "Pro feedback":
+    - button "Share":
+    - button "Switch model":
+    - button "More actions":
+  - generic: Do you like this personality?
+  - button "Yes, I like this personality":
+  - button "No, I do not like this personality":
+  - button "Dismiss rating prompt":
+  - generic: ChatGPT can make mistakes. Check important info.
+  - button:
+  - button "Add files and more":
+  - textbox "Chat with ChatGPT":
+    - paragraph: Ask ChatGPT
+  - button "6 Pro":
+    - generic: "6"
+    - generic: Pro
+  - button "Start dictation":
+  - tooltip "Start Voice, Control, Shift, V":
+    - generic "Start Voice, Control, Shift, V":
+      - generic: Start Voice
+      - generic "Control":
+        - generic: ⌃
+      - generic "Shift":
+        - generic: ⇧
+      - generic: V
+  - button "Start Voice":
+  - button
+  - button
+  - button
+- alert
+- status

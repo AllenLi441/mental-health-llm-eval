@@ -1,0 +1,132 @@
+{
+  "schema_version": "a3-candidate-1.0",
+  "content_state": "CANDIDATE_NOT_FROZEN",
+  "policy": "one_target_per_raw_record; PsyDT deterministic turn; others source final target",
+  "inputs_sha256": {
+    "PsyDTCorpus/PsyDTCorpus_train_mulit_turn_packing.json": "517fabb22502b84de72ff1d62c7efea0bd16f41cf0939d2cd1d52d285c396345",
+    "MeChat_smile/data.json": "81de26e99d7daf95d4017280800e1c4ff05e8e86f90cab087c6a2ae8e1b1896a",
+    "CounselChat/20220401_counsel_chat.csv": "886b7f26ac232f83fa14eb3277b8b00a74ad5550ad37a5cfe4dc2c9b0da3d895",
+    "EN_cand_CBT/CBT_dialogues.jsonl": "461266a1a3e3ca7eacc29d3f013d2fb149fcbc881ab796527fa3a3098fc24270",
+    "PsyDTCorpus/PsyDTCorpus_test_single_turn_split.json": "5b4eeb46721acbf5e9807fcf46902487855cbcd1ed45770b92f27ab1be95207d"
+  },
+  "script_sha256": "bb27df365fd3194cc63062c3fe018703aa950d1a18b2417273ed382648333ed5",
+  "heldout": {
+    "source": "PsyDTCorpus/PsyDTCorpus_test_single_turn_split.json",
+    "expanded_rows": 4311,
+    "dialogue_groups": 240,
+    "excluded_from_candidates": true
+  },
+  "sources": {
+    "PsyDTCorpus": {
+      "language": "zh",
+      "counts": {
+        "raw_records": 4760,
+        "normalized_candidates": 4758,
+        "assistant_targets": 4758,
+        "historical_assistant_messages_masked": 40208,
+        "rows_with_review_flags": 125,
+        "quarantined_heldout_match": 2
+      },
+      "known_source_groups": 4758,
+      "review_flags": {
+        "assistant:acute_risk_cue": 54,
+        "user:acute_risk_cue": 111,
+        "assistant:somatic_exclusion_candidate": 1
+      }
+    },
+    "MeChat_smile": {
+      "language": "zh",
+      "counts": {
+        "raw_records": 66032,
+        "rows_missing_upstream_group": 66031,
+        "normalized_candidates": 66031,
+        "assistant_targets": 66031,
+        "historical_assistant_messages_masked": 352959,
+        "rows_with_review_flags": 2180,
+        "rejected_schema": 1
+      },
+      "known_source_groups": 0,
+      "review_flags": {
+        "user:acute_risk_cue": 1968,
+        "assistant:acute_risk_cue": 793,
+        "user:guaranteed_cure_candidate": 1,
+        "user:somatic_exclusion_candidate": 2,
+        "assistant:phone_candidate": 3,
+        "assistant:somatic_exclusion_candidate": 27,
+        "assistant:guaranteed_cure_candidate": 15,
+        "assistant:url_candidate": 3
+      }
+    },
+    "CounselChat": {
+      "language": "en",
+      "counts": {
+        "raw_records": 2775,
+        "normalized_candidates": 2612,
+        "assistant_targets": 2612,
+        "historical_assistant_messages_masked": 0,
+        "rows_with_review_flags": 211,
+        "rejected_schema": 163
+      },
+      "known_source_groups": 863,
+      "review_flags": {
+        "assistant:url_candidate": 89,
+        "assistant:acute_risk_cue": 51,
+        "assistant:phone_candidate": 31,
+        "user:acute_risk_cue": 75
+      }
+    },
+    "EN_cand_CBT": {
+      "language": "en",
+      "counts": {
+        "raw_records": 9000,
+        "normalized_candidates": 9000,
+        "assistant_targets": 9000,
+        "historical_assistant_messages_masked": 0
+      },
+      "known_source_groups": 3000,
+      "review_flags": {}
+    }
+  },
+  "known_limits": [
+    "No final split, sampling, license approval, professional safety approval, or tokenization.",
+    "SMILE upstream report/question IDs absent; first-user hash is only a heuristic, not verified lineage.",
+    "Exact message and first-user matches do not detect semantic paraphrases or synthetic descendants.",
+    "Keyword flags are review candidates; absence of a flag is not evidence of clinical safety.",
+    "Loss weights are message-level intent; trainer must prove actual token-level assistant-only masking.",
+    "Only supplied PsyDT heldout checked; full project benchmark overlap audit remains required.",
+    "Raw source record counts are not independent conversations or a final 70:30 split."
+  ],
+  "repeated_target_hashes": 53,
+  "repeated_target_excess_rows": 77,
+  "raw_pool_records": 82567,
+  "normalized_candidate_records": 82401,
+  "raw_70_30_capacity_estimate": {
+    "total": 39250,
+    "zh": 27475,
+    "en": 11775,
+    "status": "ARITHMETIC_ONLY_NOT_MATERIALIZED"
+  },
+  "inputs_unchanged": true,
+  "outputs": {
+    "CounselChat.candidates.jsonl": {
+      "sha256": "977d1f5d749737047d0a95ae404ab4a2208a17af634a72bdd65df5f1124e3b63",
+      "bytes": 5978896
+    },
+    "EN_cand_CBT.candidates.jsonl": {
+      "sha256": "8a98f597f1a6356a046d3c69bfbcdb0c7ee586626be1679a97a301f31af4d347",
+      "bytes": 14831365
+    },
+    "MeChat_smile.candidates.jsonl": {
+      "sha256": "bb242c5f2857e4402357319cdb2d4062b97e20e84061508ca1d8a12dd3152d40",
+      "bytes": 243757960
+    },
+    "PsyDTCorpus.candidates.jsonl": {
+      "sha256": "aa76eb00b690f95a6f599a560dbefde3934371d3382db5c88cb41219feda8b7a",
+      "bytes": 30110760
+    },
+    "rejections.jsonl": {
+      "sha256": "ca6002381becbb3e42bd5583c9992033bf37c70108d57b351e7156eb8e552bba",
+      "bytes": 12952
+    }
+  }
+}
