@@ -15,6 +15,8 @@ A3/B1 候选构成为：PsyDT 4,758 中文（125 行复核标记）、MeChat_smi
 
 `39,250`（27,475 中文、11,775 英文）仅是原始 A3/B1 报告中的容量算术，当前 manifest 明确标为 `ARITHMETIC_ONLY_NOT_MATERIALIZED`；它不是训练行数、批准量或冻结规模。
 
+按当前候选文本字符做的容量估计约为 5988 万“粗略 token”（上下文总量），其中监督目标约 612 万“粗略 token”；中文按 1 字符、英文按 4 字符换算，仅用于估算磁盘/吞吐，不能代替 Qwen tokenizer、chat template 和截断后的真实统计。
+
 ## 可以如何用于周一上机
 
 先把候选目录复制到独立的 `candidate-not-frozen` 目录，复制前后核对 manifest 的文件列表、大小和 SHA-256，并绑定代码提交。不要把它接入默认训练目录。之后按来源分别补齐：用途许可和 revision、来源组、近重复/benchmark 污染、PII 与专业安全复核、正式 split、实际 tokenizer/chat template/collator 的 token 级 assistant-only mask。只有这些证据对应的导出版本才可以另立 Qwen SFT run。
