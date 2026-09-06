@@ -6,10 +6,12 @@ API key, model weight, or raw dataset.
 
 * `PHASE1_CONTRACT_AMENDMENT_01.md` and `contract_v1_1.json` separate the four
   data routes, action permissions, evidence, and gates.
-* `lineage_inventory.json` records the local hashes and five command results.
+* `local_audit_v2/lineage_inventory.json` records the local hashes and five command results.
   The corresponding `.log` files preserve command output.
 * `license_scope_matrix.json` records the unresolved CPsyCoun revision/scope
   conflict without making a legal decision.
+* `../../scripts/data/candidate_training_guard.py` fails closed if a candidate
+  artifact is passed to a training or release action.
 * `../../scripts/data/prepare_a3_candidates.py` regenerates the candidate
   artifacts from the local raw inputs.
 

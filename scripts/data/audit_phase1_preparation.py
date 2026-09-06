@@ -53,7 +53,7 @@ def main():
         ("research_profiles", research / "server_training_bundle", [sys.executable, "scripts/test_model_profiles.py"]),
         ("research_checksums", research / "server_training_bundle", ["shasum", "-a", "256", "-c", "BUNDLE_CONTENTS.sha256"]),
         ("legacy_v2_preflight_selftest", v2, [sys.executable, "server_training_bundle/scripts/preflight.py", "--selftest"]),
-        ("candidate_tests", root, [sys.executable, "-m", "unittest", "discover", "-s", "scripts/data", "-p", "test_prepare_a3_candidates.py", "-v"]),
+        ("candidate_tests", root, [sys.executable, "-m", "unittest", "discover", "-s", "scripts/data", "-p", "test_*.py", "-v"]),
     ]
     results = {}
     for name, cwd, command in checks:

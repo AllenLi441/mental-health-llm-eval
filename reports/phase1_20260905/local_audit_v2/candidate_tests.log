@@ -1,0 +1,16 @@
+test_candidate_allows_only_preparation (test_candidate_training_guard.GuardTests) ... ok
+test_candidate_rejects_every_training_or_release_action (test_candidate_training_guard.GuardTests) ... ok
+test_unknown_and_state_drift_fail_closed (test_candidate_training_guard.GuardTests) ... ok
+test_build_determinism_and_holdout_exclusion (test_prepare_a3_candidates.CandidateTests) ... ok
+test_cbt_stages_share_source_group (test_prepare_a3_candidates.CandidateTests) ... ok
+test_empty_target_rejected (test_prepare_a3_candidates.CandidateTests) ... ok
+test_flag_does_not_become_approval (test_prepare_a3_candidates.CandidateTests) ... ok
+test_history_loss_is_zero (test_prepare_a3_candidates.CandidateTests) ... ok
+test_missing_question_id_is_not_row_lineage (test_prepare_a3_candidates.CandidateTests) ... ok
+test_non_alternating_turns_rejected (test_prepare_a3_candidates.CandidateTests) ... ok
+test_unknown_roles_rejected (test_prepare_a3_candidates.CandidateTests) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.010s
+
+OK

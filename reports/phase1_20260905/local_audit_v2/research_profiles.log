@@ -1,0 +1,125 @@
+[PASS] baseline/27b-profile-loads
+        corrupted: none (control)
+        observed:  id=Qwen/Qwen3.8-27B rev=1d4bf0f2 gib=64.53 lora=496 gdn=48
+[PASS] unknown-profile-name
+        corrupted: --model-profile qwen9_9_999b (no such file)
+        observed:  PreflightError: Unknown model profile 'qwen9_9_999b'; available: qwen3_8_14b, qwen3_8_27b, qwen3_8_7b
+[PASS] profile-name-traversal
+        corrupted: --model-profile ../../etc/passwd
+        observed:  PreflightError: Invalid model profile name: '../../etc/passwd'
+[PASS] placeholder-refused/qwen3_8_14b
+        corrupted: qwen3_8_14b status=UNVERIFIED_PLACEHOLDER, no override flag
+        observed:  PreflightError: Model profile qwen3_8_14b is 'UNVERIFIED_PLACEHOLDER', not VERIFIED. No Qwen3.8-14B checkpoint has been inspected. Every null below is a value that ca
+[PASS] placeholder-refused/qwen3_8_7b
+        corrupted: qwen3_8_7b status=UNVERIFIED_PLACEHOLDER, no override flag
+        observed:  PreflightError: Model profile qwen3_8_7b is 'UNVERIFIED_PLACEHOLDER', not VERIFIED. No Qwen3.8-7B checkpoint has been inspected. Every null below is a value that can 
+[PASS] placeholder-null-gate/qwen3_8_14b/lora-modules
+        corrupted: qwen3_8_14b expected_lora_modules=null, --allow-unverified-profile
+        observed:  PreflightError: Model profile qwen3_8_14b has no value for expected_lora_modules. This profile is a placeholder: the value can only come from the real checkpoint (see
+[PASS] placeholder-null-gate/qwen3_8_14b/revision
+        corrupted: qwen3_8_14b model_revision=null, --allow-unverified-profile
+        observed:  PreflightError: Model profile qwen3_8_14b has no value for model_revision. This profile is a placeholder: the value can only come from the real checkpoint (see its to
+[PASS] placeholder-null-gate/qwen3_8_14b/snapshot-gib
+        corrupted: qwen3_8_14b snapshot_gib_estimate=null, --allow-unverified-profile
+        observed:  PreflightError: Model profile qwen3_8_14b has no value for snapshot_gib_estimate. This profile is a placeholder: the value can only come from the real checkpoint (see
+[PASS] placeholder-null-gate/qwen3_8_14b/gdn-layers
+        corrupted: qwen3_8_14b expected_gated_deltanet_layers=null, --allow-unverified-profile
+        observed:  PreflightError: Model profile qwen3_8_14b has no value for expected_gated_deltanet_layers. This profile is a placeholder: the value can only come from the real checkp
+[PASS] placeholder-null-gate/qwen3_8_7b/lora-modules
+        corrupted: qwen3_8_7b expected_lora_modules=null, --allow-unverified-profile
+        observed:  PreflightError: Model profile qwen3_8_7b has no value for expected_lora_modules. This profile is a placeholder: the value can only come from the real checkpoint (see 
+[PASS] placeholder-null-gate/qwen3_8_7b/revision
+        corrupted: qwen3_8_7b model_revision=null, --allow-unverified-profile
+        observed:  PreflightError: Model profile qwen3_8_7b has no value for model_revision. This profile is a placeholder: the value can only come from the real checkpoint (see its to_
+[PASS] placeholder-null-gate/qwen3_8_7b/snapshot-gib
+        corrupted: qwen3_8_7b snapshot_gib_estimate=null, --allow-unverified-profile
+        observed:  PreflightError: Model profile qwen3_8_7b has no value for snapshot_gib_estimate. This profile is a placeholder: the value can only come from the real checkpoint (see 
+[PASS] placeholder-null-gate/qwen3_8_7b/gdn-layers
+        corrupted: qwen3_8_7b expected_gated_deltanet_layers=null, --allow-unverified-profile
+        observed:  PreflightError: Model profile qwen3_8_7b has no value for expected_gated_deltanet_layers. This profile is a placeholder: the value can only come from the real checkpo
+[PASS] schema-version-mismatch
+        corrupted: schema_version=mhi-model-profile-0.9
+        observed:  PreflightError: Model profile t_badschema schema mismatch: expected mhi-model-profile-1.0, observed 'mhi-model-profile-0.9'
+[PASS] allowed-model-types-empty
+        corrupted: allowed_model_types=[]
+        observed:  PreflightError: Model profile t_emptytypes field allowed_model_types must be a non-empty list of strings
+[PASS] allowed-model-types-not-list
+        corrupted: allowed_model_types="qwen3_5" (string)
+        observed:  PreflightError: Model profile t_strtypes field allowed_model_types must be a non-empty list of strings
+[PASS] modeling-module-path-empty
+        corrupted: modeling_module_path=""
+        observed:  PreflightError: Model profile t_nomodpath field modeling_module_path must be a non-empty string
+[PASS] modeling-module-path-bogus
+        corrupted: modeling_module_path=transformers.models.does_not_exist.modeling_nope
+        observed:  PreflightError: Model profile t_bogusmod names modeling module 'transformers.models.does_not_exist.modeling_nope', which this transformers build does not provide
+[PASS] snapshot-disk-gate/absurd-snapshot-same-volume
+        corrupted: snapshot_gib_estimate=900000 GiB, cache on the bundle's volume
+        observed:  PreflightError: Hub cache /Users/allenli/.cache/huggingface/hub (measured at /Users/allenli/.cache/huggingface/hub) has 115.6 GiB free; requires the Qwen/Qwen3.8-27B 
+[PASS] snapshot-disk-gate/absurd-snapshot-cross-volume
+        corrupted: snapshot_gib_estimate=900000 GiB, cache forced onto another volume
+        observed:  PreflightError: Hub cache /dev/mhi-nonexistent-cache-probe (measured at /dev) has 0.0 GiB free; requires the Qwen/Qwen3.8-27B BF16 snapshot's ~900000 GiB. Point HF_HO
+[PASS] snapshot-disk-gate/cross-volume-uses-snapshot-not-minimum
+        corrupted: snapshot_gib_estimate=0, required_disk=900000 GiB, separate volume
+        observed:  required_gib=0.0 same_volume=False
+[PASS] snapshot-disk-gate/reads-profile-value
+        corrupted: snapshot_gib_estimate=0.001 GiB
+        observed:  required_gib=0.001 free_gib=115.61
+[PASS] config-vs-profile/model-id-mismatch
+        corrupted: profile model_id=meta-llama/Llama-3-70B vs config Qwen/Qwen3.8-27B
+        observed:  PreflightError: Training config model ID/revision mismatch: config has 'Qwen/Qwen3.8-27B'@'1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0', profile t_wrongid expects 'meta-
+[PASS] config-vs-profile/revision-mismatch
+        corrupted: profile model_revision=deadbeef... vs config 1d4bf0f2...
+        observed:  PreflightError: Training config model ID/revision mismatch: config has 'Qwen/Qwen3.8-27B'@'1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0', profile t_wrongrev expects 'Qwen
+[PASS] config-vs-profile/declared-profile-mismatch
+        corrupted: config model_profile="qwen3_8_7b" while qwen3_8_27b is active
+        observed:  PreflightError: Config declares model_profile 'qwen3_8_7b' but 'qwen3_8_27b' is active
+[PASS] config-vs-profile/matching-declaration-passes
+        corrupted: none (control): config model_profile=qwen3_8_27b, active=qwen3_8_27b
+        observed:  loaded hardware_profile=recommended-80gb
+[PASS] smoke-receipt-gdn-gate/control-receipt-valid
+        corrupted: none (control): receipt says 48, profile qwen3_8_27b expects 48
+        observed:  accepted -- receipt is well-formed through every gate
+[PASS] smoke-receipt-gdn-gate/layer-count-mismatch
+        corrupted: profile expected_gated_deltanet_layers=40 vs receipt's proven 48
+        observed:  PreflightError: Smoke receipt lacks the Qwen Gated DeltaNet fast-path proof (profile t_gdn40 expects 40 layers, receipt has 48)
+[PASS] smoke-receipt-profile-gate/receipt-from-other-profile
+        corrupted: receipt says model_profile=t_gdn40 while qwen3_8_27b is active (identical model_id/revision, so base_model matches)
+        observed:  PreflightError: Smoke receipt was produced under model profile 't_gdn40', but 'qwen3_8_27b' is active. Re-run the smoke under this profile.
+[PASS] smoke-receipt-profile-gate/missing-field
+        corrupted: receipt has no model_profile field at all
+        observed:  PreflightError: Smoke receipt was produced under model profile None, but 'qwen3_8_27b' is active. Re-run the smoke under this profile.
+[PASS] adapter-selection/research-valid
+        corrupted: none (control): checkpoint-40 has one adapter and finite eval_loss
+        observed:  policy=minimum_eval_loss_checkpoint source=checkpoint-40
+[PASS] adapter-selection/research-rejects-metric-drift
+        corrupted: metric_for_best_model=accuracy while manifest would claim eval_loss
+        observed:  PreflightError: Research adapter selection requires metric_for_best_model='eval_loss'; observed 'accuracy'
+[PASS] adapter-selection/research-rejects-direction-drift
+        corrupted: greater_is_better=true while minimum eval_loss is required
+        observed:  PreflightError: Research adapter selection requires greater_is_better=False; observed True
+[PASS] adapter-selection/missing-best
+        corrupted: research TrainerState has no best_model_checkpoint
+        observed:  PreflightError: Research training finished without a complete best-checkpoint selection
+[PASS] adapter-selection/step-mismatch
+        corrupted: best_model_checkpoint=checkpoint-20 but best_global_step=40
+        observed:  PreflightError: Best checkpoint path and best_global_step disagree: 'checkpoint-20' vs 40
+[PASS] adapter-selection/nonfinite-metric
+        corrupted: best_metric=NaN
+        observed:  PreflightError: Best eval_loss is not finite: nan
+[PASS] adapter-selection/missing-adapter
+        corrupted: checkpoint-20 contains no PEFT adapter weight file
+        observed:  PreflightError: Best checkpoint must contain exactly one PEFT adapter weight file; found [] in checkpoint-20
+[PASS] adapter-selection/duplicate-adapter-files
+        corrupted: checkpoint-20 contains both supported PEFT adapter weight formats
+        observed:  PreflightError: Best checkpoint must contain exactly one PEFT adapter weight file; found ['adapter_model.safetensors', 'adapter_model.bin'] in checkpoint-20
+[PASS] adapter-selection/checkpoint-outside-run
+        corrupted: best checkpoint is outside the current run directory
+        observed:  PreflightError: Best checkpoint is missing or outside the current run directory: /private/var/folders/b6/9mjxw1nn3xvfgx6037r0q7vm0000gn/T/mhi-profile-test-fydo92z1/ad
+[PASS] adapter-selection/smoke-semantics
+        corrupted: none (control): research_smoke completed exactly two steps
+        observed:  policy=last_trained_state_discard_only step=2
+[PASS] adapter-selection/smoke-rejects-best-loading
+        corrupted: research_smoke unexpectedly has load_best_model_at_end=true
+        observed:  PreflightError: Adapter selection mode disagrees with load_best_model_at_end (mode='research_smoke', configured=True)
+
+41/41 local reverse-injection tests behaved as expected
