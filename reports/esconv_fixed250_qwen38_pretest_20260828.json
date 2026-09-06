@@ -1,0 +1,373 @@
+{
+  "arms": {
+    "DeepSeek V4-Flash": {
+      "accuracy": 0.164,
+      "accuracy_cluster_bootstrap_95_ci": [
+        0.12075471698113208,
+        0.21076600081532784
+      ],
+      "correct": 41,
+      "coverage": 0.988,
+      "invalid": 4,
+      "macro_f1": 0.12257509893052063,
+      "missing": 3,
+      "n": 250,
+      "per_class": {
+        "Affirmation and Reassurance": {
+          "f1": 0.15384615384615385,
+          "precision": 0.12307692307692308,
+          "recall": 0.20512820512820512,
+          "support": 39
+        },
+        "Information": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 8
+        },
+        "Other": {
+          "f1": 0.031746031746031744,
+          "precision": 0.5,
+          "recall": 0.01639344262295082,
+          "support": 61
+        },
+        "Providing Suggestions": {
+          "f1": 0.09999999999999999,
+          "precision": 0.4,
+          "recall": 0.05714285714285714,
+          "support": 35
+        },
+        "Questions": {
+          "f1": 0.37142857142857144,
+          "precision": 0.6842105263157895,
+          "recall": 0.2549019607843137,
+          "support": 51
+        },
+        "Reflection of feelings": {
+          "f1": 0.1807228915662651,
+          "precision": 0.10273972602739725,
+          "recall": 0.75,
+          "support": 20
+        },
+        "Restatement or Paraphrasing": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 14
+        },
+        "Self-disclosure": {
+          "f1": 0.14285714285714288,
+          "precision": 0.3333333333333333,
+          "recall": 0.09090909090909091,
+          "support": 22
+        }
+      },
+      "source": "/Users/allenli/Desktop/mental-health-llm-eval/outputs/provider_v2_flash_esconv_250_20260809.jsonl",
+      "source_sha256": "f2d4480c5ff7daa10094f68e1d3ad0e0497b6831ec038d5150e5947f8224e92c",
+      "weighted_f1": 0.14854672021419008
+    },
+    "DeepSeek V4-Pro-0813": {
+      "accuracy": 0.16,
+      "accuracy_cluster_bootstrap_95_ci": [
+        0.12643678160919541,
+        0.1991869918699187
+      ],
+      "correct": 40,
+      "coverage": 0.96,
+      "invalid": 12,
+      "macro_f1": 0.09642391030352539,
+      "missing": 10,
+      "n": 250,
+      "per_class": {
+        "Affirmation and Reassurance": {
+          "f1": 0.035714285714285705,
+          "precision": 0.058823529411764705,
+          "recall": 0.02564102564102564,
+          "support": 39
+        },
+        "Information": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 8
+        },
+        "Other": {
+          "f1": 0.14925373134328357,
+          "precision": 0.8333333333333334,
+          "recall": 0.08196721311475409,
+          "support": 61
+        },
+        "Providing Suggestions": {
+          "f1": 0.05555555555555556,
+          "precision": 1.0,
+          "recall": 0.02857142857142857,
+          "support": 35
+        },
+        "Questions": {
+          "f1": 0.35789473684210527,
+          "precision": 0.38636363636363635,
+          "recall": 0.3333333333333333,
+          "support": 51
+        },
+        "Reflection of feelings": {
+          "f1": 0.17297297297297298,
+          "precision": 0.09696969696969697,
+          "recall": 0.8,
+          "support": 20
+        },
+        "Restatement or Paraphrasing": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 14
+        },
+        "Self-disclosure": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 22
+        }
+      },
+      "source": "/Users/allenli/Desktop/mental-health-llm-eval/open_response_eval/results/deepseek-v4-pro-0813/deepseek_v4_pro_0813.esconv.fixed250.generations.jsonl",
+      "source_sha256": "cfea5dadebb8ebf32dec1270324674b7c80baef05df433bb139285ba3572efbd",
+      "weighted_f1": 0.13661548095059484
+    },
+    "Qwen3.6-27B（未微调）": {
+      "accuracy": 0.14,
+      "accuracy_cluster_bootstrap_95_ci": [
+        0.09663865546218488,
+        0.19148936170212766
+      ],
+      "correct": 35,
+      "coverage": 1.0,
+      "invalid": 0,
+      "macro_f1": 0.1044269026749223,
+      "missing": 0,
+      "n": 250,
+      "per_class": {
+        "Affirmation and Reassurance": {
+          "f1": 0.15053763440860213,
+          "precision": 0.12962962962962962,
+          "recall": 0.1794871794871795,
+          "support": 39
+        },
+        "Information": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 8
+        },
+        "Other": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 61
+        },
+        "Providing Suggestions": {
+          "f1": 0.10256410256410256,
+          "precision": 0.5,
+          "recall": 0.05714285714285714,
+          "support": 35
+        },
+        "Questions": {
+          "f1": 0.2608695652173913,
+          "precision": 0.5,
+          "recall": 0.17647058823529413,
+          "support": 51
+        },
+        "Reflection of feelings": {
+          "f1": 0.16759776536312854,
+          "precision": 0.09433962264150944,
+          "recall": 0.75,
+          "support": 20
+        },
+        "Restatement or Paraphrasing": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 14
+        },
+        "Self-disclosure": {
+          "f1": 0.15384615384615385,
+          "precision": 0.5,
+          "recall": 0.09090909090909091,
+          "support": 22
+        }
+      },
+      "source": "/Users/allenli/Desktop/mental-health-llm-eval/outputs/pilot100_qwen_esconv_20260808.jsonl",
+      "source_sha256": "812d80e7c67b73a3887b9c83b353f91bfbbede9b6c33af936201716c25790536",
+      "weighted_f1": 0.11800651939857593
+    },
+    "Qwen3.8-27B（未微调·DashScope）": {
+      "accuracy": 0.136,
+      "accuracy_cluster_bootstrap_95_ci": [
+        0.09195402298850575,
+        0.18623803827751167
+      ],
+      "correct": 34,
+      "coverage": 1.0,
+      "invalid": 0,
+      "macro_f1": 0.09597628878878878,
+      "missing": 0,
+      "n": 250,
+      "per_class": {
+        "Affirmation and Reassurance": {
+          "f1": 0.075,
+          "precision": 0.07317073170731707,
+          "recall": 0.07692307692307693,
+          "support": 39
+        },
+        "Information": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 8
+        },
+        "Other": {
+          "f1": 0.0625,
+          "precision": 0.6666666666666666,
+          "recall": 0.03278688524590164,
+          "support": 61
+        },
+        "Providing Suggestions": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 35
+        },
+        "Questions": {
+          "f1": 0.31999999999999995,
+          "precision": 0.5,
+          "recall": 0.23529411764705882,
+          "support": 51
+        },
+        "Reflection of feelings": {
+          "f1": 0.16216216216216214,
+          "precision": 0.09090909090909091,
+          "recall": 0.75,
+          "support": 20
+        },
+        "Restatement or Paraphrasing": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 14
+        },
+        "Self-disclosure": {
+          "f1": 0.14814814814814814,
+          "precision": 0.4,
+          "recall": 0.09090909090909091,
+          "support": 22
+        }
+      },
+      "source": "/Users/allenli/Desktop/mental-health-llm-eval/outputs/provider_dashscope_qwen38_esconv_250_20260828.jsonl",
+      "source_sha256": "201cb0b1a8544fd5568a1102058a3af0313bd11090b80e73f3eb992a5c8f2b9c",
+      "weighted_f1": 0.11824001001001
+    }
+  },
+  "bootstrap_repetitions": 20000,
+  "bootstrap_seed": 20260812,
+  "conversation_clusters": 19,
+  "limitations": [
+    "fixed250 is a development-sized benchmark, not the 2,775-row full test",
+    "this analysis belongs to the existing JSON strategy+response API track",
+    "it cannot be inherited by the new one-letter strategy-only LoRA track"
+  ],
+  "n": 250,
+  "pairwise": {
+    "DeepSeek V4-Pro-0813__vs__DeepSeek V4-Flash": {
+      "accuracy_delta_a_minus_b": -0.0040000000000000036,
+      "arm_a": "DeepSeek V4-Pro-0813",
+      "arm_b": "DeepSeek V4-Flash",
+      "both_correct": 29,
+      "both_wrong": 198,
+      "cluster_bootstrap_95_ci": [
+        -0.027559055118110236,
+        0.02510460251046025
+      ],
+      "exact_mcnemar_two_sided_p": 1.0,
+      "holm_adjusted_p": 1.0,
+      "only_a_correct": 11,
+      "only_b_correct": 12
+    },
+    "Qwen3.6-27B（未微调）__vs__DeepSeek V4-Flash": {
+      "accuracy_delta_a_minus_b": -0.023999999999999994,
+      "arm_a": "Qwen3.6-27B（未微调）",
+      "arm_b": "DeepSeek V4-Flash",
+      "both_correct": 26,
+      "both_wrong": 200,
+      "cluster_bootstrap_95_ci": [
+        -0.06792641509433962,
+        0.0205761316872428
+      ],
+      "exact_mcnemar_two_sided_p": 0.30745625495910645,
+      "holm_adjusted_p": 1.0,
+      "only_a_correct": 9,
+      "only_b_correct": 15
+    },
+    "Qwen3.6-27B（未微调）__vs__DeepSeek V4-Pro-0813": {
+      "accuracy_delta_a_minus_b": -0.01999999999999999,
+      "arm_a": "Qwen3.6-27B（未微调）",
+      "arm_b": "DeepSeek V4-Pro-0813",
+      "both_correct": 24,
+      "both_wrong": 199,
+      "cluster_bootstrap_95_ci": [
+        -0.05405405405405406,
+        0.012096774193548387
+      ],
+      "exact_mcnemar_two_sided_p": 0.44206833839416504,
+      "holm_adjusted_p": 1.0,
+      "only_a_correct": 11,
+      "only_b_correct": 16
+    },
+    "Qwen3.8-27B（未微调·DashScope）__vs__DeepSeek V4-Flash": {
+      "accuracy_delta_a_minus_b": -0.027999999999999997,
+      "arm_a": "Qwen3.8-27B（未微调·DashScope）",
+      "arm_b": "DeepSeek V4-Flash",
+      "both_correct": 28,
+      "both_wrong": 203,
+      "cluster_bootstrap_95_ci": [
+        -0.058365758754863814,
+        0.0039219546086150655
+      ],
+      "exact_mcnemar_two_sided_p": 0.1670684814453125,
+      "holm_adjusted_p": 1.0,
+      "only_a_correct": 6,
+      "only_b_correct": 13
+    },
+    "Qwen3.8-27B（未微调·DashScope）__vs__DeepSeek V4-Pro-0813": {
+      "accuracy_delta_a_minus_b": -0.023999999999999994,
+      "arm_a": "Qwen3.8-27B（未微调·DashScope）",
+      "arm_b": "DeepSeek V4-Pro-0813",
+      "both_correct": 29,
+      "both_wrong": 205,
+      "cluster_bootstrap_95_ci": [
+        -0.048582995951417005,
+        0.0
+      ],
+      "exact_mcnemar_two_sided_p": 0.210113525390625,
+      "holm_adjusted_p": 1.0,
+      "only_a_correct": 5,
+      "only_b_correct": 11
+    },
+    "Qwen3.8-27B（未微调·DashScope）__vs__Qwen3.6-27B（未微调）": {
+      "accuracy_delta_a_minus_b": -0.0040000000000000036,
+      "arm_a": "Qwen3.8-27B（未微调·DashScope）",
+      "arm_b": "Qwen3.6-27B（未微调）",
+      "both_correct": 24,
+      "both_wrong": 205,
+      "cluster_bootstrap_95_ci": [
+        -0.03862660944206009,
+        0.03056768558951965
+      ],
+      "exact_mcnemar_two_sided_p": 1.0,
+      "holm_adjusted_p": 1.0,
+      "only_a_correct": 10,
+      "only_b_correct": 11
+    }
+  },
+  "protocol": "provider_api_v2 JSON strategy+response; missing/invalid counts wrong",
+  "report_id": "esconv-fixed250-paired-inference-20260812",
+  "test_file": "/Users/allenli/Desktop/mental-health-llm-eval/tmp/official_benchmarks/esconv/codes/dataset/testWithStrategy_short.tsv",
+  "test_file_sha256": "b85ae888bf747cefa54bba2a6c3e2f6ccb4c1005d4e0b6d1d3be3823cf040aef"
+}
