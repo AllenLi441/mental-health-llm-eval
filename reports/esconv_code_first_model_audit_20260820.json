@@ -1,0 +1,240 @@
+{
+  "schema_version": 1,
+  "audit_id": "esconv-code-first-model-audit-20260820",
+  "as_of": "2026-08-20",
+  "purpose": "Select engineering candidates that can actually be reproduced or extended; do not rank incompatible paper-reported accuracies.",
+  "implementation_gate": {
+    "requires_relevant_model_source": true,
+    "requires_concrete_train_or_inference_entrypoint": true,
+    "paper_url_required": true,
+    "official_code_url_required": true,
+    "checkpoint_status_reported_separately": true,
+    "dependency_status_reported_separately": true,
+    "license_status_reported_separately": true,
+    "readme_pdf_or_forthcoming_only_counts_as_code": false
+  },
+  "selected_engineering_base": {
+    "id": "emodynamix-v2",
+    "reason": "Only current canonical eight-class strategy architecture with verified official source, official paper checkpoint, and exact local author-native reproduction.",
+    "required_next_step": "Retrain from clean canonical train/dev; the released checkpoint is train-contaminated relative to the frozen test and is ineligible for the frozen leaderboard."
+  },
+  "local_archives": {
+    "emodynamix": {
+      "path": "/Users/allenli/Desktop/EmoDynamiX-v2-master",
+      "non_ds_store_files": 83,
+      "sorted_file_content_manifest_sha256": "f326fc97d5a44d1e7bcd294303ebac44766370ff5b46b4c45d72e821694fd3d9",
+      "byte_identical_to_official_commit_excluding_ds_store": true,
+      "official_commit": "c9213d718a9684a5e05ce5daa947f9cbbfb7b927",
+      "official_tree": "c5eab8ff3d051c49470ce19c7d24e65d757c4624",
+      "checkpoint_present_in_desktop_archive": false
+    },
+    "multiesc": {
+      "path": "/Users/allenli/Desktop/MultiESC-main",
+      "non_ds_store_files": 30,
+      "sorted_file_content_manifest_sha256": "af20e319b7736cb1006fd1ddd350b896ad8479438a4483920abc2617e245692c",
+      "byte_identical_to_official_commit_excluding_ds_store": true,
+      "official_commit": "46834e134320253e51920a2f5d34f166335bd965",
+      "paper_checkpoint_present": false,
+      "train_sha256": "7f89f29c877a60e9021ca285bb660ff52b5aac184d0084d706e67152923d1390",
+      "valid_sha256": "bb0301e9bc3cd7d5f6cbfa4afd906ede4e57dca762a66b5573389a0f608f595e",
+      "test_sha256": "d3a34778f786d3441e131fdce267a4b9f3e59ac048f848c040d5611f44560860"
+    }
+  },
+  "candidates": [
+    {
+      "id": "emodynamix-v2",
+      "grade": "A_REPRODUCED_LOCAL",
+      "paper_url": "https://aclanthology.org/2025.naacl-long.81/",
+      "code_url": "https://github.com/cw-wan/EmoDynamiX-v2",
+      "task": "canonical_eight_class_next_strategy_author_split",
+      "relevant_source": true,
+      "train_or_inference_entrypoint": true,
+      "paper_checkpoint": true,
+      "local_reproduction": {
+        "protocol": "author_native_test_2895",
+        "correct": 973,
+        "total": 2895,
+        "accuracy": 0.33609671848013817,
+        "macro_f1": 0.2770401756470437,
+        "weighted_f1": 0.3270871435451419,
+        "invalid": 0
+      },
+      "frozen_leaderboard_eligible_released_checkpoint": false,
+      "license": "source_MIT; dataset_noncommercial_research; checkpoint_product_rights_unverified",
+      "decision": "PRIMARY_ARCHITECTURE_BASE_CLEAN_RETRAIN_REQUIRED"
+    },
+    {
+      "id": "original-esconv-blenderbot-joint",
+      "grade": "A_REPRODUCED_LOCAL",
+      "paper_url": "https://aclanthology.org/2021.acl-long.269/",
+      "code_url": "https://github.com/thu-coai/Emotional-Support-Conversation",
+      "task": "joint_generation_first_strategy_token",
+      "relevant_source": true,
+      "train_or_inference_entrypoint": true,
+      "paper_checkpoint": true,
+      "local_reproduction": {
+        "protocol": "frozen_2775",
+        "correct": 894,
+        "total": 2775,
+        "accuracy": 0.32216216216216216,
+        "macro_f1": 0.21827168949288342,
+        "weighted_f1": 0.28562612272020277
+      },
+      "decision": "FAIR_FROZEN_BASELINE"
+    },
+    {
+      "id": "esconv-sra",
+      "grade": "A1_GENERATION_DONOR",
+      "paper_url": "https://aclanthology.org/2025.sicon-1.9/",
+      "code_url": "https://github.com/navidmdn/ESConv-SRA",
+      "checkpoint_url": "https://huggingface.co/navidmadani/esconv_sra_llama3_8b",
+      "verified_commit": "c92b0359053e9ef04baea99aa9d9f6a4c36164f4",
+      "task": "fifteen_class_strategy_conditioned_long_response_generation_and_adherence",
+      "relevant_source": true,
+      "train_or_inference_entrypoint": true,
+      "paper_checkpoint": true,
+      "checkpoint_size_bytes_approx": 1360000000,
+      "canonical_eight_way_leaderboard_eligible": false,
+      "known_command_correction": "PYTHONPATH=. python training/cli_chat.py --model_path navidmadani/esconv_sra_llama3_8b",
+      "reported_hardware": "one_A100_80GB",
+      "license": "repository_no_license; adapter_openrail; Meta_Llama_base_license_also_applies",
+      "decision": "FUTURE_GENERATOR_DONOR_ONLY"
+    },
+    {
+      "id": "multiesc",
+      "grade": "B_TRAINABLE_SOURCE_METHOD_DONOR",
+      "paper_url": "https://aclanthology.org/2022.emnlp-main.195/",
+      "code_url": "https://github.com/lwgkzl/MultiESC",
+      "task": "modified_taxonomy_lookahead_strategy_planning_and_generation",
+      "relevant_source": true,
+      "train_or_inference_entrypoint": true,
+      "paper_checkpoint": false,
+      "canonical_eight_way_leaderboard_eligible": false,
+      "blocking_defects": [
+        "generate_strategy_test produces beam7 then reads beam8",
+        "published label transformation merges Suggestion and Information and excludes residual Others",
+        "current Transformers 5 cannot import the legacy private API implementation",
+        "validation accuracy denominator is initialized at one"
+      ],
+      "license": "repository_license_missing; ESConv upstream research-only",
+      "decision": "CLEAN_ROOM_LOOKAHEAD_DONOR_NOT_BASELINE"
+    },
+    {
+      "id": "transesc",
+      "grade": "B_TRAINABLE_SOURCE_NO_CHECKPOINT",
+      "paper_url": "https://aclanthology.org/2023.findings-acl.420/",
+      "code_url": "https://github.com/circle-hit/TransESC",
+      "task": "state_transition_controlled_response_generation",
+      "relevant_source": true,
+      "train_or_inference_entrypoint": true,
+      "paper_checkpoint": false,
+      "decision": "METHOD_DONOR_NOT_RUNNABLE_CHECKPOINT"
+    },
+    {
+      "id": "pal",
+      "grade": "B_TRAINABLE_SOURCE_DIFFERENT_TASK",
+      "paper_url": "https://aclanthology.org/2023.findings-acl.34/",
+      "code_url": "https://github.com/chengjl19/PAL",
+      "task": "PESConv_persona_conditioned_generation",
+      "relevant_source": true,
+      "train_or_inference_entrypoint": true,
+      "paper_checkpoint": false,
+      "canonical_eight_way_leaderboard_eligible": false,
+      "decision": "METHOD_DONOR_ONLY"
+    },
+    {
+      "id": "decoupled-esc",
+      "grade": "C_PARTIAL_SOURCE_DATA",
+      "paper_url": "https://aclanthology.org/2025.findings-emnlp.1209/",
+      "code_url": "https://github.com/Zc0812/DecoupledESC",
+      "verified_commit": "afe3057cb617ed16da8c679d5999863e9f1327aa",
+      "task": "canonical_eight_class_planner_plus_strategy_conditioned_generation",
+      "relevant_source": true,
+      "train_or_inference_entrypoint": "partial_API_inference_only",
+      "paper_checkpoint": false,
+      "blocking_defects": [
+        "no SFT or DPO training code",
+        "no requirements or license",
+        "all three vLLM shell scripts use invalid spaced variable assignments"
+      ],
+      "reported_hardware": "four_RTX_4090_24GB",
+      "decision": "IDEA_DONOR_NOT_REPRODUCIBLE"
+    },
+    {
+      "id": "aflow",
+      "grade": "C_SOURCE_INCOMPLETE_IDEAS_ONLY",
+      "paper_url": "https://arxiv.org/abs/2602.08826",
+      "code_url": "https://github.com/chz2025/AffectiveFlow",
+      "verified_commit": "caf14c73fb9597428a2416b06f263f7db59fd528",
+      "task": "synthetic_expanded_validation_with_remapped_strategy_taxonomy",
+      "relevant_source": true,
+      "train_or_inference_entrypoint": "present_but_broken",
+      "paper_checkpoint": false,
+      "blocking_defects": [
+        "scripts/train_afpo.py has an IndentationError at line 484",
+        "pipeline references missing analyze/draw_tree.py",
+        "configuration contains model and API placeholders",
+        "no released trajectories or checkpoints"
+      ],
+      "reported_hardware": "eight_A100",
+      "license": "MIT",
+      "decision": "DO_NOT_RENT_IDEAS_ONLY"
+    }
+  ],
+  "excluded_or_unverified": [
+    {
+      "id": "cadss-cpsdd",
+      "code_url": "https://github.com/FakerBoom/CPsDD/tree/main/code",
+      "observed_repository_content": ["Prompts and Appendix.pdf", "readme"],
+      "repository_statement": "Code for CADSS and PGSim will be released soon.",
+      "status": "NOT_AN_IMPLEMENTATION"
+    },
+    {
+      "id": "augesc",
+      "code_url": "https://github.com/thu-coai/AugESC",
+      "observed_repository_content": ["LICENCE", "README.md"],
+      "status": "ASSET_LINKS_ONLY_NOT_PAPER_IMPLEMENTATION"
+    },
+    {
+      "id": "misc",
+      "code_url": "https://github.com/morecry/MISC",
+      "observed_repository_content": ["README.md"],
+      "status": "EXTERNAL_UNSORTED_ARCHIVE_NOT_VERIFIED"
+    },
+    {
+      "id": "kemi",
+      "code_url": "https://github.com/dengyang17/KEMI",
+      "observed_repository_content": ["README.md"],
+      "status": "EXTERNAL_DRIVE_ARCHIVE_NOT_VERIFIED"
+    },
+    {
+      "ids": ["DPPLM", "Causal-ESC", "SAGE"],
+      "status": "PAPER_ONLY_EXCLUDED_FROM_ENGINEERING_SELECTION"
+    },
+    {
+      "ids": ["heegyu/TinyLlama-augesc-context", "heegyu/esconv-xlm-roberta-base", "heegyu/esconv-xlm-roberta-large", "thanaphatt1/ModernBERT-base-esconv-*"],
+      "status": "CHECKPOINT_ONLY_INPUT_TRAINING_LICENSE_PROVENANCE_UNVERIFIED"
+    }
+  ],
+  "gpu_decision": {
+    "rent_now": false,
+    "reason": "The current blockers are missing or broken artifacts and protocol mismatch, not inference memory.",
+    "next_rental_gate": "After modernized local smoke and a frozen clean-train/dev configuration, estimate one A100 40GB or L40S 48GB for EmoDynamiX clean retraining."
+  },
+  "product_gate": {
+    "strategy_predictor_is_complete_DeepSeek_API_replacement": false,
+    "required_architecture": [
+      "improved_ESConv_policy_and_confidence",
+      "crisis_boundary_low_confidence_gate",
+      "locally_hosted_strategy_conditioned_generator",
+      "output_safety_checker_and_escalation"
+    ],
+    "blocking_issues": [
+      "commercial data and checkpoint rights",
+      "clinical and crisis safety evaluation",
+      "privacy",
+      "human expert review",
+      "rollback and shadow-mode validation"
+    ]
+  }
+}

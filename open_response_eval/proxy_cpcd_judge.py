@@ -26,6 +26,9 @@ MODEL_INPUTS = {
     "deepseek_v4_pro": Path("outputs/provider_v2_deepseek_cpcd_20260808.jsonl"),
     "deepseek_v4_flash": Path("outputs/provider_v2_flash_cpcd_20260809.jsonl"),
     "qwen_3_6_27b": Path("outputs/provider_v2_qwen_cpcd_20260808.jsonl"),
+    "qwen_3_6_27b_siliconflow": Path(
+        "outputs/provider_sf_qwen_cpcd_20260813.jsonl"
+    ),
 }
 
 

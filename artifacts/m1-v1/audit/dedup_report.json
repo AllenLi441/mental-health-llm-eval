@@ -1,0 +1,100 @@
+{
+  "input": 60024,
+  "exact_dropped": 10,
+  "near_auto_dropped": 27,
+  "review_flagged": 30,
+  "kept": 59987,
+  "skipped_oversized_buckets": 0,
+  "candidate_pairs": 383,
+  "exact_examples": [
+    {
+      "hash": "ed5318be6be6b576d7cad6bdba518e127f8228966b923384a23f161e6dbe6be6",
+      "sample_id": "cpsycound:000055",
+      "dup_of": "cpsycound:000028"
+    },
+    {
+      "hash": "ed5318be6be6b576d7cad6bdba518e127f8228966b923384a23f161e6dbe6be6",
+      "sample_id": "cpsycound:002650",
+      "dup_of": "cpsycound:000028"
+    },
+    {
+      "hash": "ed5318be6be6b576d7cad6bdba518e127f8228966b923384a23f161e6dbe6be6",
+      "sample_id": "cpsycound:002809",
+      "dup_of": "cpsycound:000028"
+    },
+    {
+      "hash": "5a9299b7dc251f2fa9e564f3123383cd4a80e10df9b444561a28e62d67882f52",
+      "sample_id": "cpsdd:cpsdd-train-11755",
+      "dup_of": "cpsdd:cpsdd-train-9453"
+    },
+    {
+      "hash": "7f9eb79d7cf304e180875b7b61ba28cc07172e8152cf026accc117cb6ff1a6db",
+      "sample_id": "cpsdd:cpsdd-train-16536",
+      "dup_of": "cpsdd:cpsdd-train-12244"
+    }
+  ],
+  "near_examples": [
+    {
+      "sample_id": "cpsycound:001442",
+      "dup_of": "cpsycound:000045",
+      "minhash_est": 0.9844,
+      "exact_jaccard": 0.9491
+    },
+    {
+      "sample_id": "cpsycound:001353",
+      "dup_of": "cpsycound:001129",
+      "minhash_est": 0.9219,
+      "exact_jaccard": 0.9261
+    },
+    {
+      "sample_id": "cpsycound:002310",
+      "dup_of": "cpsycound:001671",
+      "minhash_est": 0.9531,
+      "exact_jaccard": 0.9061
+    },
+    {
+      "sample_id": "cpsycound:001693",
+      "dup_of": "cpsycound:000635",
+      "minhash_est": 0.9375,
+      "exact_jaccard": 0.9088
+    },
+    {
+      "sample_id": "cpsycound:000244",
+      "dup_of": "cpsycound:000225",
+      "minhash_est": 0.9531,
+      "exact_jaccard": 0.933
+    }
+  ],
+  "review_examples": [
+    {
+      "sample_id": "cpsdd:cpsdd-train-15921",
+      "dup_of": "cpsdd:cpsdd-train-2974",
+      "minhash_est": 0.8594,
+      "exact_jaccard": null
+    },
+    {
+      "sample_id": "cpsycound:002310",
+      "dup_of": "cpsycound:001845",
+      "minhash_est": 0.9062,
+      "exact_jaccard": 0.8934
+    },
+    {
+      "sample_id": "cpsycound:000635",
+      "dup_of": "cpsycound:000225",
+      "minhash_est": 0.9219,
+      "exact_jaccard": 0.8825
+    },
+    {
+      "sample_id": "cpsycound:002463",
+      "dup_of": "cpsycound:000244",
+      "minhash_est": 0.8125,
+      "exact_jaccard": null
+    },
+    {
+      "sample_id": "cpsycound:002463",
+      "dup_of": "cpsycound:000803",
+      "minhash_est": 0.8125,
+      "exact_jaccard": null
+    }
+  ]
+}

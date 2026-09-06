@@ -1,0 +1,82 @@
+{
+  "protocol_id": "esconv-modern-strategy-development-v1",
+  "frozen_at": "2026-08-12T00:00:00-07:00",
+  "objective": "Develop a Qwen3.6-27B ESConv next-strategy adapter without contaminating the frozen test set.",
+  "tracks": {
+    "historical_reproduction": {
+      "model": "BlenderBot-small 90M Joint",
+      "environment": "Linux x86-64, Python 3.7, PyTorch 1.7.1, vendored Transformers",
+      "selection": "lowest validation corpus-token perplexity",
+      "status": "prepared_not_run_no_local_cuda"
+    },
+    "corrected_checkpoint_diagnostic": {
+      "fixed250_accuracy": 0.376,
+      "full_2775_accuracy": 0.32216216216216215,
+      "status": "provisional_until_legacy_agreement",
+      "paper_reported_accuracy": false
+    },
+    "modern_strategy_only": {
+      "input": "frozen ESConv context with prior supporter strategy labels",
+      "output": "exactly one letter A-H",
+      "thinking": false,
+      "rag": false,
+      "web": false,
+      "response_generation": false,
+      "temperature": 0,
+      "invalid_counts_as_wrong": true
+    }
+  },
+  "labels": {
+    "A": "Questions",
+    "B": "Restatement or Paraphrasing",
+    "C": "Reflection of feelings",
+    "D": "Self-disclosure",
+    "E": "Affirmation and Reassurance",
+    "F": "Providing Suggestions",
+    "G": "Information",
+    "H": "Other"
+  },
+  "data": {
+    "source": "original 1,053-dialogue author TSV files",
+    "train_sha256": "0ecf37462f8e3fa7f1dc5bfbecd70733abb3501c3bf83b27a957bec5a926ec21",
+    "dev_sha256": "625b511f40cf9a9285582e808e6bbb4c2f35d0b0cd063f3709db430b8d0c3bdc",
+    "test_sha256": "b85ae888bf747cefa54bba2a6c3e2f6ccb4c1005d4e0b6d1d3be3823cf040aef",
+    "training_allowed": [
+      "train",
+      "dev"
+    ],
+    "test_use_before_freeze": "prohibited"
+  },
+  "first_training_run": {
+    "model": "Qwen/Qwen3.6-27B",
+    "method": "LoRA SFT",
+    "rank": 16,
+    "alpha": 32,
+    "target_modules": "all-linear",
+    "learning_rate": 0.00005,
+    "epochs": 3,
+    "max_length": 1024,
+    "warmup_ratio": 0.05,
+    "seed": 42,
+    "smoke_examples": 50
+  },
+  "development_selection": {
+    "primary": "dev Macro-F1",
+    "tie_breaker": "dev Accuracy",
+    "forbidden": "test-set checkpoint or hyperparameter selection"
+  },
+  "formal_metrics": [
+    "Accuracy",
+    "Macro-F1",
+    "Weighted-F1",
+    "per-class precision recall F1",
+    "invalid rate",
+    "confusion matrix",
+    "conversation-cluster bootstrap CI",
+    "paired exact McNemar"
+  ],
+  "comparison_rule": "Existing 14.80/16.40/14.00 API results used JSON strategy+response output and cannot be inherited by this one-letter track. Zero-shot and fine-tuned models must be evaluated under this same strategy-only protocol before direct comparison.",
+  "literature_rule": "Cross-paper results remain protocol-specific references. DPPLM is excluded because the full paper was not available for local protocol verification.",
+  "clinical_claims": "ESConv strategy performance does not establish diagnosis, treatment efficacy, crisis handling, or clinical safety."
+}
+

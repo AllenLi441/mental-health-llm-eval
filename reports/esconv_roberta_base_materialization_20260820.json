@@ -1,0 +1,53 @@
+{
+  "schema_version": "local-model-materialization-receipt-v1",
+  "verified_at": "2026-08-20T02:15:01-07:00",
+  "source": {
+    "model_id": "FacebookAI/roberta-base",
+    "immutable_revision": "e2da8e2f811d1448a5b465c236feacd80ffbac7b",
+    "url": "https://huggingface.co/FacebookAI/roberta-base/tree/e2da8e2f811d1448a5b465c236feacd80ffbac7b",
+    "license": "MIT",
+    "license_evidence_url": "https://github.com/facebookresearch/fairseq#license",
+    "license_note": "The upstream fairseq repository states that its MIT license applies to the pretrained models; this does not clear ESConv or other fine-tuning data for product use."
+  },
+  "materialization": {
+    "method": "regular-file copy from the immutable local Hugging Face snapshot",
+    "source_and_materialized_file_bytes_identical": true,
+    "symlinks_in_materialized_tree": false,
+    "local_tree_sha256": "1d9faa93557a63a92292cd11dfbca3de8e336ffa60768745a71ecd1ed19aa91c",
+    "tree_hash_algorithm": "SHA-256 of canonical JSON over sorted path,size,sha256 entries",
+    "files": [
+      {
+        "path": "config.json",
+        "size": 481,
+        "sha256": "ef0185e2aae6e06c5f105a285006952c340e20c7dbf43c86ec82601b13fc45e9"
+      },
+      {
+        "path": "merges.txt",
+        "size": 456318,
+        "sha256": "1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5"
+      },
+      {
+        "path": "model.safetensors",
+        "size": 498818054,
+        "sha256": "5bde1d28afb363d0103324efeb5afc8b2b397fe5e04beabb9b1ef355255ade81"
+      },
+      {
+        "path": "tokenizer.json",
+        "size": 1355863,
+        "sha256": "847bbeab6174d66a88898f729d52fa8d355fafe1bea101cf960dd404581df70e"
+      },
+      {
+        "path": "tokenizer_config.json",
+        "size": 25,
+        "sha256": "994f46754c5bf4014f1aa92d34b1374319c3a6b3f702105cd5b742beaecd18ce"
+      },
+      {
+        "path": "vocab.json",
+        "size": 898823,
+        "sha256": "9e7f63c2d15d666b52e21d250d2e513b87c9b713cfa6987a82ed89e5e6e50655"
+      }
+    ]
+  },
+  "product_clearance": false,
+  "product_blocker": "The ESConv fine-tuning data remains academic/non-commercially constrained even though the base model is MIT-licensed."
+}

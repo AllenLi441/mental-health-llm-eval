@@ -1,0 +1,396 @@
+{
+  "registry_id": "esconv-model-audit-20260820",
+  "as_of": "2026-08-20",
+  "task": "ESConv 8-way next-support-strategy prediction",
+  "policy": {
+    "cross_track_ranking_forbidden": true,
+    "accuracy_scale": "0_to_1",
+    "invalid_predictions_count_as_wrong": true,
+    "frozen_test_selection_forbidden": true,
+    "paper_reported_results_are_protocol_specific": true
+  },
+  "canonical_labels": [
+    "Questions",
+    "Restatement or Paraphrasing",
+    "Reflection of feelings",
+    "Self-disclosure",
+    "Affirmation and Reassurance",
+    "Providing Suggestions",
+    "Information",
+    "Other"
+  ],
+  "tracks": {
+    "synthetic_expanded_protocol": {
+      "leader_id": "aflow",
+      "leaderboard_eligible_for_frozen_2775": false,
+      "entries": [
+        {
+          "id": "aflow",
+          "title": "Affective Flow Language Model",
+          "year": 2026,
+          "accuracy": 0.651,
+          "f1": 0.635,
+          "evaluation_protocol": "500 ESConv seed dialogues expanded through MCTS into validation dialogue trees with a unified eight-category taxonomy",
+          "not_original_gold_test": true,
+          "paper_url": "https://arxiv.org/abs/2602.08826",
+          "paper_pdf_sha256": "66330526027bfaa923a977a5ebb0b75cb173ccca1f3e90d6aa723e52cf983df6",
+          "code_url": "https://github.com/chz2025/AffectiveFlow",
+          "checkpoint_available": false,
+          "reported_training_hardware": "8xA100",
+          "reproduction_risk": "high: no checkpoint and unresolved appendix/config placeholders"
+        }
+      ]
+    },
+    "paper_reported_esconv_related_protocols": {
+      "highest_reported_headline_among_listed_id": "dpplm",
+      "highest_reported_full_table_among_listed_id": "causal_esc",
+      "cross_entry_comparability": false,
+      "leaderboard_eligible_for_frozen_2775": false,
+      "entries": [
+        {
+          "id": "dpplm",
+          "title": "Applying Emotion-Cause Entailment for Help-Seeker Guidance in Emotional Support Conversations",
+          "year": 2025,
+          "accuracy": 0.5803,
+          "emotion_accuracy": 0.6542,
+          "bert_score": 0.8451,
+          "rouge_l": 12.1,
+          "evidence": "official institution publication record reproducing the publisher abstract; full split/table unavailable",
+          "evidence_grade": "B",
+          "source_url": "https://researchoutput.ncku.edu.tw/en/publications/applying-emotion-cause-entailment-for-help-seeker-guidance-in-emo/",
+          "doi": "10.1109/TCSS.2025.3605971",
+          "code_available": false,
+          "checkpoint_available": false
+        },
+        {
+          "id": "causal_esc",
+          "title": "Causal-ESC: Reliable Policy Learning for Emotional Support Conversation via Causal Inference",
+          "year": 2026,
+          "accuracy": 0.5353,
+          "evaluation_protocol": "paper-specific offline causal policy evaluation; exact held-out IDs unresolved",
+          "evidence_grade": "A_with_protocol_ambiguity",
+          "source_url": "https://aclanthology.org/2026.acl-long.886/",
+          "code_available": false,
+          "checkpoint_available": false
+        },
+        {
+          "id": "sage",
+          "title": "SAGE: Self-retrieval-augmented generative LLM for emotional support conversation",
+          "year": 2026,
+          "accuracy": 0.468,
+          "macro_f1": 0.3895,
+          "evaluation_protocol": "1,300 dialogues; 70/10/20 split; 910/130/260",
+          "source_url": "https://www.sciencedirect.com/science/article/pii/S0957417426004379",
+          "code_available": false,
+          "checkpoint_available": false
+        },
+        {
+          "id": "cadss",
+          "title": "Simulating Human-Like Counseling: A Path- and Scenario-Guided Framework for Psychological Support Dialogue",
+          "year": 2026,
+          "accuracy": 0.4626,
+          "evaluation_protocol": "paper-specific 8/1/1 split and multi-agent system",
+          "source_url": "https://ojs.aaai.org/index.php/AAAI/article/view/38825",
+          "code_url": "https://github.com/FakerBoom/CPsDD",
+          "code_available": false,
+          "checkpoint_available": false
+        },
+        {
+          "id": "multiesc",
+          "year": 2022,
+          "accuracy": 0.4201,
+          "weighted_f1": 0.3401,
+          "evaluation_protocol": "8/1/1 with modified strategy taxonomy",
+          "source_url": "https://aclanthology.org/2022.emnlp-main.195/",
+          "code_url": "https://github.com/lwgkzl/MultiESC",
+          "checkpoint_available": false
+        },
+        {
+          "id": "prccf",
+          "year": 2026,
+          "accuracy": 0.4072,
+          "evaluation_protocol": "1,300 dialogues; 80/10/10",
+          "source_url": "https://arxiv.org/abs/2604.01671",
+          "checkpoint_available": false
+        },
+        {
+          "id": "green",
+          "year": 2025,
+          "accuracy": 0.388,
+          "evaluation_protocol": "later 1,300-dialogue snapshot with retrieval and external knowledge",
+          "source_url": "https://journals.sagepub.com/doi/10.1177/21582440251395922",
+          "checkpoint_available": false
+        },
+        {
+          "id": "dkpe_hao_kong",
+          "year": 2025,
+          "accuracy": 0.3551,
+          "source_url": "https://aclanthology.org/2025.coling-main.214/",
+          "checkpoint_available": false
+        },
+        {
+          "id": "d2rcu",
+          "year": 2024,
+          "accuracy": 0.3532,
+          "evaluation_protocol": "1,300 dialogues; 80/10/10",
+          "source_url": "https://arxiv.org/abs/2404.02505",
+          "checkpoint_available": false
+        },
+        {
+          "id": "transesc",
+          "year": 2023,
+          "accuracy": 0.3471,
+          "source_url": "https://aclanthology.org/2023.findings-acl.420/",
+          "code_url": "https://github.com/circle-hit/TransESC",
+          "checkpoint_available": false
+        },
+        {
+          "id": "pal",
+          "year": 2023,
+          "accuracy": 0.3451,
+          "evaluation_protocol": "PESConv persona-augmented data; 7/2/1",
+          "source_url": "https://aclanthology.org/2023.findings-acl.34/",
+          "checkpoint_available": false
+        },
+        {
+          "id": "cauesc",
+          "year": 2024,
+          "accuracy": 0.3333,
+          "source_url": "https://arxiv.org/abs/2401.17755",
+          "code_url": "https://github.com/KomorebiLHX/CauESC",
+          "checkpoint_available": false
+        },
+        {
+          "id": "fado",
+          "year": 2023,
+          "accuracy": 0.329,
+          "source_url": "https://www.sciencedirect.com/science/article/abs/pii/S0950705123000904",
+          "checkpoint_available": false
+        },
+        {
+          "id": "misc",
+          "year": 2022,
+          "accuracy": 0.3163,
+          "source_url": "https://aclanthology.org/2022.acl-long.25/",
+          "code_url": "https://github.com/morecry/MISC",
+          "checkpoint_available": false
+        },
+        {
+          "id": "care",
+          "year": 2025,
+          "accuracy": 0.3029,
+          "evaluation_protocol": "910/195/195; Llama-3.1-8B SFT and reinforcement learning",
+          "source_url": "https://arxiv.org/abs/2510.05122",
+          "checkpoint_available": false
+        }
+      ]
+    },
+    "public_runnable_native_protocols": {
+      "highest_model_card_reported_accuracy_among_listed_id": "tinyllama_augesc_context",
+      "cross_entry_comparability": false,
+      "leaderboard_eligible_for_frozen_2775": false,
+      "entries": [
+        {
+          "id": "tinyllama_augesc_context",
+          "model_id": "heegyu/TinyLlama-augesc-context",
+          "revision": "4fd4cdc278812afd572e34040ecf433a31c8623e",
+          "architecture": "LlamaForSequenceClassification",
+          "num_labels": 8,
+          "reported_dataset": "heegyu/augesc",
+          "reported_accuracy": 0.4158,
+          "reported_macro_f1": 0.2453,
+          "weight_size_bytes": 4138138032,
+          "expected_weight_sha256": "be1b01ac696c8a4f8397286e5a9accd14bcff0aaa0b8f43ef3ae5a37b82fc483",
+          "local_hash_verified": false,
+          "checkpoint_license_status": "unknown_unverified",
+          "base_model_license_status": "unknown_unverified_for_this_checkpoint_chain",
+          "auxiliary_dataset_license_status": "augesc_rights_chain_unknown_unverified",
+          "model_url": "https://huggingface.co/heegyu/TinyLlama-augesc-context",
+          "download_status": "download_incomplete",
+          "frozen_2775_status": "formal_test_prohibited_until_unique_candidate_freeze",
+          "frozen_2775_result": null
+        },
+        {
+          "id": "emodynamix",
+          "model_id": "cw-wan/EmoDynamiX-v2 released checkpoint-2600",
+          "revision": "c9213d718a9684a5e05ce5daa947f9cbbfb7b927",
+          "architecture": "RoBERTa-base plus heterogeneous relational graph",
+          "num_labels": 8,
+          "paper_reported_macro_f1": 0.277,
+          "paper_reported_weighted_f1": 0.3271,
+          "checkpoint_sha256": "6cb5b27356b566a9db1d071fa6cb969aba6fda8a3073632003b3c6b797daa4e7",
+          "checkpoint_license_status": "unknown_unverified_for_product_use",
+          "paper_url": "https://aclanthology.org/2025.naacl-long.81/",
+          "code_url": "https://github.com/cw-wan/EmoDynamiX-v2",
+          "author_native_test_status": "complete",
+          "author_native_test_rows": 2895,
+          "author_native_result": {
+            "correct": 973,
+            "accuracy": 0.33609671848013817,
+            "macro_f1": 0.2770401756470437,
+            "weighted_f1": 0.3270871435451419,
+            "invalid": 0,
+            "eligibility_status": "AUTHOR_TEST_REPRODUCTION_ONLY",
+            "artifact": "reports/esconv_emodynamix_author_native_20260820.json"
+          },
+          "frozen_2775_status": "diagnostic_only_train_contaminated",
+          "frozen_2775_result": null
+        },
+        {
+          "id": "esconv_xlm_roberta_base",
+          "model_id": "heegyu/esconv-xlm-roberta-base",
+          "revision": "8a21d3f0e1ec06aa147faa652e64b938a55c37dd",
+          "architecture": "XLMRobertaForSequenceClassification",
+          "num_labels": 8,
+          "weight_size_bytes": 1112223464,
+          "expected_weight_sha256": "4fd0d826664b28158fd907321fea2bd3b79144c503bc6b869148ec1e438816b9",
+          "local_hash_verified": false,
+          "checkpoint_license_status": "unknown_unverified",
+          "input_template_status": "unverified_profile_disabled",
+          "reported_metrics": null,
+          "frozen_2775_status": "formal_test_prohibited_until_unique_candidate_freeze"
+        },
+        {
+          "id": "esconv_xlm_roberta_large",
+          "model_id": "heegyu/esconv-xlm-roberta-large",
+          "revision": "0c1955b5f0d1aceb31cd4067432ed29bc936caa9",
+          "architecture": "XLMRobertaForSequenceClassification",
+          "num_labels": 8,
+          "weight_size_bytes": 2239643272,
+          "expected_weight_sha256": "561a372d63e1cacd4a85cd67642ad3e1df5aa18b8219dc7372f3953c81316869",
+          "local_hash_verified": false,
+          "checkpoint_license_status": "unknown_unverified",
+          "input_template_status": "unverified_profile_disabled",
+          "reported_metrics": null,
+          "frozen_2775_status": "formal_test_prohibited_until_unique_candidate_freeze"
+        }
+      ]
+    },
+    "frozen_2775_reproduced": {
+      "leader_id": "blenderbot_small_joint_corrected",
+      "entries": [
+        {
+          "id": "blenderbot_small_joint_corrected",
+          "model_id": "lsy641/ESC_Blender_Strategy",
+          "paper_reported_strategy_accuracy": false,
+          "evaluation_kind": "post-hoc first-decoder-token strategy replay",
+          "test_rows": 2775,
+          "correct": 894,
+          "accuracy": 0.32216216216216215,
+          "macro_f1": 0.21827168949288342,
+          "weighted_f1": 0.28562612272020277,
+          "invalid": 0,
+          "test_sha256": "b85ae888bf747cefa54bba2a6c3e2f6ccb4c1005d4e0b6d1d3be3823cf040aef",
+          "checkpoint_sha256": "c972037e051773afb505c14746daafaadc827e36d57588269b86fccbc56ee7c6",
+          "leaderboard_eligible": true,
+          "result_artifact": "reports/esconv_joint_official_corrected_full_20260811.json"
+        }
+      ]
+    }
+  },
+  "blocked_or_excluded_models": [
+    {
+      "model_id": "heegyu/TinyLlama-augesc-context-strategy",
+      "reason": "uploaded config is LlamaForCausalLM with a 32,000-token vocabulary, not an eight-class classifier"
+    },
+    {
+      "model_id": "thanaphatt1/ModernBERT-base-esconv-strategy-classification-singleturn",
+      "reason": "input template and training split are undocumented; frozen test cannot be used to recover them"
+    },
+    {
+      "model_id": "thanaphatt1/ModernBERT-base-esconv-strategy-classification-multiturn-upsampling",
+      "reason": "input template and training split are undocumented; frozen test cannot be used to recover them"
+    },
+    {
+      "model_id": "thanaphatt1/ModernBERT-base-esconv-strategy-classification-multiturn-upsampling-v3",
+      "reason": "input template and training split are undocumented; frozen test cannot be used to recover them"
+    }
+  ],
+  "contamination_audit": {
+    "checkpoint": "EmoDynamiX author seed-13 1,300-dialogue split",
+    "frozen_dialogues": 210,
+    "matched_dialogues_by_author_split": {
+      "train": 132,
+      "valid": 29,
+      "test": 20,
+      "unmatched": 29,
+      "ambiguous": 0
+    },
+    "matched_frozen_rows_by_author_split": {
+      "train": 1734,
+      "valid": 380,
+      "test": 272,
+      "unmatched": 389,
+      "ambiguous": 0
+    },
+    "forced_status": "DIAGNOSTIC_ONLY_TRAIN_CONTAMINATED",
+    "frozen_leaderboard_eligible": false,
+    "artifact": "reports/esconv_emodynamix_contamination_audit_20260820.json"
+  },
+  "paperswithcode": {
+    "discovery_source": "https://paperswithcode.co/",
+    "original_esconv_page": "https://paperswithcode.co/paper/2106.01144",
+    "has_esconv_strategy_accuracy_leaderboard": false,
+    "coverage_complete": false,
+    "latest_related_but_different_task": [
+      {
+        "arxiv_id": "2605.27908",
+        "title": "ESC-Skills: Discovering and Self-Evolving Skills for Emotional Support Conversations",
+        "published": "2026-05-27",
+        "reason_excluded": "skill discovery and self-evolution, not classic single-label accuracy"
+      },
+      {
+        "arxiv_id": "2604.17972",
+        "title": "Modeling Multiple Support Strategies within a Single Turn for Emotional Support Conversations",
+        "published": "2026-04-20",
+        "reason_excluded": "multi-strategy utterance generation changes the output space"
+      }
+    ]
+  },
+  "policy_development": {
+    "protocol_id": "jingshi-esconv-first-v1",
+    "status": "preregistered_not_executed",
+    "preregistration_artifact": "open_response_eval/preregistration_esconv_first_v1.json",
+    "trainer": "scripts/train_esconv_policy.py",
+    "frozen_evaluator_gate_commit": "1442eda",
+    "frozen_test_accessed_by_new_policy": false,
+    "base_model": {
+      "model_id": "FacebookAI/roberta-base",
+      "revision": "e2da8e2f811d1448a5b465c236feacd80ffbac7b",
+      "license": "MIT",
+      "local_tree_sha256": "1d9faa93557a63a92292cd11dfbca3de8e336ffa60768745a71ecd1ed19aa91c",
+      "materialization_receipt": "reports/esconv_roberta_base_materialization_20260820.json",
+      "materialization_receipt_sha256": "4ed49f1c0558c3765e52095f6f0ea50030c9dba0387ff4ae6a82e94410784df2"
+    },
+    "training_data": {
+      "raw_train_rows": 8562,
+      "dev_rows": 2985,
+      "exact_or_prefix_dialogue_overlap": 0,
+      "unique_exact_input_overlaps": 12,
+      "train_rows_mandatorily_removed": 129,
+      "derived_train_rows": 8433,
+      "derived_train_records_sha256": "55c098b7a1cf1c9c9c9e8c9da49d95d4c8484552fbcc3d18319affda353b3480"
+    },
+    "single_seed_pilot_arms": [
+      "ce",
+      "class_balanced_effective_number_beta_0.999"
+    ],
+    "pilot_device": "mps",
+    "loss_normalization": "per_optimizer_window numerator/denominator; class-balanced denominator is the sum of target-class weights, and CE denominator is the number of rows",
+    "pilot_results": null,
+    "formal_candidate_selected": false
+  },
+  "product_constraints": {
+    "esconv_license_risk": "official materials state academic research use and the public dataset card is CC BY-NC 4.0",
+    "commercial_replacement_allowed": false,
+    "required_before_product_use": [
+      "written commercial data permission or retraining on commercially cleared data",
+      "checkpoint, base-model, and every auxiliary-dataset license and provenance clearance",
+      "crisis and self-harm safety evaluation",
+      "human expert review",
+      "privacy and abuse testing",
+      "shadow deployment with rollback"
+    ],
+    "clinical_claims_allowed": false
+  }
+}

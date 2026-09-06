@@ -1,0 +1,224 @@
+{
+  "protocol_id": "jingshi-esconv-250-20260828-dashscope-qwen38-addendum-v1",
+  "frozen_at": "2026-08-28T00:00:00-07:00",
+  "status": "FROZEN_DASHSCOPE_QWEN38_BASELINE",
+  "research_question": "Establish the pre-finetune ESConv eight-class strategy baseline for the un-finetuned Qwen3.8-27B (Alibaba DashScope first-party API) under the same frozen prompts, the same fixed-250 item order, and the same official ESConv scoring used by the 2026-08-09/08-13 arms, so that a post-finetune run can be compared as a paired pre/post pair.",
+  "target_arms": [
+    {
+      "id": "jingshi_deepseek_v4_pro",
+      "label": "Jingshi DeepSeek V4-Pro backbone",
+      "model": "deepseek-v4-pro",
+      "base_url_env": "EVAL_BASE_URL",
+      "default_base_url": "https://api.deepseek.com/v1",
+      "api_key_env": "EVAL_API_KEY",
+      "wire_api_env": "EVAL_WIRE_API",
+      "wire_api": "chat",
+      "thinking_mode": "provider_default_enabled",
+      "timeout_seconds": 240,
+      "max_retries": 3
+    },
+    {
+      "id": "qwen_3_8_27b_dashscope",
+      "label": "Qwen3.8-27B, Alibaba DashScope first-party API (un-finetuned pre-test)",
+      "model": "qwen3.8-27b",
+      "base_url_env": "QWEN_EVAL_BASE_URL",
+      "default_base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "api_key_env": "DASHSCOPE_API_KEY",
+      "wire_api_env": "QWEN_EVAL_WIRE_API",
+      "wire_api": "chat",
+      "thinking_mode": "disabled",
+      "request_overrides": {
+        "enable_thinking": false
+      },
+      "timeout_seconds": 240,
+      "max_retries": 3,
+      "upstream_reference": {
+        "huggingface_repo": "Qwen/Qwen3.8-27B",
+        "main_commit_sha": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
+        "license": "apache-2.0",
+        "note": "The provider does not attest which revision it serves; this sha records the public checkpoint the fine-tune will start from, not a served-weights claim."
+      }
+    }
+  ],
+  "judge": {
+    "id": "cpcd_gpt_5_2_judge",
+    "model": "openai/gpt-5.2",
+    "base_url_env": "JUDGE_BASE_URL",
+    "default_base_url": "https://openrouter.ai/api/v1",
+    "api_key_env": "JUDGE_API_KEY",
+    "wire_api_env": "JUDGE_WIRE_API",
+    "wire_api": "chat",
+    "temperature": 0,
+    "max_output_tokens": 2200,
+    "timeout_seconds": 300,
+    "max_retries": 3,
+    "blind_to_model_identity": true
+  },
+  "prompts": {
+    "zh": {
+      "path": "open_response_eval/prompts/jingshi_core_zh.txt",
+      "sha256": "3292f5e7b40743f53586c54f3562b18da29740f4db5c22b2406feccbe69fbdb8"
+    },
+    "en": {
+      "path": "open_response_eval/prompts/jingshi_core_en_structured_eval.txt",
+      "sha256": "0492d87f607971a09a817f2c6596629ded6b8358311b70bf95c7539f236b5a19"
+    }
+  },
+  "sources": {
+    "cpcd": {
+      "repository": "https://github.com/EdwinUSTB/Psy-Chronicle",
+      "commit": "ff812c9084b606631dac3a8c01f7be0d5cbc8c8d",
+      "checkout": "tmp/official_benchmarks/psy_chronicle",
+      "eval_root": "eval_task_info",
+      "portable_eval_tree_sha256": "c5f57655f184c49c77114f006c89bac46b70f2eb4ea457a5d579521e25be6062"
+    },
+    "esconv": {
+      "repository": "https://github.com/thu-coai/Emotional-Support-Conversation",
+      "commit": "f262d062ad74cb39b17ea476facc81568ddcba24",
+      "checkout": "tmp/official_benchmarks/esconv",
+      "test_file": "codes/dataset/testWithStrategy_short.tsv",
+      "test_sha256": "b85ae888bf747cefa54bba2a6c3e2f6ccb4c1005d4e0b6d1d3be3823cf040aef"
+    },
+    "augesc": {
+      "repository": "https://github.com/thu-coai/AugESC",
+      "commit": "7c9da4e30099e363a9fdfe142c2673f71b5a9d59",
+      "checkout": "tmp/official_benchmarks/augesc",
+      "dataset_revision": "aa7372a2cce96a67b7cb077af4edc27865a2ce85",
+      "evaluation_rule": "No independent test accuracy; use the held-out ESConv test set for downstream utility."
+    }
+  },
+  "generation": {
+    "temperature": 0,
+    "same_input_and_output_budget_for_both_arms": true,
+    "strip_reasoning_from_scored_answer": true,
+    "invalid_output_retry_count": 1
+  },
+  "cpcd": {
+    "expected_task_counts": {
+      "srg": 99,
+      "mr": 40,
+      "tcr": 20
+    },
+    "include_reference_answer": true,
+    "target_max_output_tokens": {
+      "srg": 800,
+      "mr": 1200,
+      "tcr": 2200
+    },
+    "scores": {
+      "srg": "Empathy, Coherence, Professionalism; each 1-5",
+      "mr": "Accuracy, Completeness, Temporal Consistency, No Hallucination; each 0-5",
+      "tcr": "Temporal Accuracy, Causal Coherence, Completeness, No Hallucination; each 0-5"
+    },
+    "reporting": "Report raw 0-5 means and normalized quality percent. Never relabel the normalized score as Accuracy."
+  },
+  "esconv": {
+    "expected_rows": 2775,
+    "target_max_output_tokens": 512,
+    "strategy_labels": [
+      "Questions",
+      "Restatement or Paraphrasing",
+      "Reflection of feelings",
+      "Self-disclosure",
+      "Affirmation and Reassurance",
+      "Providing Suggestions",
+      "Information",
+      "Other"
+    ],
+    "strategy_metrics": [
+      "accuracy",
+      "macro_f1",
+      "weighted_f1",
+      "invalid_rate"
+    ],
+    "response_metrics": [
+      "BLEU-2",
+      "BLEU-4",
+      "ROUGE-L",
+      "Distinct-1",
+      "Distinct-2",
+      "Distinct-3"
+    ],
+    "tokenizer": "NLTK word_tokenize, lowercase, matching the released evaluator",
+    "ppl_policy": "Do not report cross-provider PPL because DeepSeek is a black-box API and token likelihoods are unavailable.",
+    "fixed250_definition": {
+      "selection": "first 250 rows of the frozen test file in file order (`--limit 250`)",
+      "test_file": "codes/dataset/testWithStrategy_short.tsv",
+      "test_sha256": "b85ae888bf747cefa54bba2a6c3e2f6ccb4c1005d4e0b6d1d3be3823cf040aef",
+      "scoring": "missing and invalid outputs count as wrong; denominator is 250",
+      "matches_prior_arms": [
+        "outputs/provider_v2_flash_esconv_250_20260809.jsonl",
+        "outputs/pilot100_qwen_esconv_20260808.jsonl",
+        "outputs/paired226_qwen_esconv_20260808.jsonl"
+      ],
+      "reference_report": "reports/esconv_fixed250_deepseek_v4_pro_0813_20260813.json"
+    }
+  },
+  "randomization": {
+    "blind_order_seed": 20260805
+  },
+  "contamination_boundary": {
+    "current_scope": "Unmodified DeepSeek and Qwen base-model comparison only.",
+    "future_adapter": "The research-v0 adapter uses CPCD, ESConv, and AugESC source text, so these benchmarks cannot be claimed as independent unseen tests after that training."
+  },
+  "supersedes_note": "Addendum to jingshi-cpcd-esconv-20260813-siliconflow-qwen-v1. The 8/13 protocol pinned Qwen3.6-27B on SiliconFlow; SiliconFlow does not serve Qwen3.8-27B (only Qwen3.8-2.4T-A95B, a different model). The base model was changed to Qwen3.8-27B by owner decision on 2026-08-28.",
+  "thinking_control_verification": {
+    "verified_at": "2026-08-28",
+    "method": "Two identical single-turn requests to qwen3.8-27b, temperature 0, differing only in whether enable_thinking:false was sent.",
+    "with_enable_thinking_false": {
+      "reasoning_content": "",
+      "usage_reasoning_tokens": null,
+      "verdict": "thinking genuinely disabled"
+    },
+    "provider_default": {
+      "usage_reasoning_tokens": 37,
+      "reasoning_content_present": true,
+      "verdict": "thinking enabled by default, consistent with the model card"
+    },
+    "conclusion": "DashScope honours enable_thinking:false. The arm is frozen with that override; any run whose responses carry reasoning_content or reasoning_tokens is invalid under this protocol and must be discarded, not repaired."
+  },
+  "provenance_limitations": {
+    "system_fingerprint": "ABSENT",
+    "detail": "DashScope returns system_fingerprint = null. The 8/09 and 8/13 arms recorded a provider fingerprint as model-identity evidence; this arm cannot. Provenance for this arm rests only on the echoed `model` field and the per-response id.",
+    "consequence": "Report this arm's provenance strength as one tier below the SiliconFlow and DeepSeek arms. Do not describe it as fingerprint-verified.",
+    "known_prior_inconsistency": "The 8/13 SiliconFlow judgements already carry a different fingerprint format (a26a7955944dc5c60445bff77fac9c8e) than the 8/09 batch (fp_a18b46594c_prod0820_fp8_kvcache_20260402); both must be disclosed side by side, never merged."
+  },
+  "scope_of_this_addendum": {
+    "in_scope": "ESConv fixed-250 strategy prediction only.",
+    "out_of_scope": "CPCD is NOT run under this addendum. CPCD generation plus its proxy judge would require ~3.55M + ~3.53M input tokens and paid quota; it is deferred by owner decision so it can be run back-to-back with the post-finetune arm under one judge batch, eliminating the temporal drift that already produced two incompatible judge fingerprints.",
+    "cost": "ESConv 250 items ≈ 136K input / 12K output tokens, inside the DashScope per-model free quota; no judge calls are required because eight-class scoring is exact match."
+  },
+  "historical_reference_arms": {
+    "note": "Not run under this addendum; their frozen outputs already exist and are compared descriptively, not as a third arm of this protocol.",
+    "arms": [
+      {
+        "id": "qwen_3_6_27b_siliconflow",
+        "label": "Qwen3.6-27B SiliconFlow international API",
+        "model": "Qwen/Qwen3.6-27B",
+        "base_url_env": "SILICONFLOW_EVAL_BASE_URL",
+        "api_key_env": "SILICONFLOW_EVAL_API_KEY",
+        "wire_api_env": "SILICONFLOW_EVAL_WIRE_API",
+        "wire_api": "chat",
+        "thinking_mode": "disabled",
+        "request_overrides": {
+          "enable_thinking": false
+        },
+        "timeout_seconds": 240,
+        "max_retries": 3,
+        "frozen_outputs": "outputs/pilot100_qwen_esconv_20260808.jsonl (and paired226_qwen_esconv_20260808.jsonl)",
+        "settled_fixed250_accuracy": 0.14
+      },
+      {
+        "id": "jingshi_deepseek_v4_flash",
+        "model": "deepseek-v4-flash",
+        "frozen_outputs": "outputs/provider_v2_flash_esconv_250_20260809.jsonl",
+        "settled_fixed250_accuracy": 0.164
+      }
+    ],
+    "engineering_track_baselines": {
+      "blenderbot_small_joint_acl2021": 0.3222,
+      "emodynamix_naacl2025_author_native": 0.3361,
+      "note": "frozen 2,775-item test, not fixed-250; do not compare directly across protocols."
+    }
+  }
+}

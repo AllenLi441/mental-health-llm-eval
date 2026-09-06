@@ -1,0 +1,82 @@
+{
+  "schema_version": "jingshi-esconv-emodynamix-clean-dev-pilot-v1",
+  "protocol_id": "jingshi-esconv-emodynamix-clean-dev-pilot-v1",
+  "parent_protocol_id": "jingshi-esconv-first-v1",
+  "status": "FROZEN",
+  "frozen_at": "2026-08-23T12:42:30Z",
+  "frozen_test_policy": "FORBIDDEN_DURING_TRAIN_DEV_PILOT",
+  "data_contract": {
+    "training_records": 8433,
+    "development_records": 2985,
+    "feature_rows": 11366,
+    "class_counts": [
+      706,
+      820,
+      1523,
+      1470,
+      1392,
+      508,
+      524,
+      1490
+    ]
+  },
+  "feature_run_contract": {
+    "feature_run_summary_sha256": "1bf5ecabf73c9aac4523dd0ae32a3383c13f1d3dac6d596504bbdbc16f9475fc",
+    "training_records": 8433,
+    "development_records": 2985,
+    "feature_rows": 11366,
+    "feature_batch_size": 8,
+    "generator_manifest_sha256": "ad57230a567df8c3697456db536746851efb8b9cfa1b71a19c74b7971deb108f",
+    "features_jsonl_sha256": "391646bfe14f88f3a1616360e9aa6aa8bd3b1df9b3c73cd4c9be9880f7d57ef5",
+    "feature_table_sha256": "c3de13bd72a634b7dc96f08d9bcd67089c7b9fdfe746387afdc01030aec62da3",
+    "generator_provenance": {
+      "implementation_sha256": "372d95e441867a1616bdeb8797327a5d7ac27fc2eded0da23d4dd0082f55dc10",
+      "materializer_sha256": "bbfa6dbe9f8a3800dc9e9adcac6ec6496df2ecb08698a113fb607bd829939ce1",
+      "data_builder_sha256": "5155e44db850e90be10b0df0faf0113c7b1bbe4639eddf7f43d05031bfedd560",
+      "runtime_assets_sha256": "e90abaeead9c09cce3148943bfd8058d888492e41959ebb2fdbf7665dbb917b2"
+    }
+  },
+  "base_model_contract": {
+    "tree_sha256": "1d9faa93557a63a92292cd11dfbca3de8e336ffa60768745a71ecd1ed19aa91c",
+    "task_checkpoint_initialization": null
+  },
+  "source_code_contract": {
+    "trainer_sha256": "a13a12f2293229455679144a5d34fb109cf75da439453fc9c6d3d403b7feace0",
+    "data_builder_sha256": "5155e44db850e90be10b0df0faf0113c7b1bbe4639eddf7f43d05031bfedd560",
+    "model_sha256": "3c308dc1bdec4e311a718c9529f6d29d9cbefd7bd3b2b86c2c10c59955a4a10e",
+    "metrics_sha256": "f1ee81dbd023cdcf39cbe4b225dd1db34e60c7d43ad9edd428806aa03cdbaf01"
+  },
+  "shared_training": {
+    "device": "mps",
+    "epochs": 3,
+    "train_batch_size": 4,
+    "gradient_accumulation_steps": 4,
+    "eval_batch_size": 8,
+    "learning_rate": 2e-05,
+    "weight_decay": 0.001,
+    "warmup_updates": 100,
+    "max_updates": 5000,
+    "max_grad_norm": 1.0,
+    "author_weight_temperature": 1.75,
+    "class_balance_beta": 0.999,
+    "logit_adjustment_tau": 1.0
+  },
+  "arms": {
+    "arm_ce": {
+      "loss": "ce",
+      "seed": 42,
+      "output_dir_relative": "tmp/emodynamix-clean-training/pilot_v1_arm_ce"
+    },
+    "arm_class_balanced": {
+      "loss": "class_balanced",
+      "seed": 42,
+      "output_dir_relative": "tmp/emodynamix-clean-training/pilot_v1_arm_class_balanced"
+    }
+  },
+  "selection": {
+    "primary": "dev_macro_f1",
+    "secondary": "dev_accuracy",
+    "tertiary": "lower_raw_unweighted_ce",
+    "prediction_source": "raw_logits"
+  }
+}

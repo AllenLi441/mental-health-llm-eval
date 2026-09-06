@@ -1,0 +1,69 @@
+{
+  "dialogue_counts": {
+    "dev": 211,
+    "test": 210,
+    "train": 632
+  },
+  "external_api_upload_allowed": false,
+  "generation_system": "Generate the next ESConv supporter response conditioned on the specified support strategy. Return only the supporter response.",
+  "label_to_letter": {
+    "Affirmation and Reassurance": "E",
+    "Information": "G",
+    "Other": "H",
+    "Providing Suggestions": "F",
+    "Questions": "A",
+    "Reflection of feelings": "C",
+    "Restatement or Paraphrasing": "B",
+    "Self-disclosure": "D"
+  },
+  "note": "These one-letter strategy SFT files define a new strategy-only track. They do not inherit scores from the existing JSON strategy+response API track.",
+  "outputs": {
+    "generation_dev": {
+      "path": "/Users/allenli/Desktop/mental-health-llm-eval/artifacts/esconv/data/esconv_generation_dev.jsonl",
+      "records": 2985,
+      "sha256": "7e5f673ba3700d93954a9b4f6359cd9c3baa89c24703f20119246ea7f37f5f2f"
+    },
+    "generation_train": {
+      "path": "/Users/allenli/Desktop/mental-health-llm-eval/artifacts/esconv/data/esconv_generation_train.jsonl",
+      "records": 8562,
+      "sha256": "80da24f31d7319aa950c1ed30e6c26059cdfcce0d7671ab4bd3a30875aa017ac"
+    },
+    "strategy_dev": {
+      "path": "/Users/allenli/Desktop/mental-health-llm-eval/artifacts/esconv/data/esconv_strategy_dev.jsonl",
+      "records": 2985,
+      "sha256": "b6e27f94972799269d713842182139575fd086ddcc3a414a6e369130ebd6e0ab"
+    },
+    "strategy_train": {
+      "path": "/Users/allenli/Desktop/mental-health-llm-eval/artifacts/esconv/data/esconv_strategy_train.jsonl",
+      "records": 8562,
+      "sha256": "1b7fea569f130a87ac8b740900bffb744daf7dcdf2d67a95be9fe253788a208c"
+    },
+    "test_item_dialog_ids": {
+      "path": "/Users/allenli/Desktop/mental-health-llm-eval/artifacts/esconv/data/test_item_dialog_ids.jsonl",
+      "records": 2775,
+      "sha256": "fafcdcf767514077d48c1d11f91819f0d41dd46f0081d756b8cef769173b1290"
+    },
+    "train_dev_index": {
+      "path": "/Users/allenli/Desktop/mental-health-llm-eval/artifacts/esconv/data/train_dev_index.jsonl",
+      "records": 11547,
+      "sha256": "affc215d81a6ad033a24f01a095621f9843e8caa13d3b94af51cfa118186b6d0"
+    }
+  },
+  "protocol_id": "esconv-modern-strategy-sft-v1",
+  "source_dataset": "original 1,053-dialogue author TSV split",
+  "source_sha256": {
+    "devWithStrategy_short.tsv": "625b511f40cf9a9285582e808e6bbb4c2f35d0b0cd063f3709db430b8d0c3bdc",
+    "testWithStrategy_short.tsv": "b85ae888bf747cefa54bba2a6c3e2f6ccb4c1005d4e0b6d1d3be3823cf040aef",
+    "trainWithStrategy_short.tsv": "0ecf37462f8e3fa7f1dc5bfbecd70733abb3501c3bf83b27a957bec5a926ec21"
+  },
+  "strategy_system": "You are being trained for ESConv next-strategy prediction. A=Questions, B=Restatement or Paraphrasing, C=Reflection of feelings, D=Self-disclosure, E=Affirmation and Reassurance, F=Providing Suggestions, G=Information, H=Other. Return exactly one letter.",
+  "test_leakage_controls": {
+    "test_examples_written_to_sft": false,
+    "test_index_contains_conversation_text": false,
+    "test_index_contains_gold_labels": false,
+    "training_splits": [
+      "train",
+      "dev"
+    ]
+  }
+}

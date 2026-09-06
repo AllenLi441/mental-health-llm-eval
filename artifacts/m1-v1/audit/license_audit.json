@@ -1,0 +1,30 @@
+{
+  "manifest": "tmp/datasets/MANIFEST.json",
+  "downloaded": 8,
+  "gate_decisions": {
+    "decided_at": "2026-08-15",
+    "M1_core": [
+      "CPsyCounD 2,800",
+      "PsyDial-D1 2,000",
+      "CPsDD train 3,200 (分层抽样)"
+    ],
+    "eval_only": [
+      "CPCD-Bench 159",
+      "PsyDial-D101 1,278",
+      "ESConv fixed250/full2775",
+      "PsyCrisis(待授权)"
+    ],
+    "hold": [
+      "PsyQA mirror",
+      "MindChat-R0",
+      "EmoLLM 整包"
+    ],
+    "ablation_only": [
+      "CPCD conversation",
+      "AugESC"
+    ],
+    "base": "Qwen3.6/3.8-27B 本地权重 A/B；Qwen Cloud API 仍 coming soon"
+  },
+  "problems": [],
+  "status": "PASS"
+}

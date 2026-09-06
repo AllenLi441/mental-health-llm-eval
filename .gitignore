@@ -2,8 +2,16 @@
 *.env
 results/
 *.jsonl
+!reports/esconv_*.predictions.jsonl
 node_modules/
 .omc/
 __pycache__/
 .DS_Store
 tmp/
+
+# 2026-08: 原始语料/权重/论文PDF/临时产物不入库
+*.pdf
+*.parquet
+数据集论文/
+.codex_tmp/
+artifacts/augesc/

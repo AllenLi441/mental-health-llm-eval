@@ -1,0 +1,42 @@
+{
+  "model": "tmp/weights/modelscope_cache/Qwen/Qwen3.8-27B",
+  "max_length": 4096,
+  "splits": {
+    "train": {
+      "examples": 8000,
+      "token_total": 8501073,
+      "token_mean": 1062.6,
+      "token_p50": 706,
+      "token_p95": 2785,
+      "over_max": 21,
+      "zh_chars": 10481498,
+      "non_zh_word_proxy": -10135360,
+      "truncated_targets": 31,
+      "missing_eos": 0
+    },
+    "val": {
+      "examples": 500,
+      "token_total": 580052,
+      "token_mean": 1160.1,
+      "token_p50": 778,
+      "token_p95": 2848,
+      "over_max": 1,
+      "zh_chars": 718640,
+      "non_zh_word_proxy": -694672,
+      "truncated_targets": 1,
+      "missing_eos": 0
+    },
+    "test": {
+      "examples": 500,
+      "token_total": 579194,
+      "token_mean": 1158.4,
+      "token_p50": 734,
+      "token_p95": 2966,
+      "over_max": 0,
+      "zh_chars": 714446,
+      "non_zh_word_proxy": -690384,
+      "truncated_targets": 0,
+      "missing_eos": 0
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": "mhi-evaluation-preregistration-draft-1.0",
+  "status": "DRAFT_NOT_CONFIRMATORY_NOT_APPROVED",
+  "updated_at": "2026-09-06",
+  "purpose": "Plan comparable base-versus-adapter and current-product-baseline evaluation before any model replacement decision.",
+  "arms": [
+    {"id": "qwen_base", "role": "unadapted_base", "model_revision": "TBD_AFTER_REAL_CHECKPOINT_LOAD"},
+    {"id": "qwen_sft", "role": "adapter_on_same_base_revision", "model_revision": "MUST_EQUAL_qwen_base"},
+    {"id": "current_deepseek", "role": "product_baseline", "model_id": "MUST_RECORD_VISIBLE_RUNTIME_MODEL_ID", "api_revision": "NOT_AVAILABLE_FOR_API"}
+  ],
+  "pairing": {"same_frozen_prompt": true, "same_prompt_order": true, "same_evaluator_protocol": true, "same_runtime": false, "runtime_difference_is_recorded": true, "cluster_unit": "conversation_or_verified_source_group"},
+  "quality": {"dimensions": ["relevance", "empathy", "safety", "boundary", "naturalness"], "scale": {"min": 1, "max": 5, "integer": true}, "aggregate": "equal_weight_mean", "primary_comparison": "paired_sft_minus_base", "holm_family": "5_dimension_tests_plus_1_aggregate_test_per_existing_amendment_01"},
+  "judging": {"judge_count": 2, "judge_type": "TBD_HUMAN_MODEL_OR_MIXED", "blind_order": "TBD", "disagreement_adjudication": "TBD", "invalid_output_rule": "TBD", "rubric_sha256": "MUST_RECORD_BEFORE_CONFIRMATORY_RUN"},
+  "safety": {"critical_events": "TBD_PREDEFINED_AND_HUMAN_REVIEWED", "relative_margin_delta_safety": "TBD_NOT_APPROVED", "absolute_limit_tau_critical": "TBD_NOT_APPROVED", "zero_observed_events_means_zero_risk": false, "crisis_and_unnecessary_escalation_reported_separately": true},
+  "pilot": {"purpose": "estimate_paired_variance_cluster_correlation_judge_noise_invalid_rate", "final_test_excluded": true, "minimum_meaningful_difference": "TBD_NOT_APPROVED", "planned_sizes": {"human_gold": 200, "safety_eval": 400}, "adequacy": "NOT_ESTABLISHED"},
+  "independence": {"train_development_test_group_disjoint": "MUST_PROVE", "heldout_freeze_manifest": "MUST_RECORD_HASH", "benchmark_exposure_log": "MUST_RECORD", "candidate_a3_b1_status": "NOT_ELIGIBLE_FOR_TEST_OR_TRAINING"},
+  "reporting": ["effect_size", "confidence_interval", "raw_and_adjusted_p", "judge_agreement", "invalid_rate", "crisis_failure_rate", "unnecessary_escalation_rate", "underpowered_flag"],
+  "replacement_gate": "Requires current_deepseek comparison plus approved safety and independent human quality evidence; relative Qwen improvement alone is insufficient."
+}

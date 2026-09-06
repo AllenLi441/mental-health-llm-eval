@@ -1,4 +1,12 @@
 {
+  "audit_status": "RETRACTED",
+  "retraction": {
+    "date": "2026-08-11",
+    "reason": "The evaluator used an incorrect strategy-token spelling/order and interpreted checkpoint embedding rows with the wrong label map.",
+    "invalidated_metrics": ["accuracy", "macro_f1", "weighted_f1", "per_class", "confusion_matrix"],
+    "replacement_evaluator": "scripts/eval_esconv_joint_corrected.py",
+    "preservation_reason": "Retained unchanged below this marker for audit history."
+  },
   "benchmark": "ESConv",
   "task": "8-way next-support-strategy prediction",
   "model": "ESC_Blender_Strategy (ACL 2021 Joint variant)",

@@ -1,0 +1,234 @@
+{
+  "audit_status": "COMPLETE",
+  "checkpoint": {
+    "ignored_modern_only_keys": [
+      "model.encoder.wre.weight",
+      "model.encoder.wte.weight",
+      "model.decoder.wre.weight",
+      "model.decoder.wte.weight"
+    ],
+    "path": "/Users/allenli/.cache/huggingface/hub/models--lsy641--ESC_Blender_Strategy/blobs/c972037e051773afb505c14746daafaadc827e36d57588269b86fccbc56ee7c6",
+    "sha256": "c972037e051773afb505c14746daafaadc827e36d57588269b86fccbc56ee7c6",
+    "weight_file": "/Users/allenli/.cache/huggingface/hub/models--lsy641--ESC_Blender_Strategy/blobs/c972037e051773afb505c14746daafaadc827e36d57588269b86fccbc56ee7c6"
+  },
+  "created_at_utc": "2026-08-11T11:40:55.060548+00:00",
+  "dataset": {
+    "limit": 10,
+    "path": "/Users/allenli/Desktop/mental-health-llm-eval/tmp/official_benchmarks/esconv/codes/dataset/testWithStrategy_short.tsv",
+    "sha256": "b85ae888bf747cefa54bba2a6c3e2f6ccb4c1005d4e0b6d1d3be3823cf040aef"
+  },
+  "decision_rule": "first decoder step; explicit token IDs; index_select; top-1 argmax",
+  "metrics": {
+    "accuracy": 0.2,
+    "confusion_matrix": {
+      "labels": [
+        "Questions",
+        "Restatement or Paraphrasing",
+        "Reflection of feelings",
+        "Self-disclosure",
+        "Affirmation and Reassurance",
+        "Providing Suggestions",
+        "Information",
+        "Other"
+      ],
+      "rows_gold_columns_predicted": [
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          4,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0
+        ]
+      ]
+    },
+    "correct": 2,
+    "invalid": 0,
+    "invalid_rate": 0.0,
+    "macro_f1": 0.0625,
+    "per_class": {
+      "Affirmation and Reassurance": {
+        "correct": 0,
+        "f1": 0.0,
+        "precision": 0.0,
+        "predicted": 0,
+        "recall": 0.0,
+        "support": 1
+      },
+      "Information": {
+        "correct": 0,
+        "f1": 0.0,
+        "precision": 0.0,
+        "predicted": 0,
+        "recall": 0.0,
+        "support": 0
+      },
+      "Other": {
+        "correct": 0,
+        "f1": 0.0,
+        "precision": 0.0,
+        "predicted": 1,
+        "recall": 0.0,
+        "support": 1
+      },
+      "Providing Suggestions": {
+        "correct": 1,
+        "f1": 0.25,
+        "precision": 0.14285714285714285,
+        "predicted": 7,
+        "recall": 1.0,
+        "support": 1
+      },
+      "Questions": {
+        "correct": 1,
+        "f1": 0.25,
+        "precision": 0.5,
+        "predicted": 2,
+        "recall": 0.16666666666666666,
+        "support": 6
+      },
+      "Reflection of feelings": {
+        "correct": 0,
+        "f1": 0.0,
+        "precision": 0.0,
+        "predicted": 0,
+        "recall": 0.0,
+        "support": 0
+      },
+      "Restatement or Paraphrasing": {
+        "correct": 0,
+        "f1": 0.0,
+        "precision": 0.0,
+        "predicted": 0,
+        "recall": 0.0,
+        "support": 0
+      },
+      "Self-disclosure": {
+        "correct": 0,
+        "f1": 0.0,
+        "precision": 0.0,
+        "predicted": 0,
+        "recall": 0.0,
+        "support": 1
+      }
+    },
+    "total": 10,
+    "weighted_f1": 0.175
+  },
+  "official_repo": {
+    "commit": "f262d062ad74cb39b17ea476facc81568ddcba24",
+    "path": "/Users/allenli/Desktop/mental-health-llm-eval/tmp/official_benchmarks/esconv"
+  },
+  "paper": "Towards Emotional Support Dialog Systems",
+  "predictions": "/Users/allenli/Desktop/mental-health-llm-eval/reports/esconv_joint_official_corrected_smoke10_20260811.predictions.jsonl",
+  "protocol_note": "Post-hoc strategy evaluation; ACL 2021 did not publish strategy Accuracy.",
+  "run_name": "official_joint_modern_smoke10",
+  "runtime": {
+    "backend": "modern",
+    "batch_size": 10,
+    "device": "mps",
+    "elapsed_seconds": 3.271,
+    "inference_context": "torch.inference_mode",
+    "platform": "macOS-26.0.1-arm64-arm-64bit",
+    "python": "3.10.4",
+    "torch": "2.10.0",
+    "transformers": "5.0.0"
+  },
+  "task": "8-way next-support-strategy prediction",
+  "tokenizer": {
+    "mapping": {
+      "[Affirmation and Reassurance]": 54950,
+      "[CLS]": 54952,
+      "[Information]": 54946,
+      "[Other]": 54948,
+      "[Providing Suggestions]": 54951,
+      "[Questions]": 54944,
+      "[Reflection of feelings]": 54945,
+      "[Restatement or Paraphrasing]": 54947,
+      "[Self-disclosure]": 54949
+    },
+    "path": "/Users/allenli/Desktop/mental-health-llm-eval/tmp/official_benchmarks/esconv/codes/blender-small",
+    "report_label_to_token": {
+      "Affirmation and Reassurance": "[Affirmation and Reassurance]",
+      "Information": "[Information]",
+      "Other": "[Other]",
+      "Providing Suggestions": "[Providing Suggestions]",
+      "Questions": "[Questions]",
+      "Reflection of feelings": "[Reflection of feelings]",
+      "Restatement or Paraphrasing": "[Restatement or Paraphrasing]",
+      "Self-disclosure": "[Self-disclosure]"
+    }
+  }
+}
