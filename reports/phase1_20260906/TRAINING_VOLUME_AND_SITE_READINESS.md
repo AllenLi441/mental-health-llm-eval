@@ -21,6 +21,8 @@ A3/B1 候选构成为：PsyDT 4,758 中文（125 行复核标记）、MeChat_smi
 
 先把候选目录复制到独立的 `candidate-not-frozen` 目录，复制前后核对 manifest 的文件列表、大小和 SHA-256，并绑定代码提交。不要把它接入默认训练目录。之后按来源分别补齐：用途许可和 revision、来源组、近重复/benchmark 污染、PII 与专业安全复核、正式 split、实际 tokenizer/chat template/collator 的 token 级 assistant-only mask。只有这些证据对应的导出版本才可以另立 Qwen SFT run。
 
+本轮已经生成完整的本地候选训练包：`artifacts/phase1-a3-provisional-training-20260906-final-v2/`，含 `train.jsonl` 13,702 条、`development.jsonl` 2,332 条，以及带原文的 `quarantine_records.jsonl` 66,367 条和索引。后者包括全部被标记、缺来源组或未通过结构门的记录，便于后续逐条处理；包的 `export_manifest.json` 仍明确 `training_allowed=false`。这是一份**结构完整的待审训练包**，不是已经获得训练授权的成品。
+
 ## 静室能否使用 Qwen 作为核心模型
 
 网站可以继续作为 Qwen 的前端、安全壳和 RAG 层，但当前不能把 Qwen 直接换成线上核心：
