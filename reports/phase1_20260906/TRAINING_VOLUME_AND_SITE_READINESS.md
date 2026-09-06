@@ -23,6 +23,16 @@ A3/B1 候选构成为：PsyDT 4,758 中文（125 行复核标记）、MeChat_smi
 
 本轮已经生成完整的本地候选训练包：`artifacts/phase1-a3-provisional-training-20260906-final-v2/`，含 `train.jsonl` 13,702 条、`development.jsonl` 2,332 条，以及带原文的 `quarantine_records.jsonl` 66,367 条和索引。后者包括全部被标记、缺来源组或未通过结构门的记录，便于后续逐条处理；包的 `export_manifest.json` 仍明确 `training_allowed=false`。这是一份**结构完整的待审训练包**，不是已经获得训练授权的成品。
 
+包可在候选目录重建，命令为：
+
+```bash
+python3 scripts/data/materialize_provisional_training.py \
+  --candidate-root artifacts/phase1-a3-candidate-20260905 \
+  --output artifacts/phase1-a3-provisional-training-YYYYMMDD
+```
+
+脚本要求输出目录不存在，避免覆盖；生成后应以 `export_manifest.json` 的计数、输入/输出 SHA-256 和 `training_allowed` 字段作为交接依据。
+
 ## 静室能否使用 Qwen 作为核心模型
 
 网站可以继续作为 Qwen 的前端、安全壳和 RAG 层，但当前不能把 Qwen 直接换成线上核心：
